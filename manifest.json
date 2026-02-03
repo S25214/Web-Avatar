@@ -1,0 +1,33 @@
+{
+  "VRM": [
+    "Kitagawa.vrm",
+    "sample.vrm"
+  ],
+  "VRMA": [
+    "Angry.vrma",
+    "AngryLoop.vrma",
+    "Blush.vrma",
+    "Clapping.vrma",
+    "Emote_Breakdance_loop.vrma",
+    "Emote_InfiniDab_loop.vrma",
+    "Emote_KpopLoop.vrma",
+    "Emote_OrangeJusticeLoop.vrma",
+    "Goodbye.vrma",
+    "GreetHigh.vrma",
+    "GreetLow.vrma",
+    "HandFan.vrma",
+    "HandOnHip.vrma",
+    "Happy.vrma",
+    "IdleSway.vrma",
+    "Jump.vrma",
+    "LookAround.vrma",
+    "Relax.vrma",
+    "RunLoop.vrma",
+    "Sad.vrma",
+    "Sleepy.vrma",
+    "Surprised.vrma",
+    "Thinking.vrma",
+    "ToothlessLoop.vrma",
+    "WalkLoop.vrma"
+  ]
+}

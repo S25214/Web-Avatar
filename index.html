@@ -94,30 +94,28 @@
     <script type="module">
         import { AvatarWidget } from './avatar-widget.js';
 
-        const fetchAssetList = async (path, extension) => {
+        const fetchAssetList = async (type) => { // type is 'VRM' or 'VRMA'
             try {
-                // Add timestamp to prevent caching of directory listing
-                const response = await fetch(`${path}?t=${Date.now()}`);
-                const text = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'text/html');
-                const links = Array.from(doc.querySelectorAll('a'));
+                // Fetch the manifest file
+                const response = await fetch(`./manifest.json?t=${Date.now()}`);
+                const manifest = await response.json();
 
-                console.log(`Fetching ${path} found ${links.length} links`);
+                if (!manifest[type]) {
+                    console.warn(`No ${type} section found in manifest`);
+                    return [];
+                }
 
-                return links
-                    .map(link => link.getAttribute('href'))
-                    .filter(href => href && href.toLowerCase().endsWith(extension.toLowerCase()))
-                    .map(href => {
-                        let fileName = href.split('/').pop();
-                        fileName = decodeURIComponent(fileName);
-                        return {
-                            name: fileName.replace(extension, ''), // Note: this is case sensitive replacement
-                            path: `${path}${fileName}`
-                        };
-                    });
+                return manifest[type].map(fileName => {
+                    // Remove extension for the display name if needed, or keep it
+                    // The previous logic removed the extension for the name
+                    const extension = type === 'VRM' ? '.vrm' : '.vrma';
+                    return {
+                        name: fileName.replace(new RegExp(extension + '$', 'i'), ''),
+                        path: `./${type}/${fileName}`
+                    };
+                });
             } catch (err) {
-                console.error(`Failed to fetch assets from ${path}:`, err);
+                console.error(`Failed to fetch assets from manifest:`, err);
                 return [];
             }
         };
@@ -153,8 +151,8 @@
         // Wait for DOM to be ready
         window.addEventListener('DOMContentLoaded', async () => {
             // Fetch assets first
-            const vrmAssets = await fetchAssetList('./VRM/', '.vrm');
-            const vrmaAssets = await fetchAssetList('./VRMA/', '.vrma');
+            const vrmAssets = await fetchAssetList('VRM');
+            const vrmaAssets = await fetchAssetList('VRMA');
 
             // Populate dropdowns
             const initialModel = populateSelect('modelSelect', vrmAssets, 'Kitagawa');
