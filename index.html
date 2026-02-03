@@ -197,7 +197,7 @@
 
             // Populate dropdowns
             const initialModel = populateSelect('modelSelect', vrmAssets, 'Kitagawa');
-            const initialAnim = populateSelect('animSelect', vrmaAssets, 'IdleSway');
+            const initialAnim = populateSelect('animSelect', vrmaAssets, 'Idleloop');
 
             // Determine size based on screen width
             const isMobile = window.innerWidth < 600;
@@ -206,23 +206,17 @@
 
             const widget = new AvatarWidget({
                 modelUrl: initialModel || './VRM/Kitagawa.vrm',
-                animationUrl: initialAnim || './VRMA/IdleSway.vrma',
-                defaultAnimationUrl: initialAnim || './VRMA/IdleSway.vrma',
+                animationUrl: initialAnim || './VRMA/Idleloop.vrma',
+                defaultAnimationUrl: initialAnim || './VRMA/Idleloop.vrma',
                 width: widgetWidth,
                 height: widgetHeight,
                 position: 'bottom-right',
                 onAnimationLoaded: (url) => {
                     const animSelect = document.getElementById('animSelect');
                     if (animSelect) {
-                        // Find option that matches the URL
-                        // Note: options values are full paths (e.g. ./VRMA/IdleSway.vrma)
-                        // The url passed back might be relative or absolute depending on how it was loaded,
-                        // but since we pass existing paths back into loadModel/Animation, it should likely match one of the values.
-                        // We can try exact match first.
                         if (animSelect.querySelector(`option[value="${url}"]`)) {
                             animSelect.value = url;
                         }
-                        // Fallback check if full paths differ slightly (e.g. resolve ./ vs no ./)
                         else {
                             for (let i = 0; i < animSelect.options.length; i++) {
                                 if (url.endsWith(animSelect.options[i].value.split('/').pop())) {

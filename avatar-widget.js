@@ -21,6 +21,11 @@ export class AvatarWidget {
         this.currentAction = null; // Track current action for cross-fading
         this.clock = new THREE.Clock();
         this.container = null;
+
+        // Blink state
+        this.blinkEnabled = true;
+        this.blinkAnimating = false;
+        this.blinkTimeout = null;
     }
 
     async init() {
@@ -111,6 +116,9 @@ export class AvatarWidget {
 
             // Initialize mixer immediately for this VRM
             this.mixer = new THREE.AnimationMixer(vrm.scene);
+
+            // Start blinking schedule
+            this.scheduleNextBlink();
 
             // Load animation if provided
             const animToLoad = this.animationUrl || this.defaultAnimationUrl;
@@ -218,6 +226,12 @@ export class AvatarWidget {
             VRMUtils.deepDispose(this.currentVrm.scene);
             this.currentVrm = null;
             this.currentAction = null; // Reset action
+
+            // Clear any pending blink timeout
+            if (this.blinkTimeout) {
+                clearTimeout(this.blinkTimeout);
+                this.blinkTimeout = null;
+            }
         }
 
         this.modelUrl = url;
@@ -238,5 +252,66 @@ export class AvatarWidget {
         if (this.currentVrm && this.currentVrm.expressionManager) {
             this.currentVrm.expressionManager.setValue(name, value);
         }
+    }
+
+    // Blink Logic
+    scheduleNextBlink() {
+        if (!this.blinkEnabled) return;
+
+        const interval = 2000 + Math.random() * 4000; // between 2 and 6 sec
+
+        this.blinkTimeout = setTimeout(() => {
+            const doubleBlinkChance = Math.random() < 0.2; // 20% chance to blink twice in a row
+            this.playBlink({ double: doubleBlinkChance });
+            this.scheduleNextBlink();
+        }, interval);
+    }
+
+    playBlink({ double = false } = {}) {
+        if (!this.blinkEnabled || this.blinkAnimating || !this.currentVrm) return;
+
+        this.blinkAnimating = true;
+
+        const duration = 120 + Math.random() * 80; // ms
+        const start = performance.now();
+
+        const animate = (now) => {
+            const t = Math.min((now - start) / duration, 1);
+
+            let blinkValue;
+            if (t < 0.25) {
+                // fast close
+                blinkValue = t / 0.25;
+            } else {
+                // slow open
+                const k = (t - 0.25) / 0.75;
+                blinkValue = 1 - (k * k);
+            }
+
+            this.setBlink(blinkValue);
+
+            if (t < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                this.setBlink(0);
+
+                if (double) {
+                    // second blink shortly after
+                    setTimeout(() => {
+                        this.blinkAnimating = false;
+                        this.playBlink({ double: false });
+                    }, 80 + Math.random() * 60);
+                } else {
+                    this.blinkAnimating = false;
+                }
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }
+
+    setBlink(value) {
+        if (!this.currentVrm?.expressionManager) return;
+        this.currentVrm.expressionManager.setValue('blink', value);
     }
 }
