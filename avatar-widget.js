@@ -26,6 +26,19 @@ export class AvatarWidget {
         this.blinkEnabled = true;
         this.blinkAnimating = false;
         this.blinkTimeout = null;
+
+        // Audio & Lip-sync
+        this.audioContext = null;
+        this.analyser = null;
+        this.gainNode = null;
+        this.audioElement = null;
+        this.mediaSource = null;
+        this.lipsyncEnabled = true;
+        this.lipsyncSensitivity = 1.0; // Multiplier for lip movement
+        this.smoothedVolume = 0; // For smoothing transitions
+        this.fftSize = 1024;
+        this.bufferLength = 0;
+        this.dataArray = null;
     }
 
     async init() {
@@ -198,6 +211,122 @@ export class AvatarWidget {
         }
     }
 
+    // Audio Implementation
+    _initAudio() {
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.analyser = this.audioContext.createAnalyser();
+            this.analyser.fftSize = this.fftSize;
+            this.bufferLength = this.analyser.frequencyBinCount;
+            this.dataArray = new Uint8Array(this.bufferLength);
+
+            this.gainNode = this.audioContext.createGain();
+            this.gainNode.connect(this.audioContext.destination);
+
+            // Connect analyser to gain (and thus destination), or vice versa depending on where we want to tap
+            // Source -> Analyser -> Gain -> Destination
+            this.analyser.connect(this.gainNode);
+        }
+    }
+
+    async playAudio(source) {
+        this._initAudio();
+
+        // Resume context if suspended (browser autoplay policy)
+        if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+        }
+
+        // Stop existing audio
+        this.stopAudio();
+
+        // Create Audio Element
+        this.audioElement = new Audio();
+
+        // Try with CORS first (required for lip-sync on external URLs)
+        this.audioElement.crossOrigin = "anonymous";
+
+        const onEnded = () => {
+            this.setExpression('a', 0);
+            this.setExpression('i', 0);
+            this.setExpression('u', 0);
+            this.setExpression('e', 0);
+            this.setExpression('o', 0);
+        };
+
+        // Error handling for CORS or other load failures
+        this.audioElement.onerror = (e) => {
+            if (this.audioElement.crossOrigin === "anonymous") {
+                console.warn("Audio failed to load with CORS. Retrying without CORS (Lip-sync will be disabled).");
+                // Retry without CORS
+                this.audioElement = new Audio(); // Recreate to be clean
+                this.audioElement.src = source;
+                this.audioElement.onended = onEnded;
+
+                // We connect to gain for volume control, but skip valid analysis
+                try {
+                    const sourceNode = this.audioContext.createMediaElementSource(this.audioElement);
+                    sourceNode.connect(this.gainNode);
+                    this.mediaSource = sourceNode;
+                } catch (err) {
+                    console.error("Web Audio connection failed on retry:", err);
+                }
+
+                this.audioElement.play().catch(err => console.error("Playback failed on retry:", err));
+            } else {
+                console.error("Audio failed to load even without CORS:", e);
+            }
+        };
+
+        this.audioElement.onended = onEnded;
+
+        // Handle Base64 or URL
+        if (source.startsWith('data:audio') || source.startsWith('http') || source.startsWith('./') || source.startsWith('/')) {
+            this.audioElement.src = source;
+        } else {
+            this.audioElement.src = source;
+        }
+
+        // Connect to Web Audio API
+        try {
+            this.mediaSource = this.audioContext.createMediaElementSource(this.audioElement);
+            this.mediaSource.connect(this.analyser);
+
+            // Play
+            await this.audioElement.play();
+        } catch (e) {
+            console.error("Error playing audio (initial attempt):", e);
+        }
+    }
+
+    stopAudio() {
+        if (this.audioElement) {
+            this.audioElement.pause();
+            this.audioElement.src = "";
+            this.audioElement = null;
+        }
+        // Disconnect media source if exists to prevent memory leaks?
+        // simple disconnect might be enough. 
+        if (this.mediaSource) {
+            this.mediaSource.disconnect();
+            this.mediaSource = null;
+        }
+
+        // Reset mouth
+        this.setExpression('a', 0);
+        this.setExpression('i', 0);
+        this.setExpression('u', 0);
+        this.setExpression('e', 0);
+        this.setExpression('o', 0);
+    }
+
+    setVolume(value) {
+        if (this.gainNode) {
+            // value between 0 and 1
+            this.gainNode.gain.value = Math.max(0, Math.min(1, value));
+        }
+    }
+
     _animate() {
         requestAnimationFrame(() => this._animate());
 
@@ -213,7 +342,94 @@ export class AvatarWidget {
             this.currentVrm.update(deltaTime);
         }
 
+        if (this.lipsyncEnabled) {
+            this._updateLipSync(deltaTime);
+        }
+
         this.renderer.render(this.scene, this.camera);
+    }
+
+    _updateLipSync(deltaTime) {
+        if (!this.analyser || !this.audioElement || this.audioElement.paused) return;
+
+        this.analyser.getByteFrequencyData(this.dataArray);
+
+        // Calculate average volume
+        let sum = 0;
+        const binCount = this.bufferLength;
+        for (let i = 0; i < binCount; i++) {
+            sum += this.dataArray[i];
+        }
+        const average = sum / binCount;
+
+        // Normalize 0-255 to 0-1
+        const volume = Math.min(1, (average / 255) * 2.0 * this.lipsyncSensitivity);
+
+        // Simple smoothing
+        this.smoothedVolume += (volume - this.smoothedVolume) * 0.3;
+
+        // Threshold to avoid jitter when silent
+        if (this.smoothedVolume < 0.01) {
+            this.setExpression('a', 0);
+            this.setExpression('i', 0);
+            this.setExpression('u', 0);
+            this.setExpression('e', 0);
+            this.setExpression('o', 0);
+            return;
+        }
+
+        // Logic for Vowels based on dominant frequencies
+        // Low Freq (Bass) -> O, U
+        // Mid Freq (Mids) -> A
+        // High Freq (Treble) -> I, E
+
+        // Split spectrum into 3 bands roughly
+        const lowBound = Math.floor(binCount * 0.1);
+        const midBound = Math.floor(binCount * 0.4);
+
+        let lowSum = 0, midSum = 0, highSum = 0;
+        for (let i = 0; i < lowBound; i++) lowSum += this.dataArray[i];
+        for (let i = lowBound; i < midBound; i++) midSum += this.dataArray[i];
+        for (let i = midBound; i < binCount; i++) highSum += this.dataArray[i];
+
+        const lowAvg = lowSum / lowBound;
+        const midAvg = midSum / (midBound - lowBound);
+        const highAvg = highSum / (binCount - midBound);
+
+        const total = lowAvg + midAvg + highAvg + 0.001;
+        const lowRatio = lowAvg / total;
+        const midRatio = midAvg / total;
+        const highRatio = highAvg / total;
+
+        // Map ratios to vowels
+        // Scale by smoothed volume so the mouth opens more when loud
+        const intensity = Math.min(1, this.smoothedVolume * 2.5);
+
+        // Reset all first
+        let vA = 0, vI = 0, vU = 0, vE = 0, vO = 0;
+
+        // Dominant band determination
+        if (lowRatio > 0.45) {
+            // Low -> U, O
+            vU = lowRatio * intensity;
+            vO = (lowRatio * 0.5) * intensity;
+        } else if (midRatio > 0.4) {
+            // Mid -> A
+            vA = midRatio * intensity;
+            // Maybe some E
+            vE = (midRatio * 0.2) * intensity;
+        } else {
+            // High -> I, E
+            vI = highRatio * intensity;
+            vE = (highRatio * 0.5) * intensity;
+        }
+
+        // Apply blends
+        this.setExpression('a', vA);
+        this.setExpression('i', vI);
+        this.setExpression('u', vU);
+        this.setExpression('e', vE);
+        this.setExpression('o', vO);
     }
 
     _onResize() {
