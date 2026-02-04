@@ -39,6 +39,7 @@ export class AvatarWidget {
         this.fftSize = 1024;
         this.bufferLength = 0;
         this.dataArray = null;
+        this.volume = 1.0;
     }
 
     async init() {
@@ -243,59 +244,110 @@ export class AvatarWidget {
         // Create Audio Element
         this.audioElement = new Audio();
 
-        // Try with CORS first (required for lip-sync on external URLs)
-        this.audioElement.crossOrigin = "anonymous";
+        let isUrl = false;
+        if ((source.startsWith('http') || source.startsWith('./') || source.startsWith('/')) && !source.startsWith('data:')) {
+            isUrl = true;
+        }
+
+        let playbackSource = source;
+        let isBlob = false;
+
+        // Attempt to fetch remote audio to Blob if it's a URL
+        if (isUrl) {
+            try {
+                console.log("Attempting to fetch audio for local blob playback:", source);
+                const response = await fetch(source);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    playbackSource = URL.createObjectURL(blob);
+                    isBlob = true;
+                    console.log("Audio fetched successfully, playing from Blob:", playbackSource);
+                } else {
+                    console.warn("Fetch failed, falling back to direct URL", response.status);
+                    throw new Error(`Fetch status: ${response.status}`);
+                }
+            } catch (err) {
+                console.warn("Direct fetch failed (CORS likely). Attempting via CORS Proxy...", err);
+                // RETRY WITH PROXY
+                try {
+                    const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(source);
+                    console.log("Fetching via proxy:", proxyUrl);
+                    const proxyResp = await fetch(proxyUrl);
+                    if (proxyResp.ok) {
+                        const blob = await proxyResp.blob();
+                        playbackSource = URL.createObjectURL(blob);
+                        isBlob = true;
+                        console.log("Audio fetched via Proxy!, playing from Blob:", playbackSource);
+                    } else {
+                        console.warn("Proxy fetch failed too.", proxyResp.status);
+                    }
+                } catch (proxyErr) {
+                    console.error("Proxy fetch error:", proxyErr);
+                    // Final fallback to direct URL (already set in playbackSource initial value)
+                    // This will result in silent playback if CORS is blocked.
+                }
+            }
+        } else if (!source.startsWith('data:audio') && !isUrl) {
+            // Assume raw base64, add prefix
+            playbackSource = `data:audio/mp3;base64,${source}`;
+        }
+
+        this.audioElement = new Audio();
+        this.audioElement.src = playbackSource;
+
+        const isLocal = isBlob || source.startsWith('data:') || playbackSource.startsWith('data:');
+
+        if (!isLocal) {
+            this.audioElement.crossOrigin = "anonymous";
+        }
+
+        this.audioElement.volume = this.volume;
 
         const onEnded = () => {
+            console.log("Audio ended");
             this.setExpression('a', 0);
             this.setExpression('i', 0);
             this.setExpression('u', 0);
             this.setExpression('e', 0);
             this.setExpression('o', 0);
-        };
 
-        // Error handling for CORS or other load failures
-        this.audioElement.onerror = (e) => {
-            if (this.audioElement.crossOrigin === "anonymous") {
-                console.warn("Audio failed to load with CORS. Retrying without CORS (Lip-sync will be disabled).");
-                // Retry without CORS
-                this.audioElement = new Audio(); // Recreate to be clean
-                this.audioElement.src = source;
-                this.audioElement.onended = onEnded;
-
-                // We connect to gain for volume control, but skip valid analysis
-                try {
-                    const sourceNode = this.audioContext.createMediaElementSource(this.audioElement);
-                    sourceNode.connect(this.gainNode);
-                    this.mediaSource = sourceNode;
-                } catch (err) {
-                    console.error("Web Audio connection failed on retry:", err);
-                }
-
-                this.audioElement.play().catch(err => console.error("Playback failed on retry:", err));
-            } else {
-                console.error("Audio failed to load even without CORS:", e);
+            if (isBlob) {
+                URL.revokeObjectURL(playbackSource);
             }
         };
-
         this.audioElement.onended = onEnded;
 
-        // Handle Base64 or URL
-        if (source.startsWith('data:audio') || source.startsWith('http') || source.startsWith('./') || source.startsWith('/')) {
-            this.audioElement.src = source;
-        } else {
-            this.audioElement.src = source;
+        this.audioElement.onerror = (e) => {
+            console.error("Audio Load Error:", e, this.audioElement.error);
+
+            // Fallback for failed CORS URL (if direct URL playback failed)
+            if (!isLocal && this.audioElement.crossOrigin === "anonymous") {
+                console.warn("Retrying playback without CORS (Lip-sync disabled)");
+                this.audioElement = new Audio();
+                this.audioElement.src = playbackSource;
+                this.audioElement.volume = this.volume;
+                this.audioElement.onended = onEnded;
+                this.mediaSource = null;
+                this.audioElement.play().catch(err => console.error("Retry playback failed:", err));
+            }
         }
+
 
         // Connect to Web Audio API
         try {
+            // We only create media source if we think it's safe or we want lip sync
+            // For Data URIs it's always safe. For URLs we try with CORS.
+
             this.mediaSource = this.audioContext.createMediaElementSource(this.audioElement);
             this.mediaSource.connect(this.analyser);
 
+            console.log("Web Audio Graph Connected. Source:", isLocal ? "Local/DataURI" : "URL");
+
             // Play
             await this.audioElement.play();
+            console.log("Audio playing...");
         } catch (e) {
-            console.error("Error playing audio (initial attempt):", e);
+            console.error("Error setting up audio/playing:", e);
         }
     }
 
@@ -321,9 +373,15 @@ export class AvatarWidget {
     }
 
     setVolume(value) {
+        // value between 0 and 1
+        this.volume = Math.max(0, Math.min(1, value));
+
         if (this.gainNode) {
-            // value between 0 and 1
-            this.gainNode.gain.value = Math.max(0, Math.min(1, value));
+            this.gainNode.gain.value = this.volume;
+        }
+
+        if (this.audioElement) {
+            this.audioElement.volume = this.volume;
         }
     }
 
@@ -361,6 +419,11 @@ export class AvatarWidget {
             sum += this.dataArray[i];
         }
         const average = sum / binCount;
+
+        // Debug Log (throttled)
+        if (Math.random() < 0.01) {
+            console.log("Lip-sync Avg Vol:", average, "Smoothed:", this.smoothedVolume);
+        }
 
         // Normalize 0-255 to 0-1
         const volume = Math.min(1, (average / 255) * 2.0 * this.lipsyncSensitivity);
@@ -425,11 +488,11 @@ export class AvatarWidget {
         }
 
         // Apply blends
-        this.setExpression('a', vA);
-        this.setExpression('i', vI);
-        this.setExpression('u', vU);
-        this.setExpression('e', vE);
-        this.setExpression('o', vO);
+        this.setExpression('aa', vA);
+        this.setExpression('ih', vI);
+        this.setExpression('ou', vU);
+        this.setExpression('ee', vE);
+        this.setExpression('oh', vO);
     }
 
     _onResize() {
