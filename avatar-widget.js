@@ -13,6 +13,8 @@ export class AvatarWidget {
         this.animationUrl = options.animationUrl || this.defaultAnimationUrl;
         this.onAnimationLoaded = options.onAnimationLoaded || null;
 
+        this.corsProxy = options.corsProxy || "https://cors.didthat.workers.dev/?";
+
         this.scene = null;
         this.camera = null;
         this.renderer = null;
@@ -270,7 +272,7 @@ export class AvatarWidget {
                 console.warn("Direct fetch failed (CORS likely). Attempting via CORS Proxy...", err);
                 // RETRY WITH PROXY
                 try {
-                    const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(source);
+                    const proxyUrl = this.corsProxy + encodeURIComponent(source);
                     console.log("Fetching via proxy:", proxyUrl);
                     const proxyResp = await fetch(proxyUrl);
                     if (proxyResp.ok) {
