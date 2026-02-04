@@ -30,6 +30,8 @@
             this.currentAction = null;
             this.clock = null;
             this.container = null;
+            this.clipCache = new Map();
+            this.isTransitioning = false;
 
             // Blink
             this.blinkEnabled = true;
@@ -253,56 +255,63 @@
 
         async _loadAnimation(url, vrm) {
             try {
-                const loader = new this.GLTFLoader();
-                loader.crossOrigin = 'anonymous';
-                loader.register((parser) => {
-                    return new this.VRMAnimationLoaderPlugin(parser);
-                });
+                let clip = this.clipCache.get(url);
 
-                const gltf = await loader.loadAsync(url);
-                const vrmAnimationData = gltf.userData.vrmAnimations && gltf.userData.vrmAnimations[0];
+                if (!clip) {
+                    const loader = new this.GLTFLoader();
+                    loader.crossOrigin = 'anonymous';
+                    loader.register((parser) => {
+                        return new this.VRMAnimationLoaderPlugin(parser);
+                    });
 
-                if (vrmAnimationData) {
-                    const clip = this.createVRMAnimationClip(vrmAnimationData, vrm);
+                    const gltf = await loader.loadAsync(url);
+                    const vrmAnimationData = gltf.userData.vrmAnimations && gltf.userData.vrmAnimations[0];
 
-                    if (this.mixer) {
-                        const newAction = this.mixer.clipAction(clip);
-                        const fileName = url.split('/').pop().toLowerCase();
-                        const isDefault = url.includes(this.defaultAnimationUrl.split('/').pop());
-                        const shouldLoop = isDefault || fileName.includes('loop');
+                    if (vrmAnimationData) {
+                        clip = this.createVRMAnimationClip(vrmAnimationData, vrm);
+                        this.clipCache.set(url, clip);
+                    }
+                }
 
-                        if (shouldLoop) {
-                            newAction.setLoop(this.THREE.LoopRepeat);
-                            newAction.clampWhenFinished = false;
-                        } else {
-                            newAction.setLoop(this.THREE.LoopOnce);
-                            newAction.clampWhenFinished = true;
-                            const onFinished = (e) => {
-                                if (e.action === newAction) {
-                                    this.mixer.removeEventListener('finished', onFinished);
-                                    // Make sure default animation is also resolved correctly
-                                    this.loadAnimation(this.defaultAnimationUrl);
-                                }
-                            };
-                            this.mixer.addEventListener('finished', onFinished);
-                        }
+                if (clip && this.mixer) {
+                    const newAction = this.mixer.clipAction(clip);
+                    const fileName = url.split('/').pop().toLowerCase();
+                    const isDefault = url.includes(this.defaultAnimationUrl.split('/').pop());
+                    const shouldLoop = isDefault || fileName.includes('loop');
 
-                        newAction.reset();
-                        if (this.currentAction && this.currentAction !== newAction) {
-                            this.currentAction.crossFadeTo(newAction, 0.5);
-                            newAction.play();
-                        } else {
-                            newAction.play();
-                        }
-                        this.currentAction = newAction;
+                    if (shouldLoop) {
+                        newAction.setLoop(this.THREE.LoopRepeat);
+                        newAction.clampWhenFinished = false;
+                    } else {
+                        newAction.setLoop(this.THREE.LoopOnce);
+                        newAction.clampWhenFinished = true;
+                    }
 
-                        if (this.onAnimationLoaded) {
-                            this.onAnimationLoaded(url);
-                        }
+                    // Prepare transition
+                    newAction.reset();
+
+                    if (this.currentAction && this.currentAction !== newAction) {
+                        // 1.0 second blend
+                        this.currentAction.crossFadeTo(newAction, 1.0);
+                        newAction.play();
+                    } else {
+                        newAction.play();
+                    }
+
+                    this.currentAction = newAction;
+
+                    // Reset transitioning flag if we just loaded the default loop (or any loop)
+                    if (shouldLoop) {
+                        this.isTransitioning = false;
+                    }
+
+                    if (this.onAnimationLoaded) {
+                        this.onAnimationLoaded(url);
                     }
                 }
             } catch (e) {
                 console.error("Failed to load animation:", e);
+                this.isTransitioning = false; // Reset on failure so we can try again
             }
         }
 
@@ -431,7 +440,29 @@
         _animate() {
             requestAnimationFrame(() => this._animate());
             const deltaTime = this.clock.getDelta();
-            if (this.mixer) this.mixer.update(deltaTime);
+            if (this.mixer) {
+                this.mixer.update(deltaTime);
+
+                // Check if we need to transition back to default
+                if (this.currentAction && !this.isTransitioning) {
+                    const clip = this.currentAction.getClip();
+                    const isOneShot = this.currentAction.loop === this.THREE.LoopOnce;
+
+                    if (isOneShot && this.currentAction.isRunning()) {
+                        const duration = clip.duration;
+                        const time = this.currentAction.time;
+                        // effectiveTime handles time wrapping, but for LoopOnce, time usually just increases.
+                        // However, we want remaining time.
+                        const remaining = duration - time;
+
+                        if (remaining <= 1.0) {
+                            // Start blending back to default
+                            this.isTransitioning = true;
+                            this.loadAnimation(this.defaultAnimationUrl);
+                        }
+                    }
+                }
+            }
             if (this.currentVrm) this.currentVrm.update(deltaTime);
             if (this.lipsyncEnabled) this._updateLipSync(deltaTime);
             if (this.renderer) this.renderer.render(this.scene, this.camera);
