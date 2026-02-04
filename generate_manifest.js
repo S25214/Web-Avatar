@@ -16,7 +16,7 @@ for (const [dirName, extensions] of Object.entries(config)) {
         manifest[dirName] = files.filter(file => {
             const ext = path.extname(file).toLowerCase();
             return extensions.includes(ext);
-        });
+        }).map(file => path.parse(file).name);
         console.log(`Found ${manifest[dirName].length} files in ${dirName}`);
     } else {
         console.warn(`Directory not found: ${dirName}`);

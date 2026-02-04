@@ -27,6 +27,37 @@
             z-index: 1000;
             /* Ensure toolbar is above everything */
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+            transition: margin-top 0.3s ease-in-out;
+        }
+
+
+
+        #toolbar-notch {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 20px;
+            background: #f0f0f0;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            border: 1px solid #ccc;
+            border-top: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+            font-size: 10px;
+            color: #555;
+            user-select: none;
+        }
+
+        #toolbar-notch:hover {
+            background-color: #e0e0e0;
         }
 
         .toolbar-group {
@@ -105,16 +136,9 @@
             background-color: #fff;
         }
     </style>
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.176.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.176.0/examples/jsm/",
-                "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3/lib/three-vrm.module.min.js",
-                "@pixiv/three-vrm-animation": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm-animation@3/lib/three-vrm-animation.module.min.js"
-            }
-        }
-    </script>
+    <!-- Widget Loader Script (No type="module" so it runs immediately to inject importmap) -->
+    <!-- Simple Script Include -->
+    <script src="./avatar-widget.js"></script>
 </head>
 
 <body>
@@ -130,113 +154,77 @@
         </div>
         <div class="toolbar-group" id="audio-group">
             <input type="text" id="audioInput" placeholder="Audio URL or Base64" style="width: 150px;">
-            <button id="playAudioBtn">Play Audio</button>
+            <button id="playAudioBtn">Play</button>
             <button id="stopAudioBtn">Stop</button>
             <label for="volumeSlider">Vol:</label>
             <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" style="width: 60px;">
         </div>
+        <div id="toolbar-notch" title="Toggle Toolbar">▲</div>
     </div>
 
     <iframe id="siteFrame" src="about:blank"></iframe>
 
-    <script type="module">
-        import { AvatarWidget } from './avatar-widget.js';
-
-        const fetchAssetList = async (type) => { // type is 'VRM' or 'VRMA'
-            try {
-                // Fetch the manifest file
-                const response = await fetch(`./manifest.json?t=${Date.now()}`);
-                const manifest = await response.json();
-
-                if (!manifest[type]) {
-                    console.warn(`No ${type} section found in manifest`);
-                    return [];
-                }
-
-                return manifest[type].map(fileName => {
-                    // Remove extension for the display name if needed, or keep it
-                    // The previous logic removed the extension for the name
-                    const extension = type === 'VRM' ? '.vrm' : '.vrma';
-                    return {
-                        name: fileName.replace(new RegExp(extension + '$', 'i'), ''),
-                        path: `./${type}/${fileName}`
-                    };
-                });
-            } catch (err) {
-                console.error(`Failed to fetch assets from manifest:`, err);
-                return [];
-            }
-        };
-
-        const populateSelect = (selectId, assets, defaultName) => {
-            const select = document.getElementById(selectId);
-            select.innerHTML = '';
-            let defaultValue = null;
-
-            console.log(`Populating ${selectId} with defaults: ${defaultName}`);
-
-            assets.forEach(asset => {
-                const option = document.createElement('option');
-                option.value = asset.path;
-                option.textContent = asset.name;
-                select.appendChild(option);
-
-                // Case-insensitive comparison and trim
-                if (asset.name.toLowerCase().trim() === defaultName.toLowerCase().trim()) {
-                    defaultValue = asset.path;
-                    option.selected = true;
-                    console.log(`Matched default: ${asset.name}`);
-                }
-            });
-
-            if (!defaultValue && assets.length > 0) {
-                console.warn(`Default ${defaultName} not found, falling back to ${assets[0].name}`);
-            }
-
-            return defaultValue || (assets.length > 0 ? assets[0].path : null);
-        };
-
-        // Wait for DOM to be ready
-        window.addEventListener('DOMContentLoaded', async () => {
-            // Fetch assets first
-            const vrmAssets = await fetchAssetList('VRM');
-            const vrmaAssets = await fetchAssetList('VRMA');
-
-            // Populate dropdowns
-            const initialModel = populateSelect('modelSelect', vrmAssets, 'Kitagawa');
-            const initialAnim = populateSelect('animSelect', vrmaAssets, 'Idleloop');
-
+    <script>
+        const initWidget = async () => {
             // Determine size based on screen width
             const isMobile = window.innerWidth < 600;
             const widgetWidth = isMobile ? 200 : 300;
             const widgetHeight = isMobile ? 500 : 700;
 
+            // Initialize Widget first
             const widget = new AvatarWidget({
-                modelUrl: initialModel || './VRM/Kitagawa.vrm',
-                animationUrl: initialAnim || './VRMA/Idleloop.vrma',
-                defaultAnimationUrl: initialAnim || './VRMA/Idleloop.vrma',
+                modelUrl: 'Kitagawa', // Default, resolved by manifest/logic
+                defaultAnimationUrl: 'Idleloop', // Default, resolved by manifest/logic
                 width: widgetWidth,
                 height: widgetHeight,
                 position: 'bottom-right',
                 onAnimationLoaded: (url) => {
                     const animSelect = document.getElementById('animSelect');
                     if (animSelect) {
-                        if (animSelect.querySelector(`option[value="${url}"]`)) {
-                            animSelect.value = url;
-                        }
-                        else {
-                            for (let i = 0; i < animSelect.options.length; i++) {
-                                if (url.endsWith(animSelect.options[i].value.split('/').pop())) {
-                                    animSelect.selectedIndex = i;
-                                    break;
-                                }
+                        // Check exact match or by filename
+                        const filename = url.split('/').pop().toLowerCase();
+                        for (let i = 0; i < animSelect.options.length; i++) {
+                            const optVal = animSelect.options[i].value.toLowerCase();
+                            // If selector has simple names, we check by simple name
+                            if (url.endsWith(optVal) || optVal === filename) {
+                                animSelect.selectedIndex = i;
+                                break;
                             }
                         }
                     }
                 }
             });
 
-            widget.init();
+            // Initialize to load manifest and dependencies
+            await widget.init();
+
+            // Populate Dropdowns from Widget Manifest
+            const populateSelect = (selectId, assets, defaultName) => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '';
+                let defaultValue = null;
+
+                console.log(`Populating ${selectId} with ${assets.length} assets`);
+
+                assets.forEach(fileName => {
+                    const option = document.createElement('option');
+                    option.value = fileName; // Simple filename, e.g. "Blossom.vrm"
+                    option.textContent = fileName.replace(/\.[^/.]+$/, ""); // Remove extension
+                    select.appendChild(option);
+
+                    if (fileName.toLowerCase().includes(defaultName.toLowerCase())) {
+                        defaultValue = fileName;
+                        option.selected = true;
+                    }
+                });
+                return defaultValue || (assets.length > 0 ? assets[0] : null);
+            };
+
+            const models = widget.getModels();
+            const anims = widget.getAnimations();
+
+            populateSelect('modelSelect', models, 'Kitagawa');
+            populateSelect('animSelect', anims, 'Idleloop');
 
             // Expose to window for debugging and future interactions
             window.avatarWidget = widget;
@@ -263,7 +251,7 @@
                     loadSite();
                 }
             });
-            loadBtn.click();
+            // loadBtn.click();
 
             // Model and Animation Switching
             const modelSelect = document.getElementById('modelSelect');
@@ -299,7 +287,46 @@
             volumeSlider.addEventListener('input', (e) => {
                 widget.setVolume(parseFloat(e.target.value));
             });
-        });
+
+            // Toolbar Collapse Logic
+            const toolbar = document.getElementById('toolbar');
+            const notch = document.getElementById('toolbar-notch');
+            let isToolbarCollapsed = false;
+
+            const updateToolbarState = () => {
+                if (isToolbarCollapsed) {
+                    const height = toolbar.offsetHeight;
+                    toolbar.style.marginTop = `-${height}px`;
+                    notch.textContent = '▼';
+                } else {
+                    toolbar.style.marginTop = '0px';
+                    notch.textContent = '▲';
+                }
+            };
+
+            notch.addEventListener('click', () => {
+                isToolbarCollapsed = !isToolbarCollapsed;
+                if (isToolbarCollapsed) {
+                    toolbar.classList.add('collapsed');
+                } else {
+                    toolbar.classList.remove('collapsed');
+                }
+                updateToolbarState();
+            });
+
+            window.addEventListener('resize', () => {
+                if (isToolbarCollapsed) {
+                    updateToolbarState();
+                }
+            });
+        };
+
+        // Wait for DOM to be ready then init
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initWidget);
+        } else {
+            initWidget();
+        }
     </script>
 </body>
 
