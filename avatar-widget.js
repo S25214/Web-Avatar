@@ -36,12 +36,21 @@ export class AvatarWidget {
         this.audioElement = null;
         this.mediaSource = null;
         this.lipsyncEnabled = true;
-        this.lipsyncSensitivity = 1.0; // Multiplier for lip movement
-        this.smoothedVolume = 0; // For smoothing transitions
+        this.lipsyncSensitivity = 1; // Multiplier for lip movement
+        this.smoothedVolume = 1; // For smoothing transitions
         this.fftSize = 1024;
         this.bufferLength = 0;
         this.dataArray = null;
         this.volume = 1.0;
+
+        // Vowel smoothing state
+        this.vowelState = {
+            aa: 0,
+            ih: 0,
+            ou: 0,
+            ee: 0,
+            oh: 0
+        };
     }
 
     async init() {
@@ -272,7 +281,16 @@ export class AvatarWidget {
                 console.warn("Direct fetch failed (CORS likely). Attempting via CORS Proxy...", err);
                 // RETRY WITH PROXY
                 try {
-                    const proxyUrl = this.corsProxy + encodeURIComponent(source);
+                    let proxyUrl = this.corsProxy;
+                    if (proxyUrl.includes('?')) {
+                        if (proxyUrl.endsWith('?')) {
+                            proxyUrl += "url=" + encodeURIComponent(source);
+                        } else {
+                            proxyUrl += "&url=" + encodeURIComponent(source);
+                        }
+                    } else {
+                        proxyUrl += "?url=" + encodeURIComponent(source);
+                    }
                     console.log("Fetching via proxy:", proxyUrl);
                     const proxyResp = await fetch(proxyUrl);
                     if (proxyResp.ok) {
@@ -430,24 +448,24 @@ export class AvatarWidget {
         // Normalize 0-255 to 0-1
         const volume = Math.min(1, (average / 255) * 2.0 * this.lipsyncSensitivity);
 
-        // Simple smoothing
-        this.smoothedVolume += (volume - this.smoothedVolume) * 0.3;
+        // Global volume smoothing (slower attack, faster decay for responsiveness?? or simpler lerp)
+        // Adjust smoothing factor: 0.1 = very smooth, 0.5 = responsive
+        const smoothFactor = 0.2;
+        this.smoothedVolume += (volume - this.smoothedVolume) * smoothFactor;
 
         // Threshold to avoid jitter when silent
         if (this.smoothedVolume < 0.01) {
-            this.setExpression('a', 0);
-            this.setExpression('i', 0);
-            this.setExpression('u', 0);
-            this.setExpression('e', 0);
-            this.setExpression('o', 0);
+            // Decay all vowels to 0
+            this._smoothVowel('aa', 0);
+            this._smoothVowel('ih', 0);
+            this._smoothVowel('ou', 0);
+            this._smoothVowel('ee', 0);
+            this._smoothVowel('oh', 0);
+            this._applyVowels();
             return;
         }
 
-        // Logic for Vowels based on dominant frequencies
-        // Low Freq (Bass) -> O, U
-        // Mid Freq (Mids) -> A
-        // High Freq (Treble) -> I, E
-
+        // --- Improved Frequency Analysis for Vowel Mapping ---
         // Split spectrum into 3 bands roughly
         const lowBound = Math.floor(binCount * 0.1);
         const midBound = Math.floor(binCount * 0.4);
@@ -470,31 +488,45 @@ export class AvatarWidget {
         // Scale by smoothed volume so the mouth opens more when loud
         const intensity = Math.min(1, this.smoothedVolume * 2.5);
 
-        // Reset all first
-        let vA = 0, vI = 0, vU = 0, vE = 0, vO = 0;
+        // Targets for this frame
+        let tAA = 0, tIH = 0, tOU = 0, tEE = 0, tOH = 0;
 
-        // Dominant band determination
-        if (lowRatio > 0.45) {
-            // Low -> U, O
-            vU = lowRatio * intensity;
-            vO = (lowRatio * 0.5) * intensity;
-        } else if (midRatio > 0.4) {
-            // Mid -> A
-            vA = midRatio * intensity;
-            // Maybe some E
-            vE = (midRatio * 0.2) * intensity;
-        } else {
-            // High -> I, E
-            vI = highRatio * intensity;
-            vE = (highRatio * 0.5) * intensity;
-        }
+        // Soft blending instead of hard thresholds
+        // Low -> OU, OH
+        // Mid -> AA
+        // High -> IH, EE
 
-        // Apply blends
-        this.setExpression('aa', vA);
-        this.setExpression('ih', vI);
-        this.setExpression('ou', vU);
-        this.setExpression('ee', vE);
-        this.setExpression('oh', vO);
+        tOU = lowRatio * intensity;
+        tOH = (lowRatio * 0.5) * intensity;
+
+        tAA = midRatio * intensity;
+
+        tIH = highRatio * intensity;
+        tEE = (highRatio * 0.5) * intensity;
+
+        // Smooth individual vowels towards targets
+        this._smoothVowel('aa', tAA);
+        this._smoothVowel('ih', tIH);
+        this._smoothVowel('ou', tOU);
+        this._smoothVowel('ee', tEE);
+        this._smoothVowel('oh', tOH);
+
+        this._applyVowels();
+    }
+
+    _smoothVowel(key, target) {
+        // Independent smoothing for each shape
+        // 0.2 gives a nice organic lag
+        const factor = 0.2;
+        this.vowelState[key] += (target - this.vowelState[key]) * factor;
+    }
+
+    _applyVowels() {
+        this.setExpression('aa', this.vowelState.aa);
+        this.setExpression('ih', this.vowelState.ih);
+        this.setExpression('ou', this.vowelState.ou);
+        this.setExpression('ee', this.vowelState.ee);
+        this.setExpression('oh', this.vowelState.oh);
     }
 
     _onResize() {
