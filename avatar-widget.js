@@ -2,6 +2,9 @@
     // Only define if not already defined
     if (window.AvatarWidget) return;
 
+    // Singleton instance
+    let widgetInstance = null;
+
     class AvatarWidget {
         constructor(options = {}) {
             this.width = options.width || 300;
@@ -32,6 +35,7 @@
             this.container = null;
             this.clipCache = new Map();
             this.isTransitioning = false;
+            this.animationFrameId = null;
 
             // Blink
             this.blinkEnabled = true;
@@ -78,6 +82,11 @@
         }
 
         async init() {
+            // Ensure DOM is ready before creating elements
+            if (document.readyState === 'loading') {
+                await new Promise(resolve => window.addEventListener('DOMContentLoaded', resolve));
+            }
+
             try {
                 // 0. Load Manifest (Parallel with other initial setups if possible, but strictly before model load)
                 await this._loadManifest();
@@ -93,7 +102,7 @@
                 await this._loadModel();
                 this._animate();
 
-                window.addEventListener('resize', () => this._onResize());
+                window.addEventListener('resize', this._onResizeBound = () => this._onResize());
                 console.log("Avatar Widget Initialized");
             } catch (e) {
                 console.error("Avatar Widget Initialization Failed:", e);
@@ -438,7 +447,7 @@
         }
 
         _animate() {
-            requestAnimationFrame(() => this._animate());
+            this.animationFrameId = requestAnimationFrame(() => this._animate());
             const deltaTime = this.clock.getDelta();
             if (this.mixer) {
                 this.mixer.update(deltaTime);
@@ -611,9 +620,111 @@
                 this.currentVrm.expressionManager.setValue('blink', value);
             }
         }
+
+        disconnect() {
+            console.log("Disconnecting Avatar Widget...");
+
+            // 1. Stop Animation Loop
+            if (this.animationFrameId) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.animationFrameId = null;
+            }
+
+            // 2. Stop Audio
+            this.stopAudio();
+            if (this.audioContext) {
+                this.audioContext.close();
+                this.audioContext = null;
+            }
+
+            // 3. Clear Timeouts
+            if (this.blinkTimeout) {
+                clearTimeout(this.blinkTimeout);
+                this.blinkTimeout = null;
+            }
+
+            // 4. Dispose Three.js Resources
+            if (this.scene) {
+                // Dispose VRM
+                if (this.currentVrm) {
+                    this.scene.remove(this.currentVrm.scene);
+                    if (this.VRMUtils) {
+                        this.VRMUtils.deepDispose(this.currentVrm.scene);
+                    }
+                    this.currentVrm = null;
+                }
+
+                // Dispose anything else in Scene
+                while (this.scene.children.length > 0) {
+                    this.scene.remove(this.scene.children[0]);
+                }
+                this.scene = null;
+            }
+
+            if (this.renderer) {
+                this.renderer.dispose();
+                this.renderer.forceContextLoss();
+                this.renderer.domElement = null;
+                this.renderer = null;
+            }
+
+            if (this.mixer) {
+                this.mixer.stopAllAction();
+                this.mixer = null;
+            }
+
+            // 5. Remove DOM Elements
+            if (this.container && this.container.parentNode) {
+                this.container.parentNode.removeChild(this.container);
+                this.container = null;
+            }
+
+            // 6. Remove Event Listeners
+            if (this._onResizeBound) {
+                window.removeEventListener('resize', this._onResizeBound);
+            }
+
+            console.log("Avatar Widget Disconnected");
+        }
     }
 
-    // Expose Global
-    window.AvatarWidget = AvatarWidget;
+    // Expose Global Object
+    window.WebAvatar = {
+        init: (options) => {
+            if (!widgetInstance) {
+                widgetInstance = new AvatarWidget(options);
+                widgetInstance.init();
+            } else {
+                console.warn("WebAvatar is already initialized.");
+            }
+        },
+        loadModel: (url) => {
+            if (widgetInstance) widgetInstance.loadModel(url);
+        },
+        loadAnimation: (url) => {
+            if (widgetInstance) widgetInstance.loadAnimation(url);
+        },
+        playAudio: (source) => {
+            if (widgetInstance) widgetInstance.playAudio(source);
+        },
+        stopAudio: () => {
+            if (widgetInstance) widgetInstance.stopAudio();
+        },
+        setVolume: (value) => {
+            if (widgetInstance) widgetInstance.setVolume(value);
+        },
+        getModels: () => {
+            return widgetInstance ? widgetInstance.getModels() : [];
+        },
+        getAnimations: () => {
+            return widgetInstance ? widgetInstance.getAnimations() : [];
+        },
+        disconnect: () => {
+            if (widgetInstance) {
+                widgetInstance.disconnect();
+                widgetInstance = null;
+            }
+        }
+    };
 
 })();

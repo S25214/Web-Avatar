@@ -158,6 +158,7 @@
             <button id="stopAudioBtn">Stop</button>
             <label for="volumeSlider">Vol:</label>
             <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" style="width: 60px;">
+            <button id="disconnectBtn" style="background-color: #dc3545; margin-left: 10px;">X</button>
         </div>
         <div id="toolbar-notch" title="Toggle Toolbar">▲</div>
     </div>
@@ -171,8 +172,8 @@
             const widgetWidth = isMobile ? 200 : 300;
             const widgetHeight = isMobile ? 500 : 700;
 
-            // Initialize Widget first
-            const widget = new AvatarWidget({
+            // Initialize Widget using the new global API
+            window.WebAvatar.init({
                 modelUrl: 'Kitagawa', // Default, resolved by manifest/logic
                 animationUrl: 'Greeting',
                 defaultAnimationUrl: 'Idleloop', // Default, resolved by manifest/logic
@@ -196,10 +197,13 @@
                 }
             });
 
-            // Initialize to load manifest and dependencies
-            await widget.init();
+            // Populate Dropdowns from Widget Manifest (Needs a small delay purely for this demo as init is async but fire-and-forget)
+            // ideally we'd expose a promise or event, but for now we can poll or just wait a sec.
+            // Actually, let's wait for the widget to likely be ready or just try.
 
-            // Populate Dropdowns from Widget Manifest
+            // Wait a bit for manifest to load (simple hack for demo)
+            await new Promise(r => setTimeout(r, 500));
+
             const populateSelect = (selectId, assets, defaultName) => {
                 const select = document.getElementById(selectId);
                 select.innerHTML = '';
@@ -221,14 +225,12 @@
                 return defaultValue || (assets.length > 0 ? assets[0] : null);
             };
 
-            const models = widget.getModels();
-            const anims = widget.getAnimations();
+            const models = window.WebAvatar.getModels();
+            const anims = window.WebAvatar.getAnimations();
 
             populateSelect('modelSelect', models, 'Kitagawa');
             populateSelect('animSelect', anims, 'Idleloop');
 
-            // Expose to window for debugging and future interactions
-            window.avatarWidget = widget;
 
             // Handle URL loading
             const urlInput = document.getElementById('urlInput');
@@ -259,11 +261,11 @@
             const animSelect = document.getElementById('animSelect');
 
             modelSelect.addEventListener('change', (e) => {
-                widget.loadModel(e.target.value);
+                window.WebAvatar.loadModel(e.target.value);
             });
 
             animSelect.addEventListener('change', (e) => {
-                widget.loadAnimation(e.target.value);
+                window.WebAvatar.loadAnimation(e.target.value);
             });
 
             // Audio Controls
@@ -271,22 +273,27 @@
             const playAudioBtn = document.getElementById('playAudioBtn');
             const stopAudioBtn = document.getElementById('stopAudioBtn');
             const volumeSlider = document.getElementById('volumeSlider');
+            const disconnectBtn = document.getElementById('disconnectBtn');
 
             playAudioBtn.addEventListener('click', () => {
                 const source = audioInput.value.trim();
                 if (source) {
-                    widget.playAudio(source);
+                    window.WebAvatar.playAudio(source);
                 } else {
                     alert('Please enter an Audio URL or Base64 string');
                 }
             });
 
             stopAudioBtn.addEventListener('click', () => {
-                widget.stopAudio();
+                window.WebAvatar.stopAudio();
             });
 
             volumeSlider.addEventListener('input', (e) => {
-                widget.setVolume(parseFloat(e.target.value));
+                window.WebAvatar.setVolume(parseFloat(e.target.value));
+            });
+
+            disconnectBtn.addEventListener('click', () => {
+                window.WebAvatar.disconnect();
             });
 
             // Toolbar Collapse Logic

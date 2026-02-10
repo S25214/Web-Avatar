@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Widget Integration Guide</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            margin-top: 30px;
+            border-bottom: 1px solid #eaeaea;
+            padding-bottom: 5px;
+        }
+
+        code {
+            background-color: #f6f8fa;
+            border-radius: 3px;
+            font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            padding: 2px 5px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            overflow: auto;
+        }
+
+        pre code {
+            padding: 0;
+            background-color: transparent;
+        }
+
+        .parameter-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .parameter-table th,
+        .parameter-table td {
+            border: 1px solid #dfe2e5;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .parameter-table th {
+            background-color: #f6f8fa;
+            font-weight: 600;
+        }
+
+        .method-signature {
+            font-weight: bold;
+            color: #0366d6;
+        }
+
+        .note {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Avatar Widget Integration Guide</h1>
+    <p>This guide explains how to integrate the <code>avatar-widget.js</code> into any existing website. The widget
+        loads a 3D VRM avatar overlay that can speak, animate, and look at the user.</p>
+
+    <h2>1. Include the Script</h2>
+    <p>Add the script tag to your HTML file, preferably in the <code>&lt;head&gt;</code> or just before the closing
+        <code>&lt;/body&gt;</code> tag.
+    </p>
+    <pre><code>&lt;script src="https://webavatar.didthat.cc/avatar-widget.js"&gt;&lt;/script&gt;</code></pre>
+
+    <h2>2. Initialize the Widget</h2>
+    <p>Initialize the widget using the global <code>window.WebAvatar</code> object.</p>
+
+    <pre><code>&lt;script&gt;
+    window.WebAvatar.init({
+        modelUrl: 'Kitagawa',       // Name (if in manifest) or URL
+        defaultAnimationUrl: 'Idleloop', 
+        position: 'bottom-right',   // 'bottom-right', 'bottom-left', etc.
+        width: 300,
+        height: 400
+    });
+&lt;/script&gt;</code></pre>
+
+    <h2>Configuration Options</h2>
+    <table class="parameter-table">
+        <thead>
+            <tr>
+                <th>Option</th>
+                <th>Type</th>
+                <th>Default</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>modelUrl</code></td>
+                <td>String</td>
+                <td><code>'Kitagawa'</code></td>
+                <td>URL or manifest name of the VRM model to load.</td>
+            </tr>
+            <tr>
+                <td><code>defaultAnimationUrl</code></td>
+                <td>String</td>
+                <td><code>'Idleloop'</code></td>
+                <td>The idle animation to loop when no other action is playing.</td>
+            </tr>
+            <tr>
+                <td><code>animationUrl</code></td>
+                <td>String</td>
+                <td>(Same as default)</td>
+                <td>Initial animation to play on load.</td>
+            </tr>
+            <tr>
+                <td><code>width</code></td>
+                <td>Number</td>
+                <td><code>300</code></td>
+                <td>Width of the widget in pixels.</td>
+            </tr>
+            <tr>
+                <td><code>height</code></td>
+                <td>Number</td>
+                <td><code>400</code></td>
+                <td>Height of the widget in pixels.</td>
+            </tr>
+            <tr>
+                <td><code>position</code></td>
+                <td>String</td>
+                <td><code>'bottom-right'</code></td>
+                <td>Corner position: <code>'bottom-right'</code>, <code>'bottom-left'</code>, <code>'top-right'</code>,
+                    <code>'top-left'</code>.
+                </td>
+            </tr>
+            <tr>
+                <td><code>corsProxy</code></td>
+                <td>String</td>
+                <td><code>'https://cors.didthat.workers.dev/?'</code></td>
+                <td>Proxy URL for fetching external audio resources.</td>
+            </tr>
+            <tr>
+                <td><code>onAnimationLoaded</code></td>
+                <td>Function</td>
+                <td><code>null</code></td>
+                <td>Callback function triggered when a new animation finishes loading.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>API Methods</h2>
+    <p>Control the widget using the <code>window.WebAvatar</code> global object.</p>
+
+    <ul>
+        <li>
+            <span class="method-signature">window.WebAvatar.loadModel(url)</span>
+            <p>Switches the avatar to a new VRM model.</p>
+        </li>
+        <li>
+            <span class="method-signature">window.WebAvatar.loadAnimation(url)</span>
+            <p>Plays a specific animation (triggers smooth crossfade).</p>
+        </li>
+        <li>
+            <span class="method-signature">window.WebAvatar.playAudio(source)</span>
+            <p>Plays audio and drives lip-sync. <code>source</code> can be a URL or a Base64 string.</p>
+        </li>
+        <li>
+            <span class="method-signature">window.WebAvatar.stopAudio()</span>
+            <p>Stops playback and resets lip-sync.</p>
+        </li>
+        <li>
+            <span class="method-signature">window.WebAvatar.setVolume(value)</span>
+            <p>Sets volume between <code>0.0</code> and <code>1.0</code>.</p>
+        </li>
+        <li>
+            <span class="method-signature">window.WebAvatar.getModels()</span>
+            <p>Returns an array of available model filenames (requires <code>manifest.json</code>).</p>
+        </li>
+        <li>
+            <span class="method-signature">window.WebAvatar.getAnimations()</span>
+            <p>Returns an array of available animation filenames (requires <code>manifest.json</code>).</p>
+        </li>
+        <li>
+            <span class="method-signature">window.WebAvatar.disconnect()</span>
+            <p>Completely unloads the widget, removes DOM elements, and cleans up resources.</p>
+        </li>
+    </ul>
+
+    <div class="note">
+        <strong>Note for External Assets:</strong>
+        The widget automatically handles external dependencies (Three.js, Pixiv VRM) via an injected import map. You do
+        not need to manually include Three.js.
+    </div>
+
+    <h2>Folder Structure</h2>
+    <p>For the widget to auto-discover assets, ensure your server has the following structure (relative to
+        <code>avatar-widget.js</code>):
+    </p>
+    <pre>
+/
+├── avatar-widget.js
+├── manifest.json (Optional: lists models/anims)
+├── VRM/
+│   ├── Kitagawa.vrm
+│   └── ...
+└── VRMA/
+    ├── Idleloop.vrma
+    └── ...
+    </pre>
+
+</body>
+
+</html>
