@@ -7,12 +7,16 @@
 
     class AvatarWidget {
         constructor(options = {}) {
-            this.width = options.width || 300;
-            this.height = options.height || 400;
+            this.width = options.width || 1000;
+            this.height = options.height || 1000;
             this.position = options.position || 'bottom-right'; // bottom-right, bottom-left
+            this.offsetX = -350 + ((options.offset && options.offset.x) || 0);
+            this.offsetY = -250 + ((options.offset && options.offset.y) || 0);
+            this.border = options.border || false; // Debug border option
             this.modelUrl = options.modelUrl || 'Kitagawa';
             this.defaultAnimationUrl = options.defaultAnimationUrl || 'Idleloop';
-            this.animationUrl = options.animationUrl || this.defaultAnimationUrl;
+            this.cameraTarget = options.cameraTarget || { x: 0, y: 0, z: 0 };
+            this.animationUrl = options.animationUrl || 'Greeting';
             this.onAnimationLoaded = options.onAnimationLoaded || null;
             this.corsProxy = options.corsProxy || "https://cors.didthat.workers.dev/?";
 
@@ -27,6 +31,7 @@
             // Internal State
             this.scene = null;
             this.camera = null;
+            this.defaultCameraTarget = { x: 0, y: 1.5, z: 7 };
             this.renderer = null;
             this.currentVrm = null;
             this.mixer = null;
@@ -101,6 +106,7 @@
                 this._initThree();
                 await this._loadModel();
                 this._animate();
+                this.setCameraPosition(this.cameraTarget.x, this.cameraTarget.y, this.cameraTarget.z);
 
                 window.addEventListener('resize', this._onResizeBound = () => this._onResize());
                 console.log("Avatar Widget Initialized");
@@ -173,14 +179,15 @@
             this.container.id = 'avatar-widget-container';
             Object.assign(this.container.style, {
                 position: 'fixed',
-                top: this.position === 'top-right' || this.position === 'top-left' ? '0px' : 'auto',
-                bottom: this.position === 'bottom-right' || this.position === 'bottom-left' ? '0px' : 'auto',
-                right: this.position === 'top-right' || this.position === 'bottom-right' ? '0px' : 'auto',
-                left: this.position === 'top-left' || this.position === 'bottom-left' ? '0px' : 'auto',
+                top: this.position === 'top-right' || this.position === 'top-left' ? `${this.offsetY}px` : 'auto',
+                bottom: this.position === 'bottom-right' || this.position === 'bottom-left' ? `${this.offsetY}px` : 'auto',
+                right: this.position === 'top-right' || this.position === 'bottom-right' ? `${this.offsetX}px` : 'auto',
+                left: this.position === 'top-left' || this.position === 'bottom-left' ? `${this.offsetX}px` : 'auto',
                 width: `${this.width}px`,
                 height: `${this.height}px`,
                 zIndex: '9999',
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                border: this.border ? '1px solid red' : 'none'
             });
             document.body.appendChild(this.container);
         }
@@ -189,7 +196,7 @@
             this.scene = new this.THREE.Scene();
 
             this.camera = new this.THREE.PerspectiveCamera(30, this.width / this.height, 0.1, 20.0);
-            this.camera.position.set(0.0, 1.0, 4.0);
+            this.camera.position.set(this.defaultCameraTarget.x, this.defaultCameraTarget.y, this.defaultCameraTarget.z);
 
             this.renderer = new this.THREE.WebGLRenderer({ alpha: true, antialias: true });
             this.renderer.setSize(this.width, this.height);
@@ -247,8 +254,8 @@
 
                 this.scene.add(vrm.scene);
                 this.currentVrm = vrm;
-                this.camera.lookAt(0.0, 1.0, 0.0);
                 this.mixer = new this.THREE.AnimationMixer(vrm.scene);
+                this.camera.lookAt(0, 0.8, 0);
 
                 this.scheduleNextBlink();
 
@@ -394,11 +401,11 @@
             this.audioElement.volume = this.volume;
 
             const onEnded = () => {
-                this.setExpression('a', 0);
-                this.setExpression('i', 0);
-                this.setExpression('u', 0);
-                this.setExpression('e', 0);
-                this.setExpression('o', 0);
+                this.setExpression('aa', 0);
+                this.setExpression('ih', 0);
+                this.setExpression('ou', 0);
+                this.setExpression('ee', 0);
+                this.setExpression('oh', 0);
                 if (isBlob) URL.revokeObjectURL(playbackSource);
             };
             this.audioElement.onended = onEnded;
@@ -433,17 +440,24 @@
                 this.mediaSource.disconnect();
                 this.mediaSource = null;
             }
-            this.setExpression('a', 0);
-            this.setExpression('i', 0);
-            this.setExpression('u', 0);
-            this.setExpression('e', 0);
-            this.setExpression('o', 0);
+            this.setExpression('aa', 0);
+            this.setExpression('ih', 0);
+            this.setExpression('ou', 0);
+            this.setExpression('ee', 0);
+            this.setExpression('oh', 0);
         }
 
         setVolume(value) {
             this.volume = Math.max(0, Math.min(1, value));
             if (this.gainNode) this.gainNode.gain.value = this.volume;
             if (this.audioElement) this.audioElement.volume = this.volume;
+        }
+
+        setCameraPosition(x, y, z) {
+            if (this.camera) {
+                this.camera.position.set(this.defaultCameraTarget.x + x, this.defaultCameraTarget.y + y, this.defaultCameraTarget.z + z);
+                this.cameraTarget = { x, y, z };
+            }
         }
 
         _animate() {
@@ -712,6 +726,9 @@
         },
         setVolume: (value) => {
             if (widgetInstance) widgetInstance.setVolume(value);
+        },
+        setCameraPosition: (x, y, z) => {
+            if (widgetInstance) widgetInstance.setCameraPosition(x, y, z);
         },
         getModels: () => {
             return widgetInstance ? widgetInstance.getModels() : [];

@@ -160,6 +160,14 @@
             <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" style="width: 60px;">
             <button id="disconnectBtn" style="background-color: #dc3545; margin-left: 10px;">X</button>
         </div>
+        <div style="font-size: 12px; margin-bottom: 5px; display: flex; gap: 10px; align-items: center;">
+            <label>Cam X: <input type="range" id="camX" min="-3" max="3" step="0.1" value="0"
+                    style="width: 50px;"></label>
+            <label>Cam Y: <input type="range" id="camY" min="-3" max="3" step="0.1" value="0"
+                    style="width: 50px;"></label>
+            <label>Cam Z: <input type="range" id="camZ" min="-3" max="3" step="0.1" value="0"
+                    style="width: 50px;"></label>
+        </div>
         <div id="toolbar-notch" title="Toggle Toolbar">▲</div>
     </div>
 
@@ -167,19 +175,8 @@
 
     <script>
         const initWidget = async () => {
-            // Determine size based on screen width
-            const isMobile = window.innerWidth < 600;
-            const widgetWidth = isMobile ? 200 : 300;
-            const widgetHeight = isMobile ? 500 : 700;
-
             // Initialize Widget using the new global API
             window.WebAvatar.init({
-                modelUrl: 'Kitagawa', // Default, resolved by manifest/logic
-                animationUrl: 'Greeting',
-                defaultAnimationUrl: 'Idleloop', // Default, resolved by manifest/logic
-                width: widgetWidth,
-                height: widgetHeight,
-                position: 'bottom-right',
                 onAnimationLoaded: (url) => {
                     const animSelect = document.getElementById('animSelect');
                     if (animSelect) {
@@ -285,15 +282,26 @@
             });
 
             stopAudioBtn.addEventListener('click', () => {
-                window.WebAvatar.stopAudio();
+                if (window.WebAvatar) window.WebAvatar.stopAudio();
             });
 
+            const updateCamera = () => {
+                const x = parseFloat(document.getElementById('camX').value);
+                const y = parseFloat(document.getElementById('camY').value);
+                const z = parseFloat(document.getElementById('camZ').value);
+                if (window.WebAvatar) window.WebAvatar.setCameraPosition(x, y, z);
+            };
+
+            document.getElementById('camX').addEventListener('input', updateCamera);
+            document.getElementById('camY').addEventListener('input', updateCamera);
+            document.getElementById('camZ').addEventListener('input', updateCamera);
+
             volumeSlider.addEventListener('input', (e) => {
-                window.WebAvatar.setVolume(parseFloat(e.target.value));
+                if (window.WebAvatar) window.WebAvatar.setVolume(parseFloat(e.target.value));
             });
 
             disconnectBtn.addEventListener('click', () => {
-                window.WebAvatar.disconnect();
+                if (window.WebAvatar) window.WebAvatar.disconnect();
             });
 
             // Toolbar Collapse Logic
