@@ -5,6 +5,54 @@
     // Singleton instance
     let widgetInstance = null;
 
+    // Shared State (Module Scope)
+    let manifest = null;
+    let baseUrl = null;
+
+    // --- Helper Functions ---
+
+    function detectBaseUrl() {
+        // Priority 1: document.currentScript (if script is loaded normally)
+        if (document.currentScript && document.currentScript.src) {
+            return document.currentScript.src.substring(0, document.currentScript.src.lastIndexOf('/') + 1);
+        }
+
+        // Priority 2: Try to find the script by filename
+        const scripts = document.getElementsByTagName('script');
+        for (let script of scripts) {
+            if (script.src && script.src.includes('avatar-widget.js')) {
+                return script.src.substring(0, script.src.lastIndexOf('/') + 1);
+            }
+        }
+
+        // Fallback
+        return './';
+    }
+
+    async function loadManifest() {
+        if (manifest) return; // Already loaded
+
+        if (!baseUrl) {
+            baseUrl = detectBaseUrl();
+        }
+
+        try {
+            const manifestUrl = `${baseUrl}manifest.json`;
+            const response = await fetch(manifestUrl);
+            if (response.ok) {
+                manifest = await response.json();
+            } else {
+                console.warn(`Failed to load manifest from ${manifestUrl}. Using fallback/empty asset lists.`);
+                manifest = { VRM: [], VRMA: [] };
+            }
+        } catch (e) {
+            console.warn("Error loading manifest:", e);
+            manifest = { VRM: [], VRMA: [] };
+        }
+    }
+
+    // --- AvatarWidget Class ---
+
     class AvatarWidget {
         constructor(options = {}) {
             this.width = options.width || 1000;
@@ -67,27 +115,10 @@
 
             this.vowelState = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
 
-            // Manifest & Base URL
-            this.manifest = null;
-            this.baseUrl = options.baseUrl || this._detectBaseUrl();
-        }
-
-        _detectBaseUrl() {
-            // Priority 1: document.currentScript (if script is loaded normally)
-            if (document.currentScript && document.currentScript.src) {
-                return document.currentScript.src.substring(0, document.currentScript.src.lastIndexOf('/') + 1);
+            // Initialize baseUrl if not already set (e.g., if preload wasn't called)
+            if (!baseUrl) {
+                baseUrl = options.baseUrl || detectBaseUrl();
             }
-
-            // Priority 2: Try to find the script by filename
-            const scripts = document.getElementsByTagName('script');
-            for (let script of scripts) {
-                if (script.src && script.src.includes('avatar-widget.js')) {
-                    return script.src.substring(0, script.src.lastIndexOf('/') + 1);
-                }
-            }
-
-            // Fallback
-            return './';
         }
 
         async init() {
@@ -97,8 +128,8 @@
             }
 
             try {
-                // 0. Load Manifest (Parallel with other initial setups if possible, but strictly before model load)
-                await this._loadManifest();
+                // 0. Load Manifest (if not already loaded via preload)
+                await loadManifest();
 
                 // 1. Setup Environment (Imports)
                 await this._injectImportMap();
@@ -119,28 +150,13 @@
             }
         }
 
-        async _loadManifest() {
-            try {
-                const manifestUrl = `${this.baseUrl}manifest.json`;
-                const response = await fetch(manifestUrl);
-                if (response.ok) {
-                    this.manifest = await response.json();
-                } else {
-                    console.warn(`Failed to load manifest from ${manifestUrl}. using fallback/empty asset lists.`);
-                    this.manifest = { VRM: [], VRMA: [] };
-                }
-            } catch (e) {
-                console.warn("Error loading manifest:", e);
-                this.manifest = { VRM: [], VRMA: [] };
-            }
-        }
-
+        // Renamed getModels to check shared manifest (instance method mainly for internal use or convenience)
         getModels() {
-            return this.manifest && this.manifest.VRM ? this.manifest.VRM : [];
+            return manifest && manifest.VRM ? manifest.VRM : [];
         }
 
         getAnimations() {
-            return this.manifest && this.manifest.VRMA ? this.manifest.VRMA : [];
+            return manifest && manifest.VRMA ? manifest.VRMA : [];
         }
 
         async _injectImportMap() {
@@ -253,12 +269,12 @@
         async _loadModel() {
             let modelUrl = this.modelUrl;
 
-            // Resolve Model URL from Manifest if it's a simple name
-            if (this.manifest && this.manifest.VRM.includes(modelUrl)) {
-                modelUrl = `${this.baseUrl}VRM/${modelUrl}.vrm`;
+            // Resolve Model URL from Shared Manifest if it's a simple name
+            if (manifest && manifest.VRM.includes(modelUrl)) {
+                modelUrl = `${baseUrl}VRM/${modelUrl}.vrm`;
             } else if (modelUrl && !modelUrl.includes('/') && !modelUrl.startsWith('http') && !modelUrl.startsWith('.')) {
                 // Try to guess even if not in manifest (fallback)
-                modelUrl = `${this.baseUrl}VRM/${modelUrl}`;
+                modelUrl = `${baseUrl}VRM/${modelUrl}`;
             }
 
 
@@ -614,12 +630,12 @@
             if (!this.currentVrm) return;
 
             let animUrl = url;
-            // Resolve Animation URL from Manifest if it's a simple name
-            if (this.manifest && this.manifest.VRMA.includes(animUrl)) {
-                animUrl = `${this.baseUrl}VRMA/${animUrl}.vrma`;
+            // Resolve Animation URL from Shared Manifest if it's a simple name
+            if (manifest && manifest.VRMA.includes(animUrl)) {
+                animUrl = `${baseUrl}VRMA/${animUrl}.vrma`;
             } else if (animUrl && !animUrl.includes('/') && !animUrl.startsWith('http') && !animUrl.startsWith('.')) {
                 // Try to guess even if not in manifest (fallback)
-                animUrl = `${this.baseUrl}VRMA/${animUrl}`;
+                animUrl = `${baseUrl}VRMA/${animUrl}`;
             }
 
             this.animationUrl = animUrl;
@@ -742,6 +758,9 @@
 
     // Expose Global Object
     window.WebAvatar = {
+        preload: async () => {
+            await loadManifest();
+        },
         init: (options) => {
             if (!widgetInstance) {
                 widgetInstance = new AvatarWidget(options);
@@ -769,10 +788,12 @@
             if (widgetInstance) widgetInstance.setCameraPosition(x, y, z);
         },
         getModels: () => {
-            return widgetInstance ? widgetInstance.getModels() : [];
+            // Return from shared manifest
+            return manifest && manifest.VRM ? manifest.VRM : [];
         },
         getAnimations: () => {
-            return widgetInstance ? widgetInstance.getAnimations() : [];
+            // Return from shared manifest
+            return manifest && manifest.VRMA ? manifest.VRMA : [];
         },
         disconnect: () => {
             if (widgetInstance) {
