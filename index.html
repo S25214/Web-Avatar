@@ -196,13 +196,6 @@
                 }
             });
 
-            // Populate Dropdowns from Widget Manifest (Needs a small delay purely for this demo as init is async but fire-and-forget)
-            // ideally we'd expose a promise or event, but for now we can poll or just wait a sec.
-            // Actually, let's wait for the widget to likely be ready or just try.
-
-            // Explicitly preload the manifest before getting models/animations if init() hasn't been called.
-            // await window.WebAvatar.preload();
-
             const populateSelect = (selectId, assets, defaultName) => {
                 const select = document.getElementById(selectId);
                 select.innerHTML = '';
