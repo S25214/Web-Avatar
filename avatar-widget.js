@@ -9,10 +9,14 @@
         constructor(options = {}) {
             this.width = options.width || 1000;
             this.height = options.height || 1000;
-            this.position = options.position || 'bottom-right'; // bottom-right, bottom-left
-            this.offsetX = -350 + ((options.offset && options.offset.x) || 0);
-            this.offsetY = -250 + ((options.offset && options.offset.y) || 0);
-            this.border = options.border || false; // Debug border option
+            this.position = options.position || 'bottom-right';
+            const isCenter = this.position.includes('center');
+            const isCenterMiddle = this.position.startsWith('center');
+            const defaultOffsetX = isCenter ? 0 : -350;
+            const defaultOffsetY = isCenterMiddle ? 0 : -250;
+            this.offsetX = defaultOffsetX + ((options.offset && options.offset.x) || 0);
+            this.offsetY = defaultOffsetY + ((options.offset && options.offset.y) || 0);
+            this.border = options.border || false;
             this.modelUrl = options.modelUrl || 'Kitagawa';
             this.defaultAnimationUrl = options.defaultAnimationUrl || 'Idleloop';
             this.cameraTarget = options.cameraTarget || { x: 0, y: 0, z: 0 };
@@ -177,18 +181,52 @@
         _createContainer() {
             this.container = document.createElement('div');
             this.container.id = 'avatar-widget-container';
-            Object.assign(this.container.style, {
+
+            const style = {
                 position: 'fixed',
-                top: this.position === 'top-right' || this.position === 'top-left' ? `${this.offsetY}px` : 'auto',
-                bottom: this.position === 'bottom-right' || this.position === 'bottom-left' ? `${this.offsetY}px` : 'auto',
-                right: this.position === 'top-right' || this.position === 'bottom-right' ? `${this.offsetX}px` : 'auto',
-                left: this.position === 'top-left' || this.position === 'bottom-left' ? `${this.offsetX}px` : 'auto',
                 width: `${this.width}px`,
                 height: `${this.height}px`,
                 zIndex: '9999',
                 pointerEvents: 'none',
                 border: this.border ? '1px solid red' : 'none'
-            });
+            };
+
+            switch (this.position) {
+                case 'top-left':
+                    style.top = `${this.offsetY}px`;
+                    style.left = `${this.offsetX}px`;
+                    break;
+                case 'top-right':
+                    style.top = `${this.offsetY}px`;
+                    style.right = `${this.offsetX}px`;
+                    break;
+                case 'bottom-left':
+                    style.bottom = `${this.offsetY}px`;
+                    style.left = `${this.offsetX}px`;
+                    break;
+                case 'bottom-center':
+                    style.bottom = `${this.offsetY}px`;
+                    style.left = '50%';
+                    style.transform = `translateX(-50%) translateX(${this.offsetX}px)`;
+                    break;
+                case 'top-center':
+                    style.top = `${this.offsetY}px`;
+                    style.left = '50%';
+                    style.transform = `translateX(-50%) translateX(${this.offsetX}px)`;
+                    break;
+                case 'center':
+                    style.top = '50%';
+                    style.left = '50%';
+                    style.transform = `translate(-50%, -50%) translate(${this.offsetX}px, ${this.offsetY}px)`;
+                    break;
+                case 'bottom-right':
+                default:
+                    style.bottom = `${this.offsetY}px`;
+                    style.right = `${this.offsetX}px`;
+                    break;
+            }
+
+            Object.assign(this.container.style, style);
             document.body.appendChild(this.container);
         }
 
