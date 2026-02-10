@@ -787,12 +787,12 @@
         setCameraPosition: (x, y, z) => {
             if (widgetInstance) widgetInstance.setCameraPosition(x, y, z);
         },
-        getModels: () => {
-            // Return from shared manifest
+        getModels: async () => {
+            if (!manifest) await loadManifest();
             return manifest && manifest.VRM ? manifest.VRM : [];
         },
-        getAnimations: () => {
-            // Return from shared manifest
+        getAnimations: async () => {
+            if (!manifest) await loadManifest();
             return manifest && manifest.VRMA ? manifest.VRMA : [];
         },
         disconnect: () => {

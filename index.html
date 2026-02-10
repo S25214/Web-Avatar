@@ -140,6 +140,7 @@
     <!-- Widget Loader Script (No type="module" so it runs immediately to inject importmap) -->
     <!-- Simple Script Include -->
     <script src="./avatar-widget.js"></script>
+    <!-- <script src="https://webavatar.didthat.cc/avatar-widget.js"></script> -->
 </head>
 
 <body>
@@ -199,8 +200,8 @@
             // ideally we'd expose a promise or event, but for now we can poll or just wait a sec.
             // Actually, let's wait for the widget to likely be ready or just try.
 
-            // Wait a bit for manifest to load (simple hack for demo)
-            await new Promise(r => setTimeout(r, 500));
+            // Explicitly preload the manifest before getting models/animations if init() hasn't been called.
+            // await window.WebAvatar.preload();
 
             const populateSelect = (selectId, assets, defaultName) => {
                 const select = document.getElementById(selectId);
@@ -223,8 +224,10 @@
                 return defaultValue || (assets.length > 0 ? assets[0] : null);
             };
 
-            const models = window.WebAvatar.getModels();
-            const anims = window.WebAvatar.getAnimations();
+            const models = await window.WebAvatar.getModels();
+            console.log("models", models);
+            const anims = await window.WebAvatar.getAnimations();
+            console.log("anims", anims);
 
             populateSelect('modelSelect', models, 'Kitagawa');
             populateSelect('animSelect', anims, 'Idleloop');
