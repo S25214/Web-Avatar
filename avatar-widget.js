@@ -277,6 +277,7 @@
 
         _initThree() {
             this.scene = new this.THREE.Scene();
+            this.gridScene = new this.THREE.Scene();
 
             this.camera = new this.THREE.PerspectiveCamera(30, this.width / this.height, 0.1, 20.0);
             this.camera.position.set(this.defaultCameraPosition.x, this.defaultCameraPosition.y, this.defaultCameraPosition.z);
@@ -304,9 +305,11 @@
             this.transitionStartPos = new this.THREE.Vector3();
 
             this.gridUniforms = {
-                uColor: { value: new this.THREE.Color(0x888888) },
+                uColor: { value: new this.THREE.Color(0xffffff) },
                 uGridSize: { value: 0.3 },
-                uThickness: { value: 0.1 },
+                uThickness: { value: 1.5 },
+                uOutlineThickness: { value: 1.5 },
+                uOutlineColor: { value: new this.THREE.Color(0xcccccc) },
                 uMaskCenter: { value: new this.THREE.Vector2(0, 0) },
                 uMaskRadius: { value: 1.0 },
                 uFade: { value: 1.0 }
@@ -331,6 +334,8 @@
                 uniform vec3 uColor;
                 uniform float uGridSize;
                 uniform float uThickness;
+                uniform float uOutlineThickness;
+                uniform vec3 uOutlineColor;
                 uniform vec2 uMaskCenter;
                 uniform float uMaskRadius;
                 uniform float uFade;
@@ -344,21 +349,28 @@
                     vec2 grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
                     float line = min(grid.x, grid.y);
                     
-                    // Invert: 1.0 at line center, 0.0 outside
+                    // Crisp lines with anti-aliasing over 1 pixel
                     float gridAlpha = 1.0 - min(line, 1.0);
+                    if (uThickness > 1.0) {
+                        gridAlpha = 1.0 - smoothstep(uThickness - 1.0, uThickness, line);
+                    }
+                    
+                    // Outline calculation
+                    float outlineWidth = uThickness + uOutlineThickness;
+                    float outlineAlpha = 1.0 - min(line, 1.0);
+                    if (outlineWidth > 1.0) {
+                        outlineAlpha = 1.0 - smoothstep(outlineWidth - 1.0, outlineWidth, line);
+                    }
                     
                     // Radial Mask Logic
-                    // Calculate distance from center (hip projection on floor)
                     float dist = distance(vWorldPosition.xz, uMaskCenter);
-                    
-                    // Smoothstep for soft edge
-                    // 1.0 inside radius, fading to 0.0 at radius + fade
-                    // Or fading out from center? Usually "radial mask" means visible near center.
-                    // Let's make it visible within radius, fade out at edge.
                     float mask = 1.0 - smoothstep(uMaskRadius - uFade, uMaskRadius, dist);
                     
-                    // Combine
-                    gl_FragColor = vec4(uColor, gridAlpha * mask * 0.5); // 0.5 base opacity
+                    // Combine colors: outline when outside main grid, main color inside
+                    vec3 finalColor = mix(uOutlineColor, uColor, gridAlpha);
+                    float finalAlpha = max(gridAlpha, outlineAlpha) * mask;
+                    
+                    gl_FragColor = vec4(finalColor, finalAlpha);
                     
                     // Discard strictly fully transparent pixels to avoid depth issues if any (though transparent: true handles it)
                     if (gl_FragColor.a < 0.01) discard;
@@ -372,13 +384,14 @@
                 uniforms: this.gridUniforms,
                 transparent: true,
                 side: this.THREE.DoubleSide,
-                // extensions: { derivatives: true } // Standard in WebGL2, usually enabled by default or robustly supported
+                depthWrite: false // Prevent grid from occluding objects drawn later
             });
 
             this.gridMesh = new this.THREE.Mesh(geometry, material);
             this.gridMesh.rotation.x = -Math.PI / 2; // Flat on floor
             this.gridMesh.position.y = 0.005; // Slightly above 0
-            this.scene.add(this.gridMesh);
+            this.gridMesh.renderOrder = -1; // Ensure grid renders before the model
+            this.gridScene.add(this.gridMesh);
         }
 
         async _loadModel() {
@@ -689,7 +702,12 @@
                 this._updateCamera(deltaTime);
             }
             if (this.lipsyncEnabled) this._updateLipSync(deltaTime);
-            if (this.renderer) this.renderer.render(this.scene, this.camera);
+            if (this.renderer) {
+                this.renderer.autoClear = false;
+                this.renderer.clear();
+                this.renderer.render(this.gridScene, this.camera);
+                this.renderer.render(this.scene, this.camera);
+            }
         }
 
         _updateLipSync(deltaTime) {
@@ -1000,6 +1018,13 @@
                     this.scene.remove(this.scene.children[0]);
                 }
                 this.scene = null;
+            }
+
+            if (this.gridScene) {
+                while (this.gridScene.children.length > 0) {
+                    this.gridScene.remove(this.gridScene.children[0]);
+                }
+                this.gridScene = null;
             }
 
             if (this.renderer) {
