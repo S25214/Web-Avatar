@@ -311,8 +311,8 @@
                 uOutlineThickness: { value: 1.5 },
                 uOutlineColor: { value: new this.THREE.Color(0xcccccc) },
                 uMaskCenter: { value: new this.THREE.Vector2(0, 0) },
-                uMaskRadius: { value: 1.0 },
-                uFade: { value: 1.0 }
+                uMaskRadius: { value: 0.8 },
+                uFade: { value: 1.5 }
             };
         }
 
