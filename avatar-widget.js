@@ -61,16 +61,29 @@
             const isCenter = this.position.includes('center');
             const isCenterMiddle = this.position.startsWith('center');
             const defaultOffsetX = isCenter ? 0 : -350;
-            const defaultOffsetY = isCenterMiddle ? 0 : -250;
+            const defaultOffsetY = isCenterMiddle ? -100 : -250;
             this.offsetX = defaultOffsetX + ((options.offset && options.offset.x) || 0);
             this.offsetY = defaultOffsetY + ((options.offset && options.offset.y) || 0);
             this.border = options.border || false;
             this.modelUrl = options.modelUrl || 'Kitagawa';
-            this.defaultAnimationUrl = options.defaultAnimationUrl || 'Idleloop';
-            this.cameraTarget = options.cameraTarget || { x: 0, y: 0, z: 0 };
+
+            // Support multiple default animations
+            const defaultAnim = options.defaultAnimationUrl || ['Idleloop', 'idle_breatheloop', 'Idle_Swayloop', 'Idle_Offensive'];
+            this.defaultAnimationUrls = Array.isArray(defaultAnim) ? defaultAnim : [defaultAnim];
+            this.defaultAnimationUrl = this.defaultAnimationUrls[Math.floor(Math.random() * this.defaultAnimationUrls.length)];
+
+            this.userCameraOffset = options.cameraTarget || { x: 0, y: 0, z: 0 }; // Renamed from cameraTarget to avoid confusion
+            this.cameraLookAtTarget = { x: 0, y: 0.8, z: 0 }; // New: Explicit lookAt target
+
             this.animationUrl = options.animationUrl || 'Greeting';
             this.onAnimationLoaded = options.onAnimationLoaded || null;
             this.corsProxy = options.corsProxy || "https://cors.didthat.workers.dev/?";
+
+            // Random Generic Animation / Idle Switching Settings
+            this.randomGeneric = options.randomGeneric !== false; // Default true
+            this.randomIntervalMin = options.randomIntervalMin || 15;
+            this.randomIntervalMax = options.randomIntervalMax || 30;
+            this.idleBehaviorTimeout = null;
 
             // Dependencies place holder
             this.THREE = null;
@@ -83,7 +96,18 @@
             // Internal State
             this.scene = null;
             this.camera = null;
-            this.defaultCameraTarget = { x: 0, y: 1.5, z: 7 };
+
+            this.defaultCameraPosition = { x: 0, y: 1, z: 7 }; // Tweaked default for better standard view
+            this.cameraYOffset = 0; // Simplified
+            this.cameraFollowSpeed = 1.0; // Default follow speed
+            this.currentLookAt = null; // Track current lookAt for smoothing - Initialized in _initThree
+
+            // Root Motion & Transition State
+            this.crossFadeDuration = 1.0;
+            this.transitionTime = 0;
+            this.transitionStartPos = null;
+            this.isRootMotionTransitioning = false;
+
             this.renderer = null;
             this.currentVrm = null;
             this.mixer = null;
@@ -140,8 +164,13 @@
                 this._createContainer();
                 this._initThree();
                 await this._loadModel();
+                this.initialHipsPos = null; // To track base hip position
+                this._createFloorGrid();
                 this._animate();
-                this.setCameraPosition(this.cameraTarget.x, this.cameraTarget.y, this.cameraTarget.z);
+                // Initial camera set - we don't want to lerp from 0,0,0
+                if (this.camera) {
+                    this._updateCamera(0); // Force initial update
+                }
 
                 window.addEventListener('resize', this._onResizeBound = () => this._onResize());
                 console.log("Avatar Widget Initialized");
@@ -250,7 +279,7 @@
             this.scene = new this.THREE.Scene();
 
             this.camera = new this.THREE.PerspectiveCamera(30, this.width / this.height, 0.1, 20.0);
-            this.camera.position.set(this.defaultCameraTarget.x, this.defaultCameraTarget.y, this.defaultCameraTarget.z);
+            this.camera.position.set(this.defaultCameraPosition.x, this.defaultCameraPosition.y, this.defaultCameraPosition.z);
 
             this.renderer = new this.THREE.WebGLRenderer({ alpha: true, antialias: true });
             this.renderer.setSize(this.width, this.height);
@@ -264,6 +293,92 @@
 
             const ambientLight = new this.THREE.AmbientLight(0xffffff, 1);
             this.scene.add(ambientLight);
+
+            // Create Avatar Group (Wrapper for Root Motion Simulation)
+            this.avatarGroup = new this.THREE.Group();
+            this.scene.add(this.avatarGroup);
+
+            // Temporary Vector for reuse
+            this.tempHipsPos = new this.THREE.Vector3();
+            this.currentLookAt = new this.THREE.Vector3(0, 0.8, 0);
+            this.transitionStartPos = new this.THREE.Vector3();
+
+            this.gridUniforms = {
+                uColor: { value: new this.THREE.Color(0x888888) },
+                uGridSize: { value: 0.3 },
+                uThickness: { value: 0.1 },
+                uMaskCenter: { value: new this.THREE.Vector2(0, 0) },
+                uMaskRadius: { value: 1.0 },
+                uFade: { value: 1.0 }
+            };
+        }
+
+        _createFloorGrid() {
+            // Vertex Shader
+            const vertexShader = `
+                varying vec3 vWorldPosition;
+                void main() {
+                    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPosition.xyz;
+                    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+                }
+            `;
+
+            // Fragment Shader
+            // Simple grid with radial fade
+            const fragmentShader = `
+                varying vec3 vWorldPosition;
+                uniform vec3 uColor;
+                uniform float uGridSize;
+                uniform float uThickness;
+                uniform vec2 uMaskCenter;
+                uniform float uMaskRadius;
+                uniform float uFade;
+
+                void main() {
+                    // Grid Logic (Standard analytical grid)
+                    // Coordinate system based on world position
+                    vec2 coord = vWorldPosition.xz / uGridSize;
+                    
+                    // Derivative-based anti-aliased grid lines
+                    vec2 grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
+                    float line = min(grid.x, grid.y);
+                    
+                    // Invert: 1.0 at line center, 0.0 outside
+                    float gridAlpha = 1.0 - min(line, 1.0);
+                    
+                    // Radial Mask Logic
+                    // Calculate distance from center (hip projection on floor)
+                    float dist = distance(vWorldPosition.xz, uMaskCenter);
+                    
+                    // Smoothstep for soft edge
+                    // 1.0 inside radius, fading to 0.0 at radius + fade
+                    // Or fading out from center? Usually "radial mask" means visible near center.
+                    // Let's make it visible within radius, fade out at edge.
+                    float mask = 1.0 - smoothstep(uMaskRadius - uFade, uMaskRadius, dist);
+                    
+                    // Combine
+                    gl_FragColor = vec4(uColor, gridAlpha * mask * 0.5); // 0.5 base opacity
+                    
+                    // Discard strictly fully transparent pixels to avoid depth issues if any (though transparent: true handles it)
+                    if (gl_FragColor.a < 0.01) discard;
+                }
+            `;
+
+            const geometry = new this.THREE.PlaneGeometry(50, 50);
+            const material = new this.THREE.ShaderMaterial({
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                uniforms: this.gridUniforms,
+                transparent: true,
+                side: this.THREE.DoubleSide,
+                // extensions: { derivatives: true } // Standard in WebGL2, usually enabled by default or robustly supported
+            });
+
+            this.gridMesh = new this.THREE.Mesh(geometry, material);
+            this.gridMesh.rotation.x = -Math.PI / 2; // Flat on floor
+            this.gridMesh.position.y = 0.005; // Slightly above 0
+            this.scene.add(this.gridMesh);
         }
 
         async _loadModel() {
@@ -306,16 +421,17 @@
                     obj.frustumCulled = false;
                 });
 
-                this.scene.add(vrm.scene);
+                this.avatarGroup.add(vrm.scene);
                 this.currentVrm = vrm;
                 this.mixer = new this.THREE.AnimationMixer(vrm.scene);
-                this.camera.lookAt(0, 0.8, 0);
-
                 this.scheduleNextBlink();
 
                 const animToLoad = this.animationUrl || this.defaultAnimationUrl;
                 if (animToLoad) {
                     await this.loadAnimation(animToLoad); // Use public method for resolution
+                } else {
+                    // Try to start idle behavior loop if nothing loaded
+                    this.scheduleNextIdleBehavior();
                 }
 
             } catch (error) {
@@ -346,7 +462,7 @@
                 if (clip && this.mixer) {
                     const newAction = this.mixer.clipAction(clip);
                     const fileName = url.split('/').pop().toLowerCase();
-                    const isDefault = url.includes(this.defaultAnimationUrl.split('/').pop());
+                    const isDefault = this._isDefaultAnimation(url);
                     const shouldLoop = isDefault || fileName.includes('loop');
 
                     if (shouldLoop) {
@@ -362,7 +478,7 @@
 
                     if (this.currentAction && this.currentAction !== newAction) {
                         // 1.0 second blend
-                        this.currentAction.crossFadeTo(newAction, 1.0);
+                        this.currentAction.crossFadeTo(newAction, this.crossFadeDuration);
                         newAction.play();
                     } else {
                         newAction.play();
@@ -508,9 +624,11 @@
         }
 
         setCameraPosition(x, y, z) {
+            // This sets the USER OFFSET, not the absolute position
+            this.userCameraOffset = { x, y, z };
+            // Immediate update not strictly necessary as _animate handles it, but good for responsiveness
             if (this.camera) {
-                this.camera.position.set(this.defaultCameraTarget.x + x, this.defaultCameraTarget.y + y, this.defaultCameraTarget.z + z);
-                this.cameraTarget = { x, y, z };
+                this._updateCamera(0.3);
             }
         }
 
@@ -535,12 +653,41 @@
                         if (remaining <= 1.0) {
                             // Start blending back to default
                             this.isTransitioning = true;
-                            this.loadAnimation(this.defaultAnimationUrl);
+                            // Pick a random default to return to
+                            const nextDefault = this._getRandomDefaultAnimation();
+                            this.loadAnimation(nextDefault);
                         }
                     }
                 }
             }
-            if (this.currentVrm) this.currentVrm.update(deltaTime);
+            if (this.currentVrm) {
+                this.currentVrm.update(deltaTime);
+
+                // Recover local position drift from root motion simulation
+                // Synchronized with crossfade to prevent sliding
+                if (this.isRootMotionTransitioning) {
+                    this.transitionTime += deltaTime;
+                    let alpha = Math.min(this.transitionTime / this.crossFadeDuration, 1.0);
+
+                    // Linear interpolation to match the crossfade weights
+                    // Target is (0,0,0), so we just scale the starting offset
+                    this.currentVrm.scene.position.copy(this.transitionStartPos).multiplyScalar(1.0 - alpha);
+
+                    if (alpha >= 1.0) {
+                        this.isRootMotionTransitioning = false;
+                        this.currentVrm.scene.position.set(0, 0, 0);
+                    }
+                } else if (this.currentVrm.scene.position.lengthSq() > 0.0001) {
+                    // Safety cleanup if we are not transitioning but somehow off-center
+                    // (e.g. if crossfade interrupted or manual position set)
+                    const speed = 2.0;
+                    const currentPos = this.currentVrm.scene.position;
+                    const target = new this.THREE.Vector3(0, 0, 0);
+                    currentPos.lerp(target, 1.0 - Math.exp(-speed * deltaTime));
+                }
+
+                this._updateCamera(deltaTime);
+            }
             if (this.lipsyncEnabled) this._updateLipSync(deltaTime);
             if (this.renderer) this.renderer.render(this.scene, this.camera);
         }
@@ -613,10 +760,15 @@
 
         async loadModel(url) {
             if (this.currentVrm) {
-                this.scene.remove(this.currentVrm.scene);
+                this.avatarGroup.remove(this.currentVrm.scene);
                 this.VRMUtils.deepDispose(this.currentVrm.scene);
+                // Reset Avatar Group Position so new model starts at origin
+                this.avatarGroup.position.set(0, 0, 0);
+                this.avatarGroup.rotation.set(0, 0, 0);
+
                 this.currentVrm = null;
                 this.currentAction = null;
+                this.initialHipsPos = null; // Reset tracking
                 if (this.blinkTimeout) {
                     clearTimeout(this.blinkTimeout);
                     this.blinkTimeout = null;
@@ -627,7 +779,51 @@
         }
 
         async loadAnimation(url) {
+            // Clear any pending idle behavior to "pause" the interval
+            if (this.idleBehaviorTimeout) {
+                clearTimeout(this.idleBehaviorTimeout);
+                this.idleBehaviorTimeout = null;
+            }
+
             if (!this.currentVrm) return;
+
+            // --- Root Motion Simulation Refined ---
+            // Move the avatarGroup (Global Root) to the hips position.
+            // But counter-move the local VRM scene so there is no visual jump.
+            // The local VRM scene then drifts back to 0 over time (in _animate).
+            if (this.currentVrm) {
+                const hips = this.currentVrm.humanoid?.getRawBoneNode('hips');
+                if (hips) {
+                    const hipsWorldPos = new this.THREE.Vector3();
+                    const groupWorldPos = new this.THREE.Vector3();
+
+                    hips.getWorldPosition(hipsWorldPos);
+                    this.avatarGroup.getWorldPosition(groupWorldPos);
+
+                    // Calculate Delta (World Hips - World Group Loop)
+                    // We only care about X and Z for root motion on floor
+                    const deltaX = hipsWorldPos.x - groupWorldPos.x;
+                    const deltaZ = hipsWorldPos.z - groupWorldPos.z;
+
+                    // 1. Move Global Group Forward
+                    this.avatarGroup.position.x += deltaX;
+                    this.avatarGroup.position.z += deltaZ;
+
+                    // 2. Move Local VRM Backward (Counter-act)
+                    this.currentVrm.scene.position.x -= deltaX;
+                    this.currentVrm.scene.position.z -= deltaZ;
+
+                    // Initialize Transition State for _animate to recover
+                    this.transitionStartPos.copy(this.currentVrm.scene.position);
+                    this.transitionTime = 0;
+                    this.isRootMotionTransitioning = true;
+
+                    // Update Matrices
+                    this.avatarGroup.updateMatrixWorld(true);
+                    this.currentVrm.scene.updateMatrixWorld(true);
+                }
+            }
+            // -----------------------------
 
             let animUrl = url;
             // Resolve Animation URL from Shared Manifest if it's a simple name
@@ -640,6 +836,83 @@
 
             this.animationUrl = animUrl;
             await this._loadAnimation(animUrl, this.currentVrm);
+
+            // If we just loaded a default loop, schedule the next idle behavior (generic or switch)
+            if (this._isDefaultAnimation(animUrl)) {
+                // Update current default if it changed (important for state tracking)
+                // We don't strictly *need* to update this.defaultAnimationUrl based on logic above,
+                // but implementation below relies on _isDefaultAnimation check.
+                this.scheduleNextIdleBehavior();
+            }
+        }
+
+        _getRandomDefaultAnimation() {
+            if (!this.defaultAnimationUrls || this.defaultAnimationUrls.length === 0) return 'Idleloop';
+            return this.defaultAnimationUrls[Math.floor(Math.random() * this.defaultAnimationUrls.length)];
+        }
+
+        _isDefaultAnimation(url) {
+            if (!url) return false;
+            // Check against current single default property
+            if (url === this.defaultAnimationUrl || url.includes(this.defaultAnimationUrl.split('/').pop())) return true;
+
+            // Check against the list of possibilities
+            for (const defUrl of this.defaultAnimationUrls) {
+                if (url === defUrl || url.includes(defUrl.split('/').pop())) return true;
+            }
+            return false;
+        }
+
+        scheduleNextIdleBehavior() {
+            if (this.idleBehaviorTimeout) clearTimeout(this.idleBehaviorTimeout);
+
+            // If randomGeneric is OFF and we only have 1 default animation, no scheduling needed (just loop forever)
+            if (!this.randomGeneric && this.defaultAnimationUrls.length <= 1) return;
+
+            const interval = (this.randomIntervalMin * 1000) + Math.random() * ((this.randomIntervalMax - this.randomIntervalMin) * 1000);
+            console.log(`Next idle behavior in ${Math.round(interval / 1000)}s`);
+
+            this.idleBehaviorTimeout = setTimeout(() => {
+                if (this.randomGeneric) {
+                    this.playRandomGenericAnimation();
+                } else {
+                    // RandomGeneric is FALSE, but we have multiple defaults, so switch defaults
+                    this.switchDefaultAnimation();
+                }
+            }, interval);
+        }
+
+        async switchDefaultAnimation() {
+            // Pick a NEW default animation (try to avoid current if possible, but random is okay)
+            let nextAnim = this._getRandomDefaultAnimation();
+            // Simple retry once to avoid same animation if we have > 1
+            if (this.defaultAnimationUrls.length > 1 && (nextAnim === this.defaultAnimationUrl || this.animationUrl.includes(nextAnim))) {
+                nextAnim = this._getRandomDefaultAnimation();
+            }
+
+            console.log(`Switching default animation to: ${nextAnim}`);
+            // This will trigger _loadAnimation -> loop -> scheduleNextIdleBehavior again
+            this.defaultAnimationUrl = nextAnim; // Update current tracker
+            await this.loadAnimation(nextAnim);
+        }
+
+        async playRandomGenericAnimation() {
+            if (!manifest || !manifest.VRMA) return;
+
+            // Filter animations with "Generic" in the name (case-insensitive)
+            const genericAnims = manifest.VRMA.filter(result =>
+                result.toLowerCase().includes('generic')
+            );
+
+            if (genericAnims.length > 0) {
+                const randomAnim = genericAnims[Math.floor(Math.random() * genericAnims.length)];
+                console.log(`Playing random generic animation: ${randomAnim}`);
+                // When this ends, _animate will call getRandomDefaultAnimation() -> loadAnimation -> scheduleNextIdleBehavior
+                await this.loadAnimation(randomAnim);
+            } else {
+                // If no generic animations found, just schedule next check or switch default
+                this.scheduleNextIdleBehavior();
+            }
         }
 
         setExpression(name, value) {
@@ -753,6 +1026,65 @@
             }
 
             console.log("Avatar Widget Disconnected");
+        }
+
+        _updateCamera(deltaTime) {
+            if (!this.camera || !this.currentVrm || !this.currentLookAt) return;
+
+            const hips = this.currentVrm.humanoid?.getRawBoneNode('hips');
+
+            if (hips) {
+                // reused vector
+                hips.getWorldPosition(this.tempHipsPos);
+
+                // 1. Grid Mask Update
+                if (this.gridUniforms) {
+                    this.gridUniforms.uMaskCenter.value.set(this.tempHipsPos.x, this.tempHipsPos.z);
+                }
+
+                // 2. Camera Follow Logic
+                if (!this.initialHipsPos) {
+                    this.initialHipsPos = this.tempHipsPos.clone();
+                }
+
+                const hipDelta = this.tempHipsPos.clone().sub(this.initialHipsPos);
+                // MODIFIED: Use fixed offset for Y instead of following hip movement
+                hipDelta.y = this.cameraYOffset;
+
+                // Base Position (Default + User Offset)
+                const basePos = new this.THREE.Vector3(
+                    this.defaultCameraPosition.x + this.userCameraOffset.x,
+                    this.defaultCameraPosition.y + this.userCameraOffset.y,
+                    this.defaultCameraPosition.z + this.userCameraOffset.z
+                );
+
+                // Target Position = Base + HipDelta
+                const targetPos = basePos.clone().add(hipDelta);
+
+                // Interpolate
+                // Handle instant snap for initialization (deltaTime === 0)
+                const speed = this.cameraFollowSpeed;
+                const lerpFactor = (deltaTime === 0) ? 1.0 : (1.0 - Math.exp(-speed * deltaTime));
+
+                this.camera.position.lerp(targetPos, lerpFactor);
+
+                // Look At Target
+                // We want the camera to look at the "Logical Center" of the avatar.
+                // But we ALSO want to smooth this so the avatar isn't pinned to the center if speed is low.
+                const idealLookAt = new this.THREE.Vector3(
+                    this.cameraLookAtTarget.x + this.userCameraOffset.x,
+                    this.cameraLookAtTarget.y + this.userCameraOffset.y, // cameraYOffset is now handled in hipDelta
+                    this.cameraLookAtTarget.z + this.userCameraOffset.z
+                ).add(hipDelta);
+
+                if (deltaTime === 0) {
+                    this.currentLookAt.copy(idealLookAt);
+                } else {
+                    this.currentLookAt.lerp(idealLookAt, lerpFactor);
+                }
+
+                this.camera.lookAt(this.currentLookAt);
+            }
         }
     }
 
