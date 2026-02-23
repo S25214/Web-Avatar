@@ -130,14 +130,26 @@
             this.audioElement = null;
             this.mediaSource = null;
             this.lipsyncEnabled = true;
-            this.lipsyncSensitivity = 1;
-            this.smoothedVolume = 1;
-            this.fftSize = 1024;
-            this.bufferLength = 0;
-            this.dataArray = null;
             this.volume = 1.0;
 
+            // uLipSync MFCC parameters (matching hecomi/uLipSync exactly)
+            this.targetSampleRate = 16000;      // Downsample to focus on speech range
+            this.sampleCount = 1024;             // Samples after downsampling
+            this.numMelFilters = 30;             // Mel filter bank channels
+            this.numMfccCoeffs = 12;             // MFCC coefficients (c1..c12, skip c0)
+            this.preEmphasis = 0.97;             // Pre-emphasis filter coefficient
+
+            // Lip sync state
             this.vowelState = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
+            this.vowelVelocity = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
+            this.smoothedVolume = 0;
+            this.volumeVelocity = 0;
+            this.smoothness = 0.1;               // SmoothDamp time (seconds)
+            this.mfccInitialized = false;
+            this.timeDomainData = null;
+            this.melFilters = null;
+            this.dctCoeffs = null;
+            this.phonemeProfiles = null;
 
             // Initialize baseUrl if not already set (e.g., if preload wasn't called)
             if (!baseUrl) {
@@ -518,12 +530,27 @@
             if (!this.audioContext) {
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 this.analyser = this.audioContext.createAnalyser();
-                this.analyser.fftSize = this.fftSize;
-                this.bufferLength = this.analyser.frequencyBinCount;
-                this.dataArray = new Uint8Array(this.bufferLength);
+                // We need enough samples for downsampling to targetSampleRate
+                // At 48kHz→16kHz, ratio=3, so we need sampleCount*3 = 3072 → fftSize=4096
+                const ratio = Math.ceil(this.audioContext.sampleRate / this.targetSampleRate);
+                const neededSamples = this.sampleCount * ratio;
+                // Find next power of 2
+                let fftSize = 256;
+                while (fftSize < neededSamples) fftSize *= 2;
+                this.analyser.fftSize = fftSize;
+                this.analyser.smoothingTimeConstant = 0; // No smoothing — we process raw data
+                // Audio chain: mediaSource → analyser → gainNode → destination
+                // Analyser sits BEFORE gainNode, so volume changes don't affect lip sync
                 this.gainNode = this.audioContext.createGain();
+                this.gainNode.gain.value = this.volume;
                 this.gainNode.connect(this.audioContext.destination);
                 this.analyser.connect(this.gainNode);
+
+                // Allocate buffer for time-domain data from analyser
+                this.timeDomainData = new Float32Array(this.analyser.fftSize);
+
+                // Initialize MFCC pipeline
+                this._initMFCC();
             }
         }
 
@@ -581,9 +608,14 @@
             if (!isLocal) {
                 this.audioElement.crossOrigin = "anonymous";
             }
-            this.audioElement.volume = this.volume;
+            // Volume controlled via gainNode only — keeps analyser signal at full amplitude
+            // so lip sync is unaffected by volume settings
 
             const onEnded = () => {
+                this.smoothedVolume = 0;
+                this.volumeVelocity = 0;
+                this.vowelState = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
+                this.vowelVelocity = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
                 this.setExpression('aa', 0);
                 this.setExpression('ih', 0);
                 this.setExpression('ou', 0);
@@ -597,7 +629,6 @@
                 if (!isLocal && this.audioElement.crossOrigin === "anonymous") {
                     this.audioElement = new Audio();
                     this.audioElement.src = playbackSource;
-                    this.audioElement.volume = this.volume;
                     this.audioElement.onended = onEnded;
                     this.mediaSource = null;
                     this.audioElement.play().catch(err => console.error("Retry playback failed:", err));
@@ -623,6 +654,10 @@
                 this.mediaSource.disconnect();
                 this.mediaSource = null;
             }
+            this.smoothedVolume = 0;
+            this.volumeVelocity = 0;
+            this.vowelState = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
+            this.vowelVelocity = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
             this.setExpression('aa', 0);
             this.setExpression('ih', 0);
             this.setExpression('ou', 0);
@@ -632,8 +667,9 @@
 
         setVolume(value) {
             this.volume = Math.max(0, Math.min(1, value));
+            // Only control volume via gainNode (AFTER analyser)
+            // This keeps the analyser signal at full amplitude for lip sync
             if (this.gainNode) this.gainNode.gain.value = this.volume;
-            if (this.audioElement) this.audioElement.volume = this.volume;
         }
 
         setCameraPosition(x, y, z) {
@@ -710,66 +746,447 @@
             }
         }
 
+        // ================================================================
+        // uLipSync MFCC-based Lip Sync (exact match of hecomi/uLipSync)
+        // Pipeline: Audio → Downsample(16kHz) → PreEmphasis(0.97) → Hamming
+        //           → Normalize(1.0) → FFT → MelFilterBank(30ch) → PowerToDb
+        //           → DCT → skip c0 → c1..c12 → L2Norm scoring
+        // ================================================================
+
+        _initMFCC() {
+            const sr = this.targetSampleRate; // 16kHz
+            const N = this.sampleCount;        // 1024 samples at 16kHz
+            const halfN = N / 2;
+
+            // Pre-compute Mel filter bank (operates on spectrum of length N)
+            this.melFilters = this._createMelFilterBank(halfN, sr, this.numMelFilters);
+
+            // Pre-compute DCT cosine coefficients (matches uLipSync Algorithm.cs)
+            // DCT output length = numMelFilters, we take indices 1..12 (skip c0)
+            this.dctCoeffs = this._createDCTCoeffs(this.numMelFilters);
+
+            // Pre-compute Hamming window coefficients
+            this.hammingWindow = new Float32Array(N);
+            for (let i = 0; i < N; i++) {
+                this.hammingWindow[i] = 0.54 - 0.46 * Math.cos(2 * Math.PI * i / (N - 1));
+            }
+
+            // Pre-compute FFT bit-reversal table
+            this._fftBitReverse = this._computeBitReversal(N);
+            // Pre-compute FFT twiddle factors
+            this._fftTwiddleRe = new Float32Array(N / 2);
+            this._fftTwiddleIm = new Float32Array(N / 2);
+            for (let i = 0; i < N / 2; i++) {
+                const angle = -2 * Math.PI * i / N;
+                this._fftTwiddleRe[i] = Math.cos(angle);
+                this._fftTwiddleIm[i] = Math.sin(angle);
+            }
+
+            // Allocate reusable buffers for the MFCC pipeline
+            this._downsampled = new Float32Array(N);
+            this._fftRe = new Float32Array(N);
+            this._fftIm = new Float32Array(N);
+            this._spectrum = new Float32Array(halfN);
+            this._melSpectrum = new Float32Array(this.numMelFilters);
+            this._melCepstrum = new Float32Array(this.numMelFilters);
+            this._liveMFCC = new Float32Array(this.numMfccCoeffs);
+
+            // Generate reference MFCC profiles for each vowel at 16kHz
+            // using known formant frequencies from acoustic phonetics
+            const vowelFormants = {
+                aa: { f: [800, 1200, 2800], bw: [90, 110, 150] },   // /a/ open
+                ih: { f: [270, 2300, 3000], bw: [60, 100, 120] },   // /i/ front close
+                ou: { f: [300, 870, 2250], bw: [50, 70, 110] },    // /u/ back rounded
+                ee: { f: [500, 1800, 2600], bw: [70, 90, 120] },    // /e/ front mid
+                oh: { f: [450, 800, 2830], bw: [70, 80, 130] },    // /o/ back mid
+            };
+
+            this.phonemeProfiles = {};
+            for (const [name, { f, bw }] of Object.entries(vowelFormants)) {
+                // Generate synthetic magnitude spectrum at 16kHz
+                const spectrum = this._generateFormantSpectrum(f, bw, halfN, sr);
+                // Run through mel → dB → DCT → skip c0 pipeline
+                this.phonemeProfiles[name] = this._spectrumToMFCC(spectrum);
+            }
+
+            this.mfccInitialized = true;
+        }
+
+        // ---- Mel Filter Bank (matches uLipSync Algorithm.MelFilterBank) ----
+        _createMelFilterBank(spectrumLen, sampleRate, numFilters) {
+            const fMax = sampleRate / 2;
+            const melMax = this._hzToMel(fMax);
+            const df = fMax / spectrumLen;
+            const dMel = melMax / (numFilters + 1);
+
+            const filters = [];
+            for (let n = 0; n < numFilters; n++) {
+                const melBegin = dMel * n;
+                const melCenter = dMel * (n + 1);
+                const melEnd = dMel * (n + 2);
+                const fBegin = this._melToHz(melBegin);
+                const fCenter = this._melToHz(melCenter);
+                const fEnd = this._melToHz(melEnd);
+                const iBegin = Math.ceil(fBegin / df);
+                const iCenter = Math.round(fCenter / df);
+                const iEnd = Math.floor(fEnd / df);
+                filters.push({ iBegin, iCenter, iEnd, fBegin, fCenter, fEnd, df });
+            }
+            return filters;
+        }
+
+        // ---- DCT coefficients (matches uLipSync Algorithm.DCT) ----
+        _createDCTCoeffs(len) {
+            // DCT-II: cepstrum[i] = Σ spectrum[j] * cos((j+0.5)*i*π/len)
+            // We compute for all i in [0..len-1], then use indices 1..12
+            const a = Math.PI / len;
+            const coeffs = [];
+            for (let i = 0; i < len; i++) {
+                const row = new Float32Array(len);
+                for (let j = 0; j < len; j++) {
+                    row[j] = Math.cos((j + 0.5) * i * a);
+                }
+                coeffs.push(row);
+            }
+            return coeffs;
+        }
+
+        _hzToMel(hz) {
+            return 1127 * Math.log(1 + hz / 700);
+        }
+
+        _melToHz(mel) {
+            return 700 * (Math.exp(mel / 1127) - 1);
+        }
+
+        // ---- Generate synthetic spectrum from formant frequencies ----
+        _generateFormantSpectrum(formants, bandwidths, spectrumLen, sampleRate) {
+            const spectrum = new Float32Array(spectrumLen);
+            const binHz = (sampleRate / 2) / spectrumLen;
+            for (let i = 0; i < spectrumLen; i++) {
+                const f = i * binHz;
+                let energy = 0.001;
+                for (let j = 0; j < formants.length; j++) {
+                    const diff = (f - formants[j]) / bandwidths[j];
+                    energy += (1.0 / (j + 1)) * Math.exp(-0.5 * diff * diff);
+                }
+                spectrum[i] = energy;
+            }
+            return spectrum;
+        }
+
+        // ---- Apply Mel Filter Bank (matches uLipSync exactly) ----
+        _applyMelFilterBank(spectrum, output) {
+            for (let n = 0; n < this.numMelFilters; n++) {
+                const f = this.melFilters[n];
+                let sum = 0;
+                for (let i = f.iBegin + 1; i <= f.iEnd; i++) {
+                    if (i >= spectrum.length) break;
+                    const freq = f.df * i;
+                    let a;
+                    if (i < f.iCenter) {
+                        a = (freq - f.fBegin) / (f.fCenter - f.fBegin);
+                    } else {
+                        a = (f.fEnd - freq) / (f.fEnd - f.fCenter);
+                    }
+                    a /= (f.fEnd - f.fBegin) * 0.5;
+                    sum += a * spectrum[i];
+                }
+                output[n] = sum;
+            }
+        }
+
+        // ---- PowerToDb (matches uLipSync Algorithm.PowerToDb) ----
+        _powerToDb(arr) {
+            for (let i = 0; i < arr.length; i++) {
+                arr[i] = 10 * Math.log10(Math.max(arr[i], 1e-10));
+            }
+        }
+
+        // ---- DCT: mel spectrum → cepstrum (matches uLipSync) ----
+        _dct(input, output) {
+            const len = input.length;
+            for (let i = 0; i < len; i++) {
+                let sum = 0;
+                const row = this.dctCoeffs[i];
+                for (let j = 0; j < len; j++) {
+                    sum += input[j] * row[j];
+                }
+                output[i] = sum;
+            }
+        }
+
+        // ---- Spectrum → MFCC (for both reference profiles and live audio) ----
+        _spectrumToMFCC(spectrum) {
+            // Apply mel filter bank
+            this._applyMelFilterBank(spectrum, this._melSpectrum);
+            // Power to dB
+            const melDb = new Float32Array(this._melSpectrum);
+            this._powerToDb(melDb);
+            // DCT
+            const cepstrum = new Float32Array(this.numMelFilters);
+            this._dct(melDb, cepstrum);
+            // Skip c0 (energy), take c1..c12 — this is what uLipSync does
+            const mfcc = new Float32Array(this.numMfccCoeffs);
+            for (let i = 0; i < this.numMfccCoeffs; i++) {
+                mfcc[i] = cepstrum[i + 1];
+            }
+            return mfcc;
+        }
+
+        // ---- In-place FFT (iterative radix-2 Cooley-Tukey) ----
+        _computeBitReversal(N) {
+            const bits = Math.log2(N);
+            const table = new Uint32Array(N);
+            for (let i = 0; i < N; i++) {
+                let reversed = 0;
+                let x = i;
+                for (let b = 0; b < bits; b++) {
+                    reversed = (reversed << 1) | (x & 1);
+                    x >>= 1;
+                }
+                table[i] = reversed;
+            }
+            return table;
+        }
+
+        _fft(re, im, N) {
+            // Bit-reversal permutation
+            const rev = this._fftBitReverse;
+            for (let i = 0; i < N; i++) {
+                if (rev[i] > i) {
+                    let tmp = re[i]; re[i] = re[rev[i]]; re[rev[i]] = tmp;
+                    tmp = im[i]; im[i] = im[rev[i]]; im[rev[i]] = tmp;
+                }
+            }
+            // Iterative butterfly
+            for (let size = 2; size <= N; size *= 2) {
+                const halfSize = size / 2;
+                const step = N / size;
+                for (let i = 0; i < N; i += size) {
+                    for (let j = 0; j < halfSize; j++) {
+                        const twIdx = j * step;
+                        const tRe = this._fftTwiddleRe[twIdx] * re[i + j + halfSize]
+                            - this._fftTwiddleIm[twIdx] * im[i + j + halfSize];
+                        const tIm = this._fftTwiddleRe[twIdx] * im[i + j + halfSize]
+                            + this._fftTwiddleIm[twIdx] * re[i + j + halfSize];
+                        re[i + j + halfSize] = re[i + j] - tRe;
+                        im[i + j + halfSize] = im[i + j] - tIm;
+                        re[i + j] += tRe;
+                        im[i + j] += tIm;
+                    }
+                }
+            }
+        }
+
+        // ---- Downsample (matches uLipSync Algorithm.DownSample) ----
+        _downsample(input, output, inputRate, outputRate) {
+            const outputLen = output.length;
+            if (inputRate <= outputRate) {
+                // No downsampling needed
+                for (let i = 0; i < outputLen && i < input.length; i++) {
+                    output[i] = input[i];
+                }
+            } else if (inputRate % outputRate === 0) {
+                // Integer ratio: simple decimation
+                const skip = inputRate / outputRate;
+                for (let i = 0; i < outputLen; i++) {
+                    output[i] = input[i * skip] || 0;
+                }
+            } else {
+                // Non-integer ratio: linear interpolation
+                const df = inputRate / outputRate;
+                for (let j = 0; j < outputLen; j++) {
+                    const fIndex = df * j;
+                    const i0 = Math.floor(fIndex);
+                    const i1 = Math.min(i0 + 1, input.length - 1);
+                    const t = fIndex - i0;
+                    output[j] = input[i0] * (1 - t) + input[i1] * t;
+                }
+            }
+        }
+
+        // ---- Full uLipSync pipeline on live audio ----
+        _computeLiveMFCC() {
+            // Get raw time-domain data (unaffected by volume — analyser is before gainNode)
+            this.analyser.getFloatTimeDomainData(this.timeDomainData);
+
+            // Check for silence via RMS volume (matches uLipSync GetRMSVolume)
+            let sumSq = 0;
+            for (let i = 0; i < this.timeDomainData.length; i++) {
+                sumSq += this.timeDomainData[i] * this.timeDomainData[i];
+            }
+            this._rmsVolume = Math.sqrt(sumSq / this.timeDomainData.length);
+            if (this._rmsVolume < 0.001) return null; // Silence
+
+            // Step 1: Downsample to 16kHz
+            const inputRate = this.audioContext.sampleRate;
+            this._downsample(this.timeDomainData, this._downsampled, inputRate, this.targetSampleRate);
+
+            // Step 2: Pre-emphasis (matches uLipSync Algorithm.PreEmphasis)
+            const data = this._downsampled;
+            const N = this.sampleCount;
+            for (let i = N - 1; i >= 1; i--) {
+                data[i] = data[i] - this.preEmphasis * data[i - 1];
+            }
+
+            // Step 3: Hamming window
+            for (let i = 0; i < N; i++) {
+                data[i] *= this.hammingWindow[i];
+            }
+
+            // Step 4: Normalize to 1.0 (volume-independent!)
+            let maxVal = 0;
+            for (let i = 0; i < N; i++) {
+                const abs = Math.abs(data[i]);
+                if (abs > maxVal) maxVal = abs;
+            }
+            if (maxVal > 1e-6) {
+                const scale = 1.0 / maxVal;
+                for (let i = 0; i < N; i++) {
+                    data[i] *= scale;
+                }
+            }
+
+            // Step 5: FFT
+            const re = this._fftRe;
+            const im = this._fftIm;
+            for (let i = 0; i < N; i++) {
+                re[i] = data[i];
+                im[i] = 0;
+            }
+            this._fft(re, im, N);
+
+            // Compute magnitude spectrum (first half only)
+            const halfN = N / 2;
+            for (let i = 0; i < halfN; i++) {
+                this._spectrum[i] = Math.sqrt(re[i] * re[i] + im[i] * im[i]);
+            }
+
+            // Step 6: Mel filter bank → PowerToDb → DCT → skip c0
+            return this._spectrumToMFCC(this._spectrum);
+        }
+
+        // ---- L2 Norm scoring (matches uLipSync LipSyncJob.CalcL2NormScore) ----
+        _calcL2Score(liveMFCC, profileMFCC) {
+            const n = liveMFCC.length;
+            let distance = 0;
+            for (let i = 0; i < n; i++) {
+                const diff = liveMFCC[i] - profileMFCC[i];
+                distance += diff * diff;
+            }
+            distance = Math.sqrt(distance / n);
+            // Convert distance to score: closer = higher (matches uLipSync)
+            return Math.pow(10, -distance);
+        }
+
+        // ---- SmoothDamp (matches Unity Mathf.SmoothDamp — critically damped spring) ----
+        _smoothDamp(current, target, velocityObj, key, smoothTime, deltaTime) {
+            smoothTime = Math.max(0.0001, smoothTime);
+            const omega = 2.0 / smoothTime;
+            const x = omega * deltaTime;
+            // Padé approximation of exp(-x)
+            const exp = 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x);
+            const change = current - target;
+            const temp = (velocityObj[key] + omega * change) * deltaTime;
+            velocityObj[key] = (velocityObj[key] - omega * temp) * exp;
+            let output = target + (change + temp) * exp;
+            // Prevent overshoot
+            if ((target - current > 0) === (output > target)) {
+                output = target;
+                velocityObj[key] = 0;
+            }
+            return output;
+        }
+
         _updateLipSync(deltaTime) {
-            if (!this.analyser || !this.audioElement || this.audioElement.paused) return;
-            this.analyser.getByteFrequencyData(this.dataArray);
+            const phonemes = ['aa', 'ih', 'ou', 'ee', 'oh'];
 
-            let sum = 0;
-            const binCount = this.bufferLength;
-            for (let i = 0; i < binCount; i++) sum += this.dataArray[i];
-            const average = sum / binCount;
-
-            const volume = Math.min(1, (average / 255) * 2.0 * this.lipsyncSensitivity);
-            const smoothFactor = 0.2;
-            this.smoothedVolume += (volume - this.smoothedVolume) * smoothFactor;
-
-            if (this.smoothedVolume < 0.01) {
-                this._smoothVowel('aa', 0);
-                this._smoothVowel('ih', 0);
-                this._smoothVowel('ou', 0);
-                this._smoothVowel('ee', 0);
-                this._smoothVowel('oh', 0);
+            if (!this.analyser || !this.mfccInitialized || !this.audioElement || this.audioElement.paused) {
+                // When audio stops, smoothly close mouth
+                for (const p of phonemes) {
+                    this.vowelState[p] = this._smoothDamp(
+                        this.vowelState[p], 0, this.vowelVelocity, p, this.smoothness, deltaTime
+                    );
+                    if (this.vowelState[p] < 0.005) this.vowelState[p] = 0;
+                }
                 this._applyVowels();
                 return;
             }
 
-            const lowBound = Math.floor(binCount * 0.1);
-            const midBound = Math.floor(binCount * 0.4);
-            let lowSum = 0, midSum = 0, highSum = 0;
-            for (let i = 0; i < lowBound; i++) lowSum += this.dataArray[i];
-            for (let i = lowBound; i < midBound; i++) midSum += this.dataArray[i];
-            for (let i = midBound; i < binCount; i++) highSum += this.dataArray[i];
+            // ============================
+            // STAGE 1: Compute MFCC from preprocessed audio
+            // ============================
+            const liveMFCC = this._computeLiveMFCC();
 
-            const lowAvg = lowSum / lowBound;
-            const midAvg = midSum / (midBound - lowBound);
-            const highAvg = highSum / (binCount - midBound);
-            const total = lowAvg + midAvg + highAvg + 0.001;
+            if (!liveMFCC) {
+                // Silence — close mouth
+                this.smoothedVolume = this._smoothDamp(
+                    this.smoothedVolume, 0, this, 'volumeVelocity', this.smoothness, deltaTime
+                );
+                for (const p of phonemes) {
+                    this.vowelState[p] = this._smoothDamp(
+                        this.vowelState[p], 0, this.vowelVelocity, p, this.smoothness, deltaTime
+                    );
+                    if (this.vowelState[p] < 0.005) this.vowelState[p] = 0;
+                }
+                this._applyVowels();
+                return;
+            }
 
-            const intensity = Math.min(1, this.smoothedVolume * 2.5);
-            const tOU = (lowAvg / total) * intensity;
-            const tOH = ((lowAvg / total) * 0.5) * intensity;
-            const tAA = (midAvg / total) * intensity;
-            const tIH = (highAvg / total) * intensity;
-            const tEE = ((highAvg / total) * 0.5) * intensity;
+            // ============================
+            // STAGE 2: Volume (matches uLipSync BlendShape volume processing)
+            // ============================
+            // Normalize RMS volume using log scale (uLipSync uses Log10)
+            const minVol = -2.5;  // uLipSync default
+            const maxVol = -1.5;  // uLipSync default
+            let normVol = Math.log10(Math.max(this._rmsVolume, 1e-10));
+            normVol = (normVol - minVol) / Math.max(maxVol - minVol, 1e-4);
+            normVol = Math.max(0, Math.min(1, normVol));
 
-            this._smoothVowel('aa', tAA);
-            this._smoothVowel('ih', tIH);
-            this._smoothVowel('ou', tOU);
-            this._smoothVowel('ee', tEE);
-            this._smoothVowel('oh', tOH);
-            this._applyVowels();
+            this.smoothedVolume = this._smoothDamp(
+                this.smoothedVolume, normVol, this, 'volumeVelocity', this.smoothness, deltaTime
+            );
+
+            // ============================
+            // STAGE 3: Phoneme scoring (L2 Norm — matches uLipSync)
+            // ============================
+            const scores = phonemes.map(p => this._calcL2Score(liveMFCC, this.phonemeProfiles[p]));
+
+            // Normalize scores to ratios (matches uLipSync CalcScores)
+            const scoreSum = scores.reduce((a, b) => a + b, 0);
+            const ratios = scores.map(s => scoreSum > 0 ? s / scoreSum : 0);
+
+            // ============================
+            // STAGE 4: Apply blend shapes (matches uLipSync BlendShape)
+            // ============================
+            // SmoothDamp each vowel weight, then normalize so they sum to 1
+            let weightSum = 0;
+            for (let i = 0; i < phonemes.length; i++) {
+                const p = phonemes[i];
+                this.vowelState[p] = this._smoothDamp(
+                    this.vowelState[p], ratios[i], this.vowelVelocity, p, this.smoothness, deltaTime
+                );
+                weightSum += this.vowelState[p];
+            }
+
+            // Normalize weights (matches uLipSync BlendShape.UpdateVowels)
+            if (weightSum > 0) {
+                for (const p of phonemes) {
+                    this.vowelState[p] /= weightSum;
+                }
+            }
+
+            // Apply with volume scaling (matches uLipSync: weight * volume * maxWeight)
+            this._applyVowels(this.smoothedVolume);
         }
 
-        _smoothVowel(key, target) {
-            this.vowelState[key] += (target - this.vowelState[key]) * 0.2;
-        }
-
-        _applyVowels() {
-            this.setExpression('aa', this.vowelState.aa);
-            this.setExpression('ih', this.vowelState.ih);
-            this.setExpression('ou', this.vowelState.ou);
-            this.setExpression('ee', this.vowelState.ee);
-            this.setExpression('oh', this.vowelState.oh);
+        _applyVowels(volume = 1.0) {
+            this.setExpression('aa', this.vowelState.aa * volume);
+            this.setExpression('ih', this.vowelState.ih * volume);
+            this.setExpression('ou', this.vowelState.ou * volume);
+            this.setExpression('ee', this.vowelState.ee * volume);
+            this.setExpression('oh', this.vowelState.oh * volume);
         }
 
         _onResize() {

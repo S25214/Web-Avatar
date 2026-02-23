@@ -96,11 +96,8 @@
 
     <pre><code>&lt;script&gt;
     window.WebAvatar.init({
-        modelUrl: 'Kitagawa',       // Name (if in manifest) or URL
-        defaultAnimationUrl: 'Idleloop', 
-        position: 'bottom-right',   // 'bottom-right', 'bottom-left', etc.
-        width: 300,
-        height: 400
+        modelUrl: 'Botnoi',
+        defaultAnimationUrl: 'Idleloop',
     });
 &lt;/script&gt;</code></pre>
 
@@ -123,47 +120,68 @@
             </tr>
             <tr>
                 <td><code>defaultAnimationUrl</code></td>
-                <td>String</td>
-                <td><code>'Idleloop'</code></td>
-                <td>The idle animation to loop when no other action is playing.</td>
+                <td>String | Array</td>
+                <td><code>['Idleloop', 'idle_breatheloop', 'Idle_Swayloop', 'Idle_Offensive']</code></td>
+                <td>The idle animation(s) to loop when no other action is playing. Can be a single URL or an array of
+                    URLs to switch between.</td>
             </tr>
             <tr>
                 <td><code>animationUrl</code></td>
                 <td>String</td>
-                <td>(Same as default)</td>
+                <td><code>'Greeting'</code></td>
                 <td>Initial animation to play on load.</td>
             </tr>
             <tr>
                 <td><code>width</code></td>
                 <td>Number</td>
-                <td><code>300</code></td>
+                <td><code>1000</code></td>
                 <td>Width of the widget in pixels.</td>
             </tr>
             <tr>
                 <td><code>height</code></td>
                 <td>Number</td>
-                <td><code>400</code></td>
+                <td><code>1000</code></td>
                 <td>Height of the widget in pixels.</td>
             </tr>
             <tr>
                 <td><code>position</code></td>
                 <td>String</td>
                 <td><code>'bottom-right'</code></td>
-                <td>Corner position: <code>'bottom-right'</code>, <code>'bottom-left'</code>, <code>'top-right'</code>,
-                    <code>'top-left'</code>.
+                <td>Corner/Center position: <code>'bottom-right'</code>, <code>'bottom-left'</code>,
+                    <code>'top-right'</code>,
+                    <code>'top-left'</code>, <code>'top-center'</code>, <code>'bottom-center'</code>,
+                    <code>'center'</code>.
                 </td>
             </tr>
             <tr>
-                <td><code>corsProxy</code></td>
-                <td>String</td>
-                <td><code>'https://cors.didthat.workers.dev/?'</code></td>
-                <td>Proxy URL for fetching external audio resources.</td>
+                <td><code>offset</code></td>
+                <td>Object</td>
+                <td><code>{ x: 0, y: 0 }</code></td>
+                <td>Position offset {x, y} to adjust the widget placement relative to the standard anchor point.</td>
             </tr>
             <tr>
-                <td><code>onAnimationLoaded</code></td>
-                <td>Function</td>
-                <td><code>null</code></td>
-                <td>Callback function triggered when a new animation finishes loading.</td>
+                <td><code>cameraTarget</code></td>
+                <td>Object</td>
+                <td><code>{ x: 0, y: 0, z: 0 }</code></td>
+                <td>Offset {x, y, z} for the camera target relative to the avatar's default focus point.</td>
+            </tr>
+            <tr>
+                <td><code>randomGeneric</code></td>
+                <td>Boolean</td>
+                <td><code>true</code></td>
+                <td>If true, randomly plays 'Generic' animations from the manifest during idle states.</td>
+            </tr>
+            <tr>
+                <td><code>randomIntervalMin</code></td>
+                <td>Number</td>
+                <td><code>15</code></td>
+                <td>Minimum interval (in seconds) between random idle behaviors.</td>
+            </tr>
+            <tr>
+                <td><code>randomIntervalMax</code></td>
+                <td>Number</td>
+                <td><code>30</code></td>
+                <td>Maximum interval (in seconds) between random idle behaviors.</td>
             </tr>
         </tbody>
     </table>
@@ -172,6 +190,10 @@
     <p>Control the widget using the <code>window.WebAvatar</code> global object.</p>
 
     <ul>
+        <li>
+            <span class="method-signature">window.WebAvatar.preload()</span>
+            <p>Preloads the manifest file to prepare resources.</p>
+        </li>
         <li>
             <span class="method-signature">window.WebAvatar.loadModel(url)</span>
             <p>Switches the avatar to a new VRM model.</p>
@@ -193,12 +215,20 @@
             <p>Sets volume between <code>0.0</code> and <code>1.0</code>.</p>
         </li>
         <li>
-            <span class="method-signature">window.WebAvatar.getModels()</span>
-            <p>Returns an array of available model filenames (requires <code>manifest.json</code>).</p>
+            <span class="method-signature">window.WebAvatar.setCameraPosition(x, y, z)</span>
+            <p>Sets the user camera offset {x, y, z} relative to the default camera position.</p>
         </li>
         <li>
-            <span class="method-signature">window.WebAvatar.getAnimations()</span>
-            <p>Returns an array of available animation filenames (requires <code>manifest.json</code>).</p>
+            <span class="method-signature">async window.WebAvatar.getModels()</span>
+            <p>Returns a Promise resolving to an array of available model filenames (requires
+                <code>manifest.json</code>).
+            </p>
+        </li>
+        <li>
+            <span class="method-signature">async window.WebAvatar.getAnimations()</span>
+            <p>Returns a Promise resolving to an array of available animation filenames (requires
+                <code>manifest.json</code>).
+            </p>
         </li>
         <li>
             <span class="method-signature">window.WebAvatar.disconnect()</span>
