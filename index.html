@@ -175,6 +175,22 @@
 
     <iframe id="siteFrame" src="about:blank"></iframe>
 
+    <!-- Drop Overlay -->
+    <div id="dropOverlay" style="
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 123, 255, 0.15);
+        border: 4px dashed #007bff;
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        font-weight: bold;
+        color: #007bff;
+        pointer-events: none;
+    ">Drop VRM file here</div>
+
     <script>
         const initWidget = async () => {
             // Initialize Widget using the new global API
@@ -299,6 +315,47 @@
 
             disconnectBtn.addEventListener('click', () => {
                 if (window.WebAvatar) window.WebAvatar.disconnect();
+            });
+
+            // VRM Drag & Drop
+            const dropOverlay = document.getElementById('dropOverlay');
+            let dragCounter = 0;
+
+            document.body.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                dragCounter++;
+                dropOverlay.style.display = 'flex';
+            });
+
+            document.body.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            document.body.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dragCounter--;
+                if (dragCounter <= 0) {
+                    dragCounter = 0;
+                    dropOverlay.style.display = 'none';
+                }
+            });
+
+            document.body.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dragCounter = 0;
+                dropOverlay.style.display = 'none';
+
+                const file = e.dataTransfer.files[0];
+                if (!file) return;
+
+                if (!file.name.toLowerCase().endsWith('.vrm')) {
+                    alert('Please drop a .vrm file');
+                    return;
+                }
+
+                const blobUrl = URL.createObjectURL(file);
+                console.log(`Loading dropped VRM: ${file.name}`);
+                window.WebAvatar.loadModel(blobUrl);
             });
 
             // Toolbar Collapse Logic
