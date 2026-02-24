@@ -186,6 +186,7 @@
 
                 window.addEventListener('resize', this._onResizeBound = () => this._onResize());
                 console.log("Avatar Widget Initialized");
+                window.dispatchEvent(new Event('avatar-widget-ready'));
             } catch (e) {
                 console.error("Avatar Widget Initialization Failed:", e);
             }
