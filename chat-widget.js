@@ -1031,7 +1031,6 @@
                         'bot'
                     )
                 );
-                clearBtn.disabled = true;
                 return;
             }
 
