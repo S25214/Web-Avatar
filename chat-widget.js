@@ -9,56 +9,56 @@
  *   data-title="My Assistant"
  */
 (function () {
-    'use strict';
+  'use strict';
 
-    // ─── Read config from the script tag ─────────────────────────────────
-    const currentScript =
-        document.currentScript ||
-        (function () {
-            const scripts = document.getElementsByTagName('script');
-            return scripts[scripts.length - 1];
-        })();
+  // ─── Read config from the script tag ─────────────────────────────────
+  const currentScript =
+    document.currentScript ||
+    (function () {
+      const scripts = document.getElementsByTagName('script');
+      return scripts[scripts.length - 1];
+    })();
 
-    let BOT_ID = currentScript.getAttribute('data-bot-id') || localStorage.getItem('bcw_bot_id') || '';
-    const WORKER_URL =
-        currentScript.getAttribute('data-worker-url') ||
-        'https://botnoichatbot.didthat.workers.dev';
-    const WIDGET_TITLE =
-        currentScript.getAttribute('data-title') || 'Botnoi Assistant';
+  let BOT_ID = currentScript.getAttribute('data-bot-id') || localStorage.getItem('bcw_bot_id') || '';
+  const WORKER_URL =
+    currentScript.getAttribute('data-worker-url') ||
+    'https://botnoichatbot.didthat.workers.dev';
+  const WIDGET_TITLE =
+    currentScript.getAttribute('data-title') || 'Botnoi Assistant';
 
-    // Avatar config
-    const AVATAR_ENABLED = currentScript.getAttribute('data-avatar') !== 'false';
-    let AVATAR_MODEL = currentScript.getAttribute('data-avatar-url') || localStorage.getItem('bcw_avatar_url') || 'Botnoi';
+  // Avatar config
+  const AVATAR_ENABLED = currentScript.getAttribute('data-avatar') !== 'false';
+  let AVATAR_MODEL = currentScript.getAttribute('data-avatar-url') || localStorage.getItem('bcw_avatar_url') || 'Botnoi';
 
-    // Botnoi Voice (TTS) config
-    let BNV_KEY = currentScript.getAttribute('data-bnv-key') || localStorage.getItem('bcw_bnv_key') || '';
-    let BNV_VERSION = parseInt(currentScript.getAttribute('data-bnv-version') || localStorage.getItem('bcw_bnv_version') || '1', 10);
-    let BNV_SPEAKER = currentScript.getAttribute('data-bnv-speaker') || localStorage.getItem('bcw_bnv_speaker') || '13';
+  // Botnoi Voice (TTS) config
+  let BNV_KEY = currentScript.getAttribute('data-bnv-key') || localStorage.getItem('bcw_bnv_key') || '';
+  let BNV_VERSION = parseInt(currentScript.getAttribute('data-bnv-version') || localStorage.getItem('bcw_bnv_version') || '1', 10);
+  let BNV_SPEAKER = currentScript.getAttribute('data-bnv-speaker') || localStorage.getItem('bcw_bnv_speaker') || '13';
 
-    // Config persistence (defaults to true)
-    const CONFIG_SAVE = currentScript.getAttribute('data-config-save') !== 'false';
-    // Config persistence (defaults to false)
-    // const CONFIG_SAVE = currentScript.getAttribute('data-config-save') === 'true';
-    if (!CONFIG_SAVE) {
-        localStorage.removeItem('bcw_bot_id');
-        localStorage.removeItem('bcw_bnv_key');
-        localStorage.removeItem('bcw_bnv_version');
-        localStorage.removeItem('bcw_bnv_speaker');
-        localStorage.removeItem('bcw_avatar_url');
-        // Re-read without localStorage fallback
-        BOT_ID = currentScript.getAttribute('data-bot-id') || '';
-        BNV_KEY = currentScript.getAttribute('data-bnv-key') || '';
-        BNV_VERSION = parseInt(currentScript.getAttribute('data-bnv-version') || '1', 10);
-        BNV_SPEAKER = currentScript.getAttribute('data-bnv-speaker') || '13';
-        AVATAR_MODEL = currentScript.getAttribute('data-avatar-url') || 'Botnoi';
-    }
+  // Config persistence (defaults to true)
+  const CONFIG_SAVE = currentScript.getAttribute('data-config-save') !== 'false';
+  // Config persistence (defaults to false)
+  // const CONFIG_SAVE = currentScript.getAttribute('data-config-save') === 'true';
+  if (!CONFIG_SAVE) {
+    localStorage.removeItem('bcw_bot_id');
+    localStorage.removeItem('bcw_bnv_key');
+    localStorage.removeItem('bcw_bnv_version');
+    localStorage.removeItem('bcw_bnv_speaker');
+    localStorage.removeItem('bcw_avatar_url');
+    // Re-read without localStorage fallback
+    BOT_ID = currentScript.getAttribute('data-bot-id') || '';
+    BNV_KEY = currentScript.getAttribute('data-bnv-key') || '';
+    BNV_VERSION = parseInt(currentScript.getAttribute('data-bnv-version') || '1', 10);
+    BNV_SPEAKER = currentScript.getAttribute('data-bnv-speaker') || '13';
+    AVATAR_MODEL = currentScript.getAttribute('data-avatar-url') || 'Botnoi';
+  }
 
-    let needsSetup = !BOT_ID || !BNV_KEY;
-    // localStorage.setItem('bcw_bot_id', '');
-    // localStorage.setItem('bcw_bnv_key', '');
+  let needsSetup = !BOT_ID || !BNV_KEY;
+  // localStorage.setItem('bcw_bot_id', '');
+  // localStorage.setItem('bcw_bnv_key', '');
 
-    // ─── CSS (scoped under #botnoi-chat-widget) ──────────────────────────
-    const WIDGET_CSS = `
+  // ─── CSS (scoped under #botnoi-chat-widget) ──────────────────────────
+  const WIDGET_CSS = `
     :root {
       --bcw-primary: #a7e6ff;
       --bcw-primary-text: #272525;
@@ -141,13 +141,13 @@
       overflow: hidden;
       box-shadow: 0 8px 30px rgba(0,0,0,0.12);
       transform-origin: bottom right;
-      transform: scale(0);
+      transform: scale(0.85) translateY(20px);
       opacity: 0;
       pointer-events: none;
-      transition: transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.3s ease;
+      transition: transform 0.4s cubic-bezier(.34,1.56,.64,1), opacity 0.3s ease;
     }
     #bcw-panel.bcw-visible {
-      transform: scale(1);
+      transform: scale(1) translateY(0);
       opacity: 1;
       pointer-events: auto;
     }
@@ -447,9 +447,18 @@
       background: var(--bcw-bg);
       display: flex;
       flex-direction: column;
+      scroll-behavior: smooth;
+      overscroll-behavior-y: none; /* we handle rubber-band in JS */
     }
-    #bcw-messages::-webkit-scrollbar { width: 5px; }
-    #bcw-messages::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+    /* Scrollbar: thin, fades in when scrolling */
+    #bcw-messages::-webkit-scrollbar { width: 4px; }
+    #bcw-messages::-webkit-scrollbar-track { background: transparent; }
+    #bcw-messages::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0);
+      border-radius: 10px;
+      transition: background 0.3s;
+    }
+    #bcw-messages.bcw-scrolling::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
 
     #botnoi-chat-widget .bcw-msg {
       margin: 0 0 10px 0;
@@ -459,26 +468,53 @@
       word-wrap: break-word;
       font-size: 14px;
       line-height: 1.45;
-      animation: bcw-fadeIn 0.25s ease;
       list-style: none;
+      /* Entry animation applied via JS class .bcw-animate-in */
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+      transition: opacity 0.45s cubic-bezier(.22,.61,.36,1),
+                  transform 0.55s cubic-bezier(.34,1.4,.64,1);
     }
-    @keyframes bcw-fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
+    #botnoi-chat-widget .bcw-msg.bcw-animate-in {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
+    /* User bubbles fly in from the right */
     #botnoi-chat-widget .bcw-user-msg {
       background: var(--bcw-secondary);
       color: var(--bcw-secondary-text);
       margin-left: auto;
       margin-right: 0;
       border-bottom-right-radius: 4px;
+      transform: translateX(14px) scale(0.97);
     }
+    #botnoi-chat-widget .bcw-user-msg.bcw-animate-in {
+      transform: translateX(0) scale(1);
+    }
+    /* Bot bubbles fly in from the left */
     #botnoi-chat-widget .bcw-bot-msg {
       background: var(--bcw-primary);
       color: var(--bcw-primary-text);
       margin-right: auto;
       margin-left: 0;
       border-bottom-left-radius: 4px;
+      transform: translateX(-14px) scale(0.97);
+    }
+    #botnoi-chat-widget .bcw-bot-msg.bcw-animate-in {
+      transform: translateX(0) scale(1);
+    }
+    /* Despawn: collapse height + fade out */
+    @keyframes bcw-shrinkOut {
+      0%   { opacity: 1; max-height: 200px; margin-bottom: 10px; padding-top: 5px; padding-bottom: 5px; transform: scale(1); }
+      30%  { opacity: 0.6; }
+      100% { opacity: 0; max-height: 0;   margin-bottom: 0;   padding-top: 0;   padding-bottom: 0;   transform: scale(0.92); }
+    }
+    .bcw-msg.bcw-removing,
+    .bcw-error-msg.bcw-removing,
+    .bcw-warning-msg.bcw-removing {
+      overflow: hidden;
+      animation: bcw-shrinkOut 0.45s cubic-bezier(.4,0,.2,1) forwards;
+      pointer-events: none;
     }
     #botnoi-chat-widget .bcw-msg img,
     #botnoi-chat-widget .bcw-msg video {
@@ -497,6 +533,12 @@
       color: inherit;
       text-decoration: underline;
       font-weight: 600;
+    }
+
+    /* ── Keyframes (used by notification bubbles) ─ */
+    @keyframes bcw-fadeIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     /* ── Quick Replies ─────────────────────────── */
@@ -520,8 +562,16 @@
       cursor: pointer;
       font-size: 13px;
       font-weight: 600;
-      transition: background 0.2s, color 0.2s;
       font-family: var(--bcw-font);
+      opacity: 0;
+      transform: translateY(6px) scale(0.95);
+      transition: background 0.2s, color 0.2s,
+                  opacity 0.25s ease var(--bcw-btn-delay, 0ms),
+                  transform 0.3s cubic-bezier(.34,1.4,.64,1) var(--bcw-btn-delay, 0ms);
+    }
+    #botnoi-chat-widget .bcw-quick-reply-btn.bcw-animate-in {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
     #botnoi-chat-widget .bcw-quick-reply-btn:hover {
       background: var(--bcw-primary);
@@ -697,10 +747,59 @@
         opacity: 0.7 !important;
       }
     }
+
+    /* ── Notification Bubbles ──────────────────── */
+    @keyframes bcw-fadeOut {
+      0%   { opacity: 1; transform: translateY(0); }
+      70%  { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-6px); }
+    }
+    .bcw-error-msg,
+    .bcw-warning-msg {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin: 0 0 10px 0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+      max-width: 92%;
+      word-wrap: break-word;
+      align-self: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      animation: bcw-fadeIn 0.25s ease;
+    }
+    .bcw-error-msg {
+      background: #fff0f0;
+      border: 1.5px solid #f87171;
+      color: #b91c1c;
+    }
+    .bcw-error-msg::before {
+      content: '⚠';
+      font-size: 15px;
+      flex-shrink: 0;
+      line-height: 1.35;
+    }
+    .bcw-warning-msg {
+      background: #fffbea;
+      border: 1.5px solid #fbbf24;
+      color: #92400e;
+    }
+    .bcw-warning-msg::before {
+      content: '⚠';
+      font-size: 15px;
+      flex-shrink: 0;
+      line-height: 1.35;
+    }
+    .bcw-warning-msg.bcw-fading {
+      animation: bcw-fadeOut 1s ease forwards;
+    }
   `;
 
-    // ─── HTML Template ───────────────────────────────────────────────────
-    const WIDGET_HTML = `
+  // ─── HTML Template ───────────────────────────────────────────────────
+  const WIDGET_HTML = `
     <div id="bcw-panel">
       <div id="bcw-header">
         <img id="bcw-header-avatar" src="" alt="Bot" />
@@ -744,822 +843,1013 @@
     </button>
   `;
 
-    // ─── Inject DOM ────────────────────────────────────────────────────
-    const styleEl = document.createElement('style');
-    styleEl.textContent = WIDGET_CSS;
-    document.head.appendChild(styleEl);
+  // ─── Inject DOM ────────────────────────────────────────────────────
+  const styleEl = document.createElement('style');
+  styleEl.textContent = WIDGET_CSS;
+  document.head.appendChild(styleEl);
 
-    const container = document.createElement('div');
-    container.id = 'botnoi-chat-widget';
-    container.innerHTML = WIDGET_HTML;
-    document.body.appendChild(container);
+  const container = document.createElement('div');
+  container.id = 'botnoi-chat-widget';
+  container.innerHTML = WIDGET_HTML;
+  document.body.appendChild(container);
 
-    // ─── DOM References ──────────────────────────────────────────────────
-    const fab = document.getElementById('bcw-fab');
-    const panel = document.getElementById('bcw-panel');
-    const inputEl = document.getElementById('bcw-input');
-    const sendBtn = document.getElementById('bcw-send-btn');
-    const collapseBtn = document.getElementById('bcw-collapse-btn');
-    const messagesEl = document.getElementById('bcw-messages');
-    const clearBtn = document.getElementById('bcw-clear-btn');
-    const headerAvatar = document.getElementById('bcw-header-avatar');
-    const headerTitle = document.getElementById('bcw-header-title');
-    const statusDot = container.querySelector('.bcw-status-dot');
-    const statusText = document.getElementById('bcw-status-text');
-    const volumeBtn = document.getElementById('bcw-volume-btn');
-    const volumeSlider = document.getElementById('bcw-volume-slider');
-    const volIcon = document.getElementById('bcw-vol-icon');
-    const muteIcon = document.getElementById('bcw-mute-icon');
+  // ─── DOM References ──────────────────────────────────────────────────
+  const fab = document.getElementById('bcw-fab');
+  const panel = document.getElementById('bcw-panel');
+  const inputEl = document.getElementById('bcw-input');
+  const sendBtn = document.getElementById('bcw-send-btn');
+  const collapseBtn = document.getElementById('bcw-collapse-btn');
+  const messagesEl = document.getElementById('bcw-messages');
+  const clearBtn = document.getElementById('bcw-clear-btn');
+  const headerAvatar = document.getElementById('bcw-header-avatar');
+  const headerTitle = document.getElementById('bcw-header-title');
+  const statusDot = container.querySelector('.bcw-status-dot');
+  const statusText = document.getElementById('bcw-status-text');
+  const volumeBtn = document.getElementById('bcw-volume-btn');
+  const volumeSlider = document.getElementById('bcw-volume-slider');
+  const volIcon = document.getElementById('bcw-vol-icon');
+  const muteIcon = document.getElementById('bcw-mute-icon');
 
-    // ─── Volume Control ─────────────────────────────────────────────────
-    let lastVolume = 100;
-    let isMuted = false;
+  // ─── Smooth Scroll Helper ────────────────────────────────────────────
+  /** Scroll the messages area to the bottom smoothly. */
+  function bcwScrollToBottom() {
+    messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' });
+  }
 
-    function updateVolumeIcon(val) {
-        if (val === 0) {
-            volIcon.style.display = 'none';
-            muteIcon.style.display = '';
-        } else {
-            volIcon.style.display = '';
-            muteIcon.style.display = 'none';
-        }
+  // ─── Scrollbar Auto-Show ─────────────────────────────────────────────
+  var _scrollTimer = null;
+  messagesEl.addEventListener('scroll', function () {
+    messagesEl.classList.add('bcw-scrolling');
+    clearTimeout(_scrollTimer);
+    _scrollTimer = setTimeout(function () {
+      messagesEl.classList.remove('bcw-scrolling');
+    }, 900);
+  }, { passive: true });
+
+  // ─── Rubber-Band Overscroll (touch) ──────────────────────────────────
+  (function () {
+    var startY = 0;
+    var startScroll = 0;
+    var pulling = false;
+
+    messagesEl.addEventListener('touchstart', function (e) {
+      startY = e.touches[0].clientY;
+      startScroll = messagesEl.scrollTop;
+      pulling = false;
+      messagesEl.style.transition = '';
+      messagesEl.style.transform = '';
+    }, { passive: true });
+
+    messagesEl.addEventListener('touchmove', function (e) {
+      var dy = e.touches[0].clientY - startY;
+      var atTop = startScroll <= 0 && dy > 0;
+      var atBottom = startScroll >= messagesEl.scrollHeight - messagesEl.clientHeight - 1 && dy < 0;
+
+      if (atTop || atBottom) {
+        pulling = true;
+        // Dampen: resistance factor of ~3
+        var shift = dy / 3;
+        messagesEl.style.transform = 'translateY(' + shift + 'px)';
+      }
+    }, { passive: true });
+
+    function onTouchEnd() {
+      if (!pulling) return;
+      pulling = false;
+      // Spring back
+      messagesEl.style.transition = 'transform 0.5s cubic-bezier(.25,.46,.45,.94)';
+      messagesEl.style.transform = 'translateY(0)';
+      messagesEl.addEventListener('transitionend', function handler() {
+        messagesEl.style.transition = '';
+        messagesEl.removeEventListener('transitionend', handler);
+      });
     }
+    messagesEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    messagesEl.addEventListener('touchcancel', onTouchEnd, { passive: true });
+  })();
 
-    volumeSlider.addEventListener('input', function () {
-        var val = parseInt(volumeSlider.value, 10);
-        isMuted = val === 0;
-        if (val > 0) lastVolume = val;
-        updateVolumeIcon(val);
-        if (window.WebAvatar) window.WebAvatar.setVolume(val / 100);
+  // ─── Volume Control ─────────────────────────────────────────────────
+  let lastVolume = 100;
+  let isMuted = false;
+
+  function updateVolumeIcon(val) {
+    if (val === 0) {
+      volIcon.style.display = 'none';
+      muteIcon.style.display = '';
+    } else {
+      volIcon.style.display = '';
+      muteIcon.style.display = 'none';
+    }
+  }
+
+  volumeSlider.addEventListener('input', function () {
+    var val = parseInt(volumeSlider.value, 10);
+    isMuted = val === 0;
+    if (val > 0) lastVolume = val;
+    updateVolumeIcon(val);
+    if (window.WebAvatar) window.WebAvatar.setVolume(val / 100);
+  });
+
+  volumeBtn.addEventListener('click', function () {
+    if (isMuted) {
+      isMuted = false;
+      volumeSlider.value = lastVolume;
+      updateVolumeIcon(lastVolume);
+      if (window.WebAvatar) window.WebAvatar.setVolume(lastVolume / 100);
+    } else {
+      isMuted = true;
+      lastVolume = parseInt(volumeSlider.value, 10) || 100;
+      volumeSlider.value = 0;
+      updateVolumeIcon(0);
+      if (window.WebAvatar) window.WebAvatar.setVolume(0);
+    }
+  });
+
+  // ─── State ───────────────────────────────────────────────────────────
+  let isOpen = false;
+  let initialized = false;
+  let ably = null;
+  let channel = null;
+
+  let hwid = localStorage.getItem('botnoi_hwid');
+  if (!hwid) {
+    hwid =
+      window.crypto && window.crypto.randomUUID
+        ? crypto.randomUUID().replace(/-/g, '')
+        : Math.random().toString(36).substring(2, 15) +
+        Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('botnoi_hwid', hwid);
+  }
+
+  let sessionCount = parseInt(
+    localStorage.getItem('botnoi_session_count') || '1',
+    10
+  );
+  let userId = `user_${hwid}_${sessionCount}`;
+  let chatHistory = JSON.parse(
+    localStorage.getItem(`botnoi_history_${userId}`) || '[]'
+  );
+
+  // ─── Toggle Helpers ──────────────────────────────────────────────────
+  let avatarReady = false;
+
+  function showAvatar() {
+    var el = document.getElementById('avatar-widget-container');
+    if (!el || !avatarReady) return;
+    // Double-rAF: ensures the browser has painted the hidden state
+    // before adding the class that triggers the CSS transition
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        el.classList.add('bcw-avatar-visible');
+      });
+    });
+  }
+  function hideAvatar() {
+    var el = document.getElementById('avatar-widget-container');
+    if (el) el.classList.remove('bcw-avatar-visible');
+  }
+
+  function openPanel() {
+    isOpen = true;
+    panel.classList.add('bcw-visible');
+    fab.classList.add('bcw-hidden');
+    showAvatar();
+    if (!initialized && !needsSetup) {
+      initialized = true;
+      loadAblyAndInit();
+    } else if (needsSetup) {
+      showSetupForm();
+    } else {
+      inputEl.focus();
+    }
+  }
+
+  function closePanel() {
+    isOpen = false;
+    panel.classList.remove('bcw-visible');
+    fab.classList.remove('bcw-hidden');
+    hideAvatar();
+  }
+
+  fab.addEventListener('click', openPanel);
+  collapseBtn.addEventListener('click', closePanel);
+  document.getElementById('bcw-header').addEventListener('click', function (e) {
+    // Don't close if clicking buttons or interactive elements inside the header
+    if (e.target.closest('#bcw-clear-btn, #bcw-volume-group')) return;
+    closePanel();
+  });
+
+  // ─── Setup Form ────────────────────────────────────────────────────────
+  function showSetupForm() {
+    // Hide normal chat elements
+    messagesEl.style.display = 'none';
+    document.getElementById('bcw-input-area').style.display = 'none';
+
+    // Create form if not already present
+    if (document.getElementById('bcw-setup-form')) return;
+
+    var form = document.createElement('div');
+    form.id = 'bcw-setup-form';
+    form.innerHTML =
+      '<span class="bcw-setup-title">Widget Setup</span>' +
+      '<span class="bcw-setup-desc">Enter your credentials to connect the widget.</span>' +
+      '<label>Avatar URL<input type="text" id="bcw-setup-avatar" value="' + AVATAR_MODEL + '" placeholder="e.g. Botnoi" /></label>' +
+      (!BOT_ID ? '<label>Bot ID<input type="text" id="bcw-setup-botid" placeholder="e.g. 64464df59f76af17c9ca0ed3" /></label>' : '') +
+      (!BNV_KEY ? '<label>Botnoi Voice Key<input type="text" id="bcw-setup-bnvkey" placeholder="e.g. b3FId29Ea3Rr..." /></label>' : '') +
+      '<div class="bcw-toggle-row">' +
+      '<span class="bcw-toggle-label">Speaker</span>' +
+      '<div class="bcw-toggle-wrap">' +
+      '<span id="bcw-v-label-1" class="' + (BNV_VERSION === 1 ? 'bcw-active' : '') + '">v1</span>' +
+      '<label class="bcw-toggle">' +
+      '<input type="checkbox" id="bcw-setup-version" ' + (BNV_VERSION === 2 ? 'checked' : '') + ' />' +
+      '<span class="bcw-toggle-track"></span>' +
+      '</label>' +
+      '<span id="bcw-v-label-2" class="' + (BNV_VERSION === 2 ? 'bcw-active' : '') + '">v2</span>' +
+      '</div>' +
+      '</div>' +
+      '<input type="text" id="bcw-setup-speaker" value="' + BNV_SPEAKER + '" placeholder="Speaker ID, e.g. 13" style="width:100%;padding:10px 12px;border:1.5px solid var(--bcw-border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--bcw-bg);color:var(--bcw-secondary-text);outline:none;box-sizing:border-box" />' +
+      '<p class="bcw-setup-error" id="bcw-setup-error"></p>' +
+      '<button class="bcw-setup-submit" id="bcw-setup-go">Connect</button>';
+
+    panel.insertBefore(form, messagesEl);
+
+    // Toggle label highlight
+    var verCheckbox = document.getElementById('bcw-setup-version');
+    var vLabel1 = document.getElementById('bcw-v-label-1');
+    var vLabel2 = document.getElementById('bcw-v-label-2');
+    verCheckbox.addEventListener('change', function () {
+      if (verCheckbox.checked) {
+        vLabel1.classList.remove('bcw-active');
+        vLabel2.classList.add('bcw-active');
+      } else {
+        vLabel1.classList.add('bcw-active');
+        vLabel2.classList.remove('bcw-active');
+      }
     });
 
-    volumeBtn.addEventListener('click', function () {
-        if (isMuted) {
-            isMuted = false;
-            volumeSlider.value = lastVolume;
-            updateVolumeIcon(lastVolume);
-            if (window.WebAvatar) window.WebAvatar.setVolume(lastVolume / 100);
-        } else {
-            isMuted = true;
-            lastVolume = parseInt(volumeSlider.value, 10) || 100;
-            volumeSlider.value = 0;
-            updateVolumeIcon(0);
-            if (window.WebAvatar) window.WebAvatar.setVolume(0);
-        }
+    document.getElementById('bcw-setup-go').addEventListener('click', function () {
+      var errEl = document.getElementById('bcw-setup-error');
+      var bidInput = document.getElementById('bcw-setup-botid');
+      var bkvInput = document.getElementById('bcw-setup-bnvkey');
+      var avatarInput = document.getElementById('bcw-setup-avatar');
+      var speakerInput = document.getElementById('bcw-setup-speaker');
+
+      if (bidInput && !bidInput.value.trim()) {
+        errEl.textContent = 'Bot ID is required.';
+        return;
+      }
+      if (bkvInput && !bkvInput.value.trim()) {
+        errEl.textContent = 'Botnoi Voice Key is required.';
+        return;
+      }
+
+      if (bidInput) {
+        BOT_ID = bidInput.value.trim();
+        if (CONFIG_SAVE) localStorage.setItem('bcw_bot_id', BOT_ID);
+      }
+      if (bkvInput) {
+        BNV_KEY = bkvInput.value.trim();
+        if (CONFIG_SAVE) localStorage.setItem('bcw_bnv_key', BNV_KEY);
+      }
+
+      AVATAR_MODEL = (avatarInput && avatarInput.value.trim()) || 'Botnoi';
+      BNV_VERSION = verCheckbox.checked ? 2 : 1;
+      BNV_SPEAKER = speakerInput.value.trim() || '13';
+      if (CONFIG_SAVE) {
+        localStorage.setItem('bcw_avatar_url', AVATAR_MODEL);
+        localStorage.setItem('bcw_bnv_version', String(BNV_VERSION));
+        localStorage.setItem('bcw_bnv_speaker', BNV_SPEAKER);
+      }
+
+      // Remove form and restore chat UI
+      needsSetup = false;
+      form.remove();
+      messagesEl.style.display = '';
+      document.getElementById('bcw-input-area').style.display = '';
+
+      // Proceed with normal init
+      initialized = true;
+      loadAblyAndInit();
     });
+  }
 
-    // ─── State ───────────────────────────────────────────────────────────
-    let isOpen = false;
-    let initialized = false;
-    let ably = null;
-    let channel = null;
+  // ─── Lazy Load Ably SDK & Initialize ─────────────────────────────────
+  function loadAblyAndInit() {
+    var pending = 1; // at minimum Ably
 
-    let hwid = localStorage.getItem('botnoi_hwid');
-    if (!hwid) {
-        hwid =
-            window.crypto && window.crypto.randomUUID
-                ? crypto.randomUUID().replace(/-/g, '')
-                : Math.random().toString(36).substring(2, 15) +
-                Math.random().toString(36).substring(2, 15);
-        localStorage.setItem('botnoi_hwid', hwid);
+    function onReady() {
+      pending--;
+      if (pending <= 0) initWidget();
     }
 
-    let sessionCount = parseInt(
-        localStorage.getItem('botnoi_session_count') || '1',
-        10
-    );
-    let userId = `user_${hwid}_${sessionCount}`;
-    let chatHistory = JSON.parse(
-        localStorage.getItem(`botnoi_history_${userId}`) || '[]'
-    );
-
-    // ─── Toggle Helpers ──────────────────────────────────────────────────
-    let avatarReady = false;
-
-    function showAvatar() {
-        var el = document.getElementById('avatar-widget-container');
-        if (!el || !avatarReady) return;
-        // Double-rAF: ensures the browser has painted the hidden state
-        // before adding the class that triggers the CSS transition
-        requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-                el.classList.add('bcw-avatar-visible');
-            });
-        });
-    }
-    function hideAvatar() {
-        var el = document.getElementById('avatar-widget-container');
-        if (el) el.classList.remove('bcw-avatar-visible');
+    // Load Ably
+    if (window.Ably) {
+      onReady();
+    } else {
+      var ablyScript = document.createElement('script');
+      ablyScript.src = 'https://cdn.ably.com/lib/ably.min-1.js';
+      ablyScript.onload = onReady;
+      ablyScript.onerror = function () {
+        inputEl.placeholder = 'Failed to load messaging library.';
+      };
+      document.head.appendChild(ablyScript);
     }
 
-    function openPanel() {
-        isOpen = true;
-        panel.classList.add('bcw-visible');
-        fab.classList.add('bcw-hidden');
-        showAvatar();
-        if (!initialized && !needsSetup) {
-            initialized = true;
-            loadAblyAndInit();
-        } else if (needsSetup) {
-            showSetupForm();
-        } else {
-            inputEl.focus();
-        }
+    // Load Avatar Widget (if enabled)
+    if (AVATAR_ENABLED && !window.WebAvatar) {
+      pending++;
+      var avatarScript = document.createElement('script');
+      avatarScript.src = 'https://webavatar.didthat.cc/avatar-widget.js';
+      avatarScript.onload = onReady;
+      avatarScript.onerror = function () {
+        console.warn('[BotnoiChatWidget] Failed to load avatar widget.');
+        onReady(); // proceed without avatar
+      };
+      document.head.appendChild(avatarScript);
     }
+  }
 
-    function closePanel() {
-        isOpen = false;
-        panel.classList.remove('bcw-visible');
-        fab.classList.remove('bcw-hidden');
-        hideAvatar();
-    }
+  async function initWidget() {
+    try {
+      const response = await fetch(`${WORKER_URL}/api/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ botId: BOT_ID }),
+      });
 
-    fab.addEventListener('click', openPanel);
-    collapseBtn.addEventListener('click', closePanel);
-    document.getElementById('bcw-header').addEventListener('click', function (e) {
-        // Don't close if clicking buttons or interactive elements inside the header
-        if (e.target.closest('#bcw-clear-btn, #bcw-volume-group')) return;
-        closePanel();
-    });
+      const result = await response.json();
 
-    // ─── Setup Form ────────────────────────────────────────────────────────
-    function showSetupForm() {
-        // Hide normal chat elements
-        messagesEl.style.display = 'none';
-        document.getElementById('bcw-input-area').style.display = 'none';
-
-        // Create form if not already present
-        if (document.getElementById('bcw-setup-form')) return;
-
-        var form = document.createElement('div');
-        form.id = 'bcw-setup-form';
-        form.innerHTML =
-            '<span class="bcw-setup-title">Widget Setup</span>' +
-            '<span class="bcw-setup-desc">Enter your credentials to connect the widget.</span>' +
-            '<label>Avatar URL<input type="text" id="bcw-setup-avatar" value="' + AVATAR_MODEL + '" placeholder="e.g. Botnoi" /></label>' +
-            (!BOT_ID ? '<label>Bot ID<input type="text" id="bcw-setup-botid" placeholder="e.g. 64464df59f76af17c9ca0ed3" /></label>' : '') +
-            (!BNV_KEY ? '<label>Botnoi Voice Key<input type="text" id="bcw-setup-bnvkey" placeholder="e.g. b3FId29Ea3Rr..." /></label>' : '') +
-            '<div class="bcw-toggle-row">' +
-            '<span class="bcw-toggle-label">Speaker</span>' +
-            '<div class="bcw-toggle-wrap">' +
-            '<span id="bcw-v-label-1" class="' + (BNV_VERSION === 1 ? 'bcw-active' : '') + '">v1</span>' +
-            '<label class="bcw-toggle">' +
-            '<input type="checkbox" id="bcw-setup-version" ' + (BNV_VERSION === 2 ? 'checked' : '') + ' />' +
-            '<span class="bcw-toggle-track"></span>' +
-            '</label>' +
-            '<span id="bcw-v-label-2" class="' + (BNV_VERSION === 2 ? 'bcw-active' : '') + '">v2</span>' +
-            '</div>' +
-            '</div>' +
-            '<input type="text" id="bcw-setup-speaker" value="' + BNV_SPEAKER + '" placeholder="Speaker ID, e.g. 13" style="width:100%;padding:10px 12px;border:1.5px solid var(--bcw-border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--bcw-bg);color:var(--bcw-secondary-text);outline:none;box-sizing:border-box" />' +
-            '<p class="bcw-setup-error" id="bcw-setup-error"></p>' +
-            '<button class="bcw-setup-submit" id="bcw-setup-go">Connect</button>';
-
-        panel.insertBefore(form, messagesEl);
-
-        // Toggle label highlight
-        var verCheckbox = document.getElementById('bcw-setup-version');
-        var vLabel1 = document.getElementById('bcw-v-label-1');
-        var vLabel2 = document.getElementById('bcw-v-label-2');
-        verCheckbox.addEventListener('change', function () {
-            if (verCheckbox.checked) {
-                vLabel1.classList.remove('bcw-active');
-                vLabel2.classList.add('bcw-active');
-            } else {
-                vLabel1.classList.add('bcw-active');
-                vLabel2.classList.remove('bcw-active');
-            }
-        });
-
-        document.getElementById('bcw-setup-go').addEventListener('click', function () {
-            var errEl = document.getElementById('bcw-setup-error');
-            var bidInput = document.getElementById('bcw-setup-botid');
-            var bkvInput = document.getElementById('bcw-setup-bnvkey');
-            var avatarInput = document.getElementById('bcw-setup-avatar');
-            var speakerInput = document.getElementById('bcw-setup-speaker');
-
-            if (bidInput && !bidInput.value.trim()) {
-                errEl.textContent = 'Bot ID is required.';
-                return;
-            }
-            if (bkvInput && !bkvInput.value.trim()) {
-                errEl.textContent = 'Botnoi Voice Key is required.';
-                return;
-            }
-
-            if (bidInput) {
-                BOT_ID = bidInput.value.trim();
-                if (CONFIG_SAVE) localStorage.setItem('bcw_bot_id', BOT_ID);
-            }
-            if (bkvInput) {
-                BNV_KEY = bkvInput.value.trim();
-                if (CONFIG_SAVE) localStorage.setItem('bcw_bnv_key', BNV_KEY);
-            }
-
-            AVATAR_MODEL = (avatarInput && avatarInput.value.trim()) || 'Botnoi';
-            BNV_VERSION = verCheckbox.checked ? 2 : 1;
-            BNV_SPEAKER = speakerInput.value.trim() || '13';
-            if (CONFIG_SAVE) {
-                localStorage.setItem('bcw_avatar_url', AVATAR_MODEL);
-                localStorage.setItem('bcw_bnv_version', String(BNV_VERSION));
-                localStorage.setItem('bcw_bnv_speaker', BNV_SPEAKER);
-            }
-
-            // Remove form and restore chat UI
-            needsSetup = false;
-            form.remove();
-            messagesEl.style.display = '';
-            document.getElementById('bcw-input-area').style.display = '';
-
-            // Proceed with normal init
-            initialized = true;
-            loadAblyAndInit();
-        });
-    }
-
-    // ─── Lazy Load Ably SDK & Initialize ─────────────────────────────────
-    function loadAblyAndInit() {
-        var pending = 1; // at minimum Ably
-
-        function onReady() {
-            pending--;
-            if (pending <= 0) initWidget();
-        }
-
-        // Load Ably
-        if (window.Ably) {
-            onReady();
-        } else {
-            var ablyScript = document.createElement('script');
-            ablyScript.src = 'https://cdn.ably.com/lib/ably.min-1.js';
-            ablyScript.onload = onReady;
-            ablyScript.onerror = function () {
-                inputEl.placeholder = 'Failed to load messaging library.';
-            };
-            document.head.appendChild(ablyScript);
-        }
-
-        // Load Avatar Widget (if enabled)
-        if (AVATAR_ENABLED && !window.WebAvatar) {
-            pending++;
-            var avatarScript = document.createElement('script');
-            avatarScript.src = 'https://webavatar.didthat.cc/avatar-widget.js';
-            avatarScript.onload = onReady;
-            avatarScript.onerror = function () {
-                console.warn('[BotnoiChatWidget] Failed to load avatar widget.');
-                onReady(); // proceed without avatar
-            };
-            document.head.appendChild(avatarScript);
-        }
-    }
-
-    async function initWidget() {
-        try {
-            const response = await fetch(`${WORKER_URL}/api/verify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ botId: BOT_ID }),
-            });
-
-            const result = await response.json();
-
-            if (!result.success) {
-                inputEl.placeholder = 'Bot connection failed.';
-                setStatus('offline', 'Offline');
-                appendMsgElement(
-                    createBubble(
-                        'Error: The requested Bot ID does not exist or cannot be authorized.',
-                        'bot'
-                    )
-                );
-                return;
-            }
-
-            // Populate header with bot info
-            if (result.bot_name) {
-                headerTitle.textContent = result.bot_name;
-            }
-            if (result.bot_avatar) {
-                headerAvatar.src = result.bot_avatar;
-                headerAvatar.classList.add('bcw-show');
-            }
-
-            ably = new window.Ably.Realtime({
-                authUrl: `${WORKER_URL}/api/auth`,
-            });
-
-            // Monitor Ably connection state for status indicator
-            ably.connection.on(function (stateChange) {
-                switch (stateChange.current) {
-                    case 'connected':
-                        setStatus('online', 'Online');
-                        break;
-                    case 'disconnected':
-                    case 'suspended':
-                        setStatus('offline', 'Disconnected');
-                        break;
-                    case 'closed':
-                    case 'failed':
-                        setStatus('offline', 'Offline');
-                        break;
-                    case 'connecting':
-                        setStatus('', 'Connecting…');
-                        break;
-                }
-            });
-
-            connectToChannel();
-            renderHistory();
-
-            // Initialize avatar if enabled and loaded
-            if (AVATAR_ENABLED && window.WebAvatar) {
-                var isMobile = window.innerWidth <= 440;
-                window.WebAvatar.init({
-                    modelUrl: AVATAR_MODEL,
-                    defaultAnimationUrl: 'Idleloop',
-                    cameraTarget: { x: 0, y: 0, z: -2.0 },
-                    offset: { x: isMobile ? 50 : 360, y: 90 },
-                });
-                // Listen for avatar-widget-ready event — fade in once model is rendered
-                waitForAvatarReady();
-            }
-
-            inputEl.disabled = false;
-            sendBtn.disabled = false;
-            inputEl.placeholder = 'Type a message…';
-            inputEl.focus();
-        } catch (err) {
-            inputEl.placeholder = 'Network error occurred.';
-            setStatus('offline', 'Offline');
-            console.error('[BotnoiChatWidget]', err);
-        }
-    }
-
-    // ─── Avatar Load Detection ──────────────────────────────────────────
-    function waitForAvatarReady() {
-        var done = false;
-        function onAvatarReady() {
-            if (done) return;
-            done = true;
-            avatarReady = true;
-            if (isOpen) showAvatar();
-        }
-
-        // Primary: listen for custom event from avatar-widget.js
-        window.addEventListener('avatar-widget-ready', function onReady() {
-            window.removeEventListener('avatar-widget-ready', onReady);
-            onAvatarReady();
-        });
-
-        // Fallback: poll for console log message (in case hosted version lacks the event)
-        var attempts = 0;
-        var poll = setInterval(function () {
-            attempts++;
-            var el = document.getElementById('avatar-widget-container');
-            if (el) {
-                var canvas = el.querySelector('canvas');
-                // Check for canvas + a rendered scene (Three.js draws to it)
-                if (canvas && canvas.width > 0) {
-                    // Wait an extra beat for the model to finish rendering
-                    setTimeout(function () {
-                        clearInterval(poll);
-                        onAvatarReady();
-                    }, 500);
-                    clearInterval(poll); // stop polling immediately
-                }
-            }
-            if (attempts >= 150) { // 30s timeout
-                clearInterval(poll);
-                onAvatarReady();
-            }
-        }, 200);
-    }
-
-    // ─── Status Helper ───────────────────────────────────────────────────
-    function setStatus(state, label) {
-        statusDot.className = 'bcw-status-dot';
-        if (state === 'online') statusDot.classList.add('bcw-online');
-        else if (state === 'offline') statusDot.classList.add('bcw-offline');
-        statusText.textContent = label;
-    }
-
-    // ─── Ably Channel ────────────────────────────────────────────────────
-    function connectToChannel() {
-        channel = ably.channels.get(`chat-${userId}`);
-        channel.subscribe('bot-reply', function (message) {
-            const replies = JSON.parse(message.data);
-            var ttsTexts = [];
-            replies.forEach(function (reply) {
-                handleBotReply(reply, true);
-                // Collect speakable text from eligible reply types
-                var extracted = extractSpeakableText(reply);
-                if (extracted) ttsTexts.push(extracted);
-            });
-            // Speak all collected text as one utterance
-            if (ttsTexts.length > 0) {
-                speakText(ttsTexts.join(' '));
-            }
-        });
-    }
-
-    // ─── Persistence Helpers ─────────────────────────────────────────────
-    function saveHistory() {
-        localStorage.setItem(
-            `botnoi_history_${userId}`,
-            JSON.stringify(chatHistory)
-        );
-    }
-
-    // ─── Clear Chat ──────────────────────────────────────────────────────
-    clearBtn.addEventListener('click', function () {
-        if (
-            !confirm(
-                'Are you sure you want to clear the chat history? This cannot be undone.'
-            )
-        )
-            return;
-
-        // 1. Clear chat messages from DOM and localStorage
-        messagesEl.innerHTML = '';
-        localStorage.removeItem(`botnoi_history_${userId}`);
-        chatHistory = [];
-
-        sessionCount++;
-        localStorage.setItem('botnoi_session_count', sessionCount.toString());
-
-        // Update userId now so it's correct even if we early-return below
-        userId = `user_${hwid}_${sessionCount}`;
-
-        // Reset header bot info and status
-        headerTitle.textContent = WIDGET_TITLE;
-        headerAvatar.src = '';
-        headerAvatar.classList.remove('bcw-show');
+      if (!result.success) {
+        inputEl.placeholder = 'Bot connection failed.';
         setStatus('offline', 'Offline');
+        showErrorMsg('Error: The requested Bot ID does not exist or cannot be authorized.');
+        return;
+      }
 
-        // 2. Disconnect Ably channel and close connection
-        try {
-            if (channel) {
-                channel.unsubscribe();
-                channel.detach();
-            }
-            if (ably) {
-                if (channel) ably.channels.release(`chat-${userId}`);
-                ably.close();
-            }
-        } catch (err) {
-            console.warn('[BotnoiChatWidget] Ably cleanup:', err);
-        } finally {
-            ably = null;
-            channel = null;
+      // Populate header with bot info
+      if (result.bot_name) {
+        headerTitle.textContent = result.bot_name;
+      }
+      if (result.bot_avatar) {
+        headerAvatar.src = result.bot_avatar;
+        headerAvatar.classList.add('bcw-show');
+      }
+
+      ably = new window.Ably.Realtime({
+        authUrl: `${WORKER_URL}/api/auth`,
+      });
+
+      // Monitor Ably connection state for status indicator
+      ably.connection.on(function (stateChange) {
+        switch (stateChange.current) {
+          case 'connected':
+            setStatus('online', 'Online');
+            break;
+          case 'disconnected':
+          case 'suspended':
+            setStatus('offline', 'Disconnected');
+            break;
+          case 'closed':
+          case 'failed':
+            setStatus('offline', 'Offline');
+            break;
+          case 'connecting':
+            setStatus('', 'Connecting…');
+            break;
         }
+      });
 
-        // 3. Disconnect avatar
-        try {
-            if (window.WebAvatar && typeof window.WebAvatar.disconnect === 'function') {
-                window.WebAvatar.disconnect();
-            }
-        } catch (err) {
-            console.warn('[BotnoiChatWidget] Avatar disconnect:', err);
-        }
-        hideAvatar();
-        avatarReady = false;
+      connectToChannel();
+      renderHistory();
 
-        // 4. Reset input state
-        inputEl.value = '';
-        inputEl.disabled = true;
-        inputEl.placeholder = 'Connecting…';
-        sendBtn.disabled = true;
+      // Initialize avatar if enabled and loaded
+      if (AVATAR_ENABLED && window.WebAvatar) {
+        var isMobile = window.innerWidth <= 440;
+        window.WebAvatar.init({
+          modelUrl: AVATAR_MODEL,
+          defaultAnimationUrl: 'Idleloop',
+          cameraTarget: { x: 0, y: 0, z: -2.0 },
+          offset: { x: isMobile ? 50 : 360, y: 90 },
+        });
+        // Listen for avatar-widget-ready event — fade in once model is rendered
+        waitForAvatarReady();
+      }
 
-        // 5. Always clear credentials and return to setup form
-        localStorage.removeItem('bcw_bot_id');
-        localStorage.removeItem('bcw_bnv_key');
-        localStorage.removeItem('bcw_bnv_version');
-        localStorage.removeItem('bcw_bnv_speaker');
-        localStorage.removeItem('bcw_avatar_url');
-        BOT_ID = currentScript.getAttribute('data-bot-id') || '';
-        BNV_KEY = currentScript.getAttribute('data-bnv-key') || '';
-        BNV_VERSION = parseInt(currentScript.getAttribute('data-bnv-version') || '1', 10);
-        BNV_SPEAKER = currentScript.getAttribute('data-bnv-speaker') || '13';
-        AVATAR_MODEL = currentScript.getAttribute('data-avatar-url') || 'Botnoi';
-        needsSetup = true;
-        initialized = false;
-        showSetupForm();
+      inputEl.disabled = false;
+      sendBtn.disabled = false;
+      inputEl.placeholder = 'Type a message…';
+      inputEl.focus();
+    } catch (err) {
+      inputEl.placeholder = 'Network error occurred.';
+      setStatus('offline', 'Offline');
+      console.error('[BotnoiChatWidget]', err);
+    }
+  }
+
+  // ─── Avatar Load Detection ──────────────────────────────────────────
+  function waitForAvatarReady() {
+    var done = false;
+    function onAvatarReady() {
+      if (done) return;
+      done = true;
+      avatarReady = true;
+      if (isOpen) showAvatar();
+    }
+
+    // Primary: listen for custom event from avatar-widget.js
+    window.addEventListener('avatar-widget-ready', function onReady() {
+      window.removeEventListener('avatar-widget-ready', onReady);
+      onAvatarReady();
     });
 
-    // ─── Rendering ───────────────────────────────────────────────────────
-    function renderHistory() {
-        messagesEl.innerHTML = '';
-        chatHistory.forEach(function (item) {
-            if (item.sender === 'user') {
-                appendMsgElement(createBubble(item.uiText || item.text, 'user'));
-            } else if (item.sender === 'bot') {
-                handleBotReply(item.reply, false);
-            }
-        });
-    }
-
-    function handleBotReply(reply, saveToStorage) {
-        if (saveToStorage) {
-            chatHistory.push({ sender: 'bot', reply: reply });
-            saveHistory();
+    // Fallback: poll for console log message (in case hosted version lacks the event)
+    var attempts = 0;
+    var poll = setInterval(function () {
+      attempts++;
+      var el = document.getElementById('avatar-widget-container');
+      if (el) {
+        var canvas = el.querySelector('canvas');
+        // Check for canvas + a rendered scene (Three.js draws to it)
+        if (canvas && canvas.width > 0) {
+          // Wait an extra beat for the model to finish rendering
+          setTimeout(function () {
+            clearInterval(poll);
+            onAvatarReady();
+          }, 500);
+          clearInterval(poll); // stop polling immediately
         }
+      }
+      if (attempts >= 150) { // 30s timeout
+        clearInterval(poll);
+        onAvatarReady();
+      }
+    }, 200);
+  }
 
-        switch (reply.type) {
-            case 'text':
-                appendMsgElement(createBubble(reply.text, 'bot'));
-                break;
-            case 'image':
-                displayImage(reply.image.img_url, 'bot');
-                break;
-            case 'file':
-                displayFile(reply.file_url, reply.file_name, 'bot');
-                break;
-            case 'location':
-                displayLocation(
-                    reply.location.address,
-                    reply.location.latitude,
-                    reply.location.longitude,
-                    'bot'
-                );
-                break;
-            case 'video':
-                displayVideo(reply.video_url, reply.preview_image_url, 'bot');
-                break;
-            case 'audio':
-                displayAudio(reply.audio_url, 'bot');
-                break;
-            case 'sticker':
-                displayImage(reply.sticker.sticker_image_url, 'bot');
-                break;
-            case 'quick_reply':
-                displayQuickReply(reply.quick_reply);
-                break;
-            case 'carousel':
-                displayCarousel(reply.carousel_cards);
-                break;
-            case 'postback':
-                if (reply.postback && reply.postback.data) {
-                    appendMsgElement(createBubble(reply.postback.data, 'bot'));
-                }
-                break;
-        }
-    }
+  // ─── Status Helper ───────────────────────────────────────────────────
+  function setStatus(state, label) {
+    statusDot.className = 'bcw-status-dot';
+    if (state === 'online') statusDot.classList.add('bcw-online');
+    else if (state === 'offline') statusDot.classList.add('bcw-offline');
+    statusText.textContent = label;
+  }
 
-    function appendMsgElement(element) {
-        var existing = messagesEl.querySelectorAll('.bcw-quick-replies');
-        existing.forEach(function (el) {
-            el.remove();
-        });
-        messagesEl.appendChild(element);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    function createBubble(text, sender) {
-        var div = document.createElement('div');
-        div.className = 'bcw-msg bcw-' + sender + '-msg';
-        div.textContent = text;
-        return div;
-    }
-
-    function displayImage(url, sender) {
-        var div = document.createElement('div');
-        div.className = 'bcw-msg bcw-' + sender + '-msg';
-        var img = document.createElement('img');
-        img.src = url;
-        div.appendChild(img);
-        appendMsgElement(div);
-        img.onload = function () {
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-        };
-    }
-
-    function displayFile(url, name, sender) {
-        var div = document.createElement('div');
-        div.className = 'bcw-msg bcw-' + sender + '-msg';
-        div.innerHTML =
-            '📄 <a href="' +
-            url +
-            '" target="_blank">' +
-            (name || 'Download File') +
-            '</a>';
-        appendMsgElement(div);
-    }
-
-    function displayLocation(address, lat, lon, sender) {
-        var div = document.createElement('div');
-        div.className = 'bcw-msg bcw-' + sender + '-msg';
-        div.innerHTML =
-            '📍 <a href="https://maps.google.com/?q=' +
-            lat +
-            ',' +
-            lon +
-            '" target="_blank">' +
-            (address || 'View Location') +
-            '</a>';
-        appendMsgElement(div);
-    }
-
-    function displayVideo(url, poster, sender) {
-        var div = document.createElement('div');
-        div.className = 'bcw-msg bcw-' + sender + '-msg';
-        div.innerHTML =
-            '<video controls src="' +
-            url +
-            '" poster="' +
-            (poster || '') +
-            '"></video>';
-        appendMsgElement(div);
-    }
-
-    function displayAudio(url, sender) {
-        var div = document.createElement('div');
-        div.className = 'bcw-msg bcw-' + sender + '-msg';
-        div.innerHTML = '<audio controls src="' + url + '"></audio>';
-        appendMsgElement(div);
-    }
-
-    function displayQuickReply(qrData) {
-        if (qrData.text) {
-            appendMsgElement(createBubble(qrData.text, 'bot'));
-        }
-        var qrContainer = document.createElement('div');
-        qrContainer.className = 'bcw-quick-replies';
-
-        qrData.quick_reply_choices.forEach(function (choice) {
-            var btn = document.createElement('button');
-            btn.className = 'bcw-quick-reply-btn';
-            btn.textContent = choice.label;
-            btn.onclick = function () {
-                sendMessage(choice.data, choice.label);
-            };
-            qrContainer.appendChild(btn);
-        });
-
-        appendMsgElement(qrContainer);
-    }
-
-    function displayCarousel(cards) {
-        var carouselContainer = document.createElement('div');
-        carouselContainer.className = 'bcw-carousel-container';
-
-        cards.forEach(function (card) {
-            var cardEl = document.createElement('div');
-            cardEl.className = 'bcw-carousel-card';
-
-            var html = '';
-            if (card.image_url)
-                html +=
-                    '<img src="' +
-                    card.image_url +
-                    '" class="bcw-carousel-img" alt="' +
-                    (card.title || 'Card image') +
-                    '">';
-            html += '<div class="bcw-carousel-body">';
-            if (card.title)
-                html += '<div class="bcw-carousel-title">' + card.title + '</div>';
-            if (card.subtitle)
-                html +=
-                    '<div class="bcw-carousel-subtitle">' + card.subtitle + '</div>';
-
-            cardEl.innerHTML = html;
-            var bodyEl = cardEl.querySelector('.bcw-carousel-body');
-
-            if (card.buttons) {
-                card.buttons.forEach(function (btnData) {
-                    var buttonEl = document.createElement('button');
-                    buttonEl.className = 'bcw-carousel-btn';
-                    buttonEl.textContent = btnData.label;
-                    buttonEl.onclick = function () {
-                        if (btnData.type === 'web_url')
-                            window.open(btnData.data, '_blank');
-                        else if (btnData.type === 'phone')
-                            window.location.href = 'tel:' + btnData.data;
-                        else if (btnData.type === 'postback' || btnData.type === 'text')
-                            sendMessage(btnData.data, btnData.label);
-                    };
-                    bodyEl.appendChild(buttonEl);
-                });
-            }
-            carouselContainer.appendChild(cardEl);
-        });
-
-        appendMsgElement(carouselContainer);
-    }
-
-    // ─── Send Message ────────────────────────────────────────────────────
-    async function sendMessage(payloadText, uiText) {
-        var textToSend = payloadText || inputEl.value.trim();
-        if (!textToSend) return;
-
-        var displayText = uiText || textToSend;
-        appendMsgElement(createBubble(displayText, 'user'));
-
-        chatHistory.push({ sender: 'user', text: textToSend, uiText: displayText });
-        saveHistory();
-
-        inputEl.value = '';
-
-        try {
-            await fetch(`${WORKER_URL}/api/send`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: userId, botId: BOT_ID, text: textToSend }),
-            });
-        } catch (err) {
-            console.error('[BotnoiChatWidget] Send error:', err);
-        }
-    }
-
-    sendBtn.addEventListener('click', function () {
-        sendMessage();
+  // ─── Notification Bubbles ──────────────────────────────────────────
+  /** Show a persistent red error bubble inside the chat messages area. */
+  function showErrorMsg(text) {
+    var el = document.createElement('div');
+    el.className = 'bcw-error-msg';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(8px) scale(0.96)';
+    el.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(.34,1.4,.64,1)';
+    el.appendChild(document.createTextNode(text));
+    messagesEl.appendChild(el);
+    bcwScrollToBottom();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0) scale(1)';
+      });
     });
-    inputEl.addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') sendMessage();
+  }
+
+  /** Show a yellow-orange warning bubble that fades out and removes itself after 5 s. */
+  function showWarningMsg(text) {
+    var el = document.createElement('div');
+    el.className = 'bcw-warning-msg';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(8px) scale(0.96)';
+    el.style.transition = 'opacity 0.3s ease, transform 0.35s cubic-bezier(.34,1.4,.64,1)';
+    el.appendChild(document.createTextNode(text));
+    messagesEl.appendChild(el);
+    bcwScrollToBottom();
+    // Animate in
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0) scale(1)';
+      });
+    });
+    // Collapse out after 4 s (collapse anim = 0.45 s)
+    setTimeout(function () {
+      el.classList.add('bcw-removing');
+      setTimeout(function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }, 450);
+    }, 4000);
+  }
+
+  // ─── Ably Channel ────────────────────────────────────────────────────
+  // Interval between sequential bot-reply bubbles (ms).
+  // Should be a bit longer than the CSS transition so each bubble
+  // finishes appearing before the next one starts.
+  var BCW_BUBBLE_STEP = 340;
+
+  function connectToChannel() {
+    channel = ably.channels.get(`chat-${userId}`);
+    channel.subscribe('bot-reply', function (message) {
+      const replies = JSON.parse(message.data);
+      var ttsTexts = [];
+
+      // Collect TTS text upfront (all replies, regardless of timing)
+      replies.forEach(function (reply) {
+        var extracted = extractSpeakableText(reply);
+        if (extracted) ttsTexts.push(extracted);
+      });
+
+      // Spawn each bubble sequentially with a staggered delay
+      replies.forEach(function (reply, index) {
+        setTimeout(function () {
+          handleBotReply(reply, true);
+        }, index * BCW_BUBBLE_STEP);
+      });
+
+      // Speak after the last bubble has been queued (not after it appears,
+      // so TTS can start overlapping naturally with the animation sequence)
+      if (ttsTexts.length > 0) {
+        setTimeout(function () {
+          speakText(ttsTexts.join(' '));
+        }, (replies.length - 1) * BCW_BUBBLE_STEP);
+      }
+    });
+  }
+
+  // ─── Persistence Helpers ─────────────────────────────────────────────
+  function saveHistory() {
+    localStorage.setItem(
+      `botnoi_history_${userId}`,
+      JSON.stringify(chatHistory)
+    );
+  }
+
+  // ─── Clear Chat ──────────────────────────────────────────────────────
+  clearBtn.addEventListener('click', function () {
+    if (
+      !confirm(
+        'Are you sure you want to clear the chat history? This cannot be undone.'
+      )
+    )
+      return;
+
+    // 1. Clear chat messages from DOM and localStorage
+    messagesEl.innerHTML = '';
+    localStorage.removeItem(`botnoi_history_${userId}`);
+    chatHistory = [];
+
+    sessionCount++;
+    localStorage.setItem('botnoi_session_count', sessionCount.toString());
+
+    // Update userId now so it's correct even if we early-return below
+    userId = `user_${hwid}_${sessionCount}`;
+
+    // Reset header bot info and status
+    headerTitle.textContent = WIDGET_TITLE;
+    headerAvatar.src = '';
+    headerAvatar.classList.remove('bcw-show');
+    setStatus('offline', 'Offline');
+
+    // 2. Disconnect Ably channel and close connection
+    try {
+      if (channel) {
+        channel.unsubscribe();
+        channel.detach();
+      }
+      if (ably) {
+        if (channel) ably.channels.release(`chat-${userId}`);
+        ably.close();
+      }
+    } catch (err) {
+      console.warn('[BotnoiChatWidget] Ably cleanup:', err);
+    } finally {
+      ably = null;
+      channel = null;
+    }
+
+    // 3. Disconnect avatar
+    try {
+      if (window.WebAvatar && typeof window.WebAvatar.disconnect === 'function') {
+        window.WebAvatar.disconnect();
+      }
+    } catch (err) {
+      console.warn('[BotnoiChatWidget] Avatar disconnect:', err);
+    }
+    hideAvatar();
+    avatarReady = false;
+
+    // 4. Reset input state
+    inputEl.value = '';
+    inputEl.disabled = true;
+    inputEl.placeholder = 'Connecting…';
+    sendBtn.disabled = true;
+
+    // 5. Always clear credentials and return to setup form
+    localStorage.removeItem('bcw_bot_id');
+    localStorage.removeItem('bcw_bnv_key');
+    localStorage.removeItem('bcw_bnv_version');
+    localStorage.removeItem('bcw_bnv_speaker');
+    localStorage.removeItem('bcw_avatar_url');
+    BOT_ID = currentScript.getAttribute('data-bot-id') || '';
+    BNV_KEY = currentScript.getAttribute('data-bnv-key') || '';
+    BNV_VERSION = parseInt(currentScript.getAttribute('data-bnv-version') || '1', 10);
+    BNV_SPEAKER = currentScript.getAttribute('data-bnv-speaker') || '13';
+    AVATAR_MODEL = currentScript.getAttribute('data-avatar-url') || 'Botnoi';
+    needsSetup = true;
+    initialized = false;
+    showSetupForm();
+  });
+
+  // ─── Rendering ───────────────────────────────────────────────────────
+  function renderHistory() {
+    messagesEl.innerHTML = '';
+    // Temporarily disable transitions so history messages appear instantly
+    chatHistory.forEach(function (item) {
+      if (item.sender === 'user') {
+        var el = createBubble(item.uiText || item.text, 'user');
+        el.classList.add('bcw-animate-in'); // show instantly, no animation
+        messagesEl.appendChild(el);
+      } else if (item.sender === 'bot') {
+        // handleBotReply still calls appendMsgElement which queues rAF
+        // We bypass it for history by calling it with a flag
+        _renderBotReplyInstant(item.reply);
+      }
+    });
+    // Scroll to bottom instantly (no smooth) after history
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  /** Renders a bot reply element instantly into the messages list (no transition). */
+  function _renderBotReplyInstant(reply) {
+    switch (reply.type) {
+      case 'text': {
+        var el = createBubble(reply.text, 'bot');
+        el.classList.add('bcw-animate-in');
+        messagesEl.appendChild(el);
+        break;
+      }
+      case 'image':
+        displayImage(reply.image && (reply.image.original_img_url || reply.image.img_url), 'bot');
+        break;
+      case 'file':
+        displayFile(reply.file_url, reply.file_name, 'bot');
+        break;
+      case 'location':
+        displayLocation(reply.location.address, reply.location.latitude, reply.location.longitude, 'bot');
+        break;
+      case 'video':
+        displayVideo(reply.video_url, reply.preview_image_url, 'bot');
+        break;
+      case 'audio':
+        displayAudio(reply.audio_url, 'bot');
+        break;
+      case 'sticker':
+        displayImage(reply.sticker.sticker_image_url, 'bot');
+        break;
+      case 'quick_reply':
+        displayQuickReply(reply.quick_reply);
+        break;
+      case 'carousel':
+        displayCarousel(reply.carousel_cards);
+        break;
+      case 'postback':
+        if (reply.postback && reply.postback.data) {
+          var el2 = createBubble(reply.postback.data, 'bot');
+          el2.classList.add('bcw-animate-in');
+          messagesEl.appendChild(el2);
+        }
+        break;
+    }
+  }
+
+  function handleBotReply(reply, saveToStorage) {
+    if (saveToStorage) {
+      chatHistory.push({ sender: 'bot', reply: reply });
+      saveHistory();
+    }
+
+    switch (reply.type) {
+      case 'text':
+        appendMsgElement(createBubble(reply.text, 'bot'));
+        break;
+      case 'image':
+        displayImage(reply.image.original_img_url, 'bot');
+        break;
+      case 'file':
+        displayFile(reply.file_url, reply.file_name, 'bot');
+        break;
+      case 'location':
+        displayLocation(
+          reply.location.address,
+          reply.location.latitude,
+          reply.location.longitude,
+          'bot'
+        );
+        break;
+      case 'video':
+        displayVideo(reply.video_url, reply.preview_image_url, 'bot');
+        break;
+      case 'audio':
+        displayAudio(reply.audio_url, 'bot');
+        break;
+      case 'sticker':
+        displayImage(reply.sticker.sticker_image_url, 'bot');
+        break;
+      case 'quick_reply':
+        displayQuickReply(reply.quick_reply);
+        break;
+      case 'carousel':
+        displayCarousel(reply.carousel_cards);
+        break;
+      case 'postback':
+        if (reply.postback && reply.postback.data) {
+          appendMsgElement(createBubble(reply.postback.data, 'bot'));
+        }
+        break;
+    }
+  }
+
+  function appendMsgElement(element) {
+    // Remove any stale quick-reply rows instantly.
+    // Animating them out (shrinkOut) changes max-height/margin continuously,
+    // which fights the simultaneous smooth-scroll and causes jitter.
+    var existing = messagesEl.querySelectorAll('.bcw-quick-replies');
+    existing.forEach(function (el) {
+      if (el.parentNode) el.parentNode.removeChild(el);
     });
 
-    // ─── TTS: Text Sanitisation & Audio Generation ───────────────────────
-    function sanitizeForTTS(text) {
-        if (!text) return '';
-        // Strip URLs
-        var cleaned = text.replace(/https?:\/\/[^\s]+/gi, '');
-        // Strip markdown-style links [text](url)
-        cleaned = cleaned.replace(/\[([^\]]*)]\([^)]*\)/g, '$1');
-        // Strip HTML tags
-        cleaned = cleaned.replace(/<[^>]*>/g, '');
-        // Collapse whitespace
-        cleaned = cleaned.replace(/\s+/g, ' ').trim();
-        return cleaned;
-    }
+    // Insert element (starts invisible via CSS opacity: 0)
+    messagesEl.appendChild(element);
 
-    function extractSpeakableText(reply) {
-        // Only extract text from 'text' and 'quick_reply' (the prompt text) and 'postback'
-        // Ignore: image, file, location, video, audio, sticker, carousel
-        switch (reply.type) {
-            case 'text':
-                return sanitizeForTTS(reply.text);
-            case 'quick_reply':
-                return reply.quick_reply && reply.quick_reply.text
-                    ? sanitizeForTTS(reply.quick_reply.text)
-                    : '';
-            case 'postback':
-                return reply.postback && reply.postback.data
-                    ? sanitizeForTTS(reply.postback.data)
-                    : '';
-            default:
-                return '';
+    // Scroll, then trigger the enter transition on the next two frames
+    // (double-rAF ensures layout has been calculated for the new element)
+    bcwScrollToBottom();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (element.classList.contains('bcw-msg')) {
+          element.classList.add('bcw-animate-in');
         }
+      });
+    });
+  }
+
+  function createBubble(text, sender) {
+    var div = document.createElement('div');
+    div.className = 'bcw-msg bcw-' + sender + '-msg';
+    div.textContent = text;
+    return div;
+  }
+
+  function displayImage(url, sender) {
+    var div = document.createElement('div');
+    div.className = 'bcw-msg bcw-' + sender + '-msg';
+    var img = document.createElement('img');
+    img.src = url;
+    div.appendChild(img);
+    appendMsgElement(div);
+    img.onload = function () {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    };
+  }
+
+  function displayFile(url, name, sender) {
+    var div = document.createElement('div');
+    div.className = 'bcw-msg bcw-' + sender + '-msg';
+    div.innerHTML =
+      '📄 <a href="' +
+      url +
+      '" target="_blank">' +
+      (name || 'Download File') +
+      '</a>';
+    appendMsgElement(div);
+  }
+
+  function displayLocation(address, lat, lon, sender) {
+    var div = document.createElement('div');
+    div.className = 'bcw-msg bcw-' + sender + '-msg';
+    div.innerHTML =
+      '📍 <a href="https://maps.google.com/?q=' +
+      lat +
+      ',' +
+      lon +
+      '" target="_blank">' +
+      (address || 'View Location') +
+      '</a>';
+    appendMsgElement(div);
+  }
+
+  function displayVideo(url, poster, sender) {
+    var div = document.createElement('div');
+    div.className = 'bcw-msg bcw-' + sender + '-msg';
+    div.innerHTML =
+      '<video controls src="' +
+      url +
+      '" poster="' +
+      (poster || '') +
+      '"></video>';
+    appendMsgElement(div);
+  }
+
+  function displayAudio(url, sender) {
+    var div = document.createElement('div');
+    div.className = 'bcw-msg bcw-' + sender + '-msg';
+    div.innerHTML = '<audio controls src="' + url + '"></audio>';
+    appendMsgElement(div);
+  }
+
+  function displayQuickReply(qrData) {
+    if (qrData.text) {
+      appendMsgElement(createBubble(qrData.text, 'bot'));
     }
+    var qrContainer = document.createElement('div');
+    qrContainer.className = 'bcw-quick-replies';
 
-    var ttsQueue = [];
-    var ttsBusy = false;
+    qrData.quick_reply_choices.forEach(function (choice, index) {
+      var btn = document.createElement('button');
+      btn.className = 'bcw-quick-reply-btn';
+      // CSS custom property drives the stagger delay
+      btn.style.setProperty('--bcw-btn-delay', (index * 60) + 'ms');
+      btn.textContent = choice.label;
+      btn.onclick = function () {
+        sendMessage(choice.data, choice.label);
+      };
+      qrContainer.appendChild(btn);
+    });
 
-    function speakText(text) {
-        if (!BNV_KEY || !text) return;
-        ttsQueue.push(text);
-        if (!ttsBusy) processNextTTS();
+    messagesEl.appendChild(qrContainer);
+    bcwScrollToBottom();
+    // Stagger in each button
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        var btns = qrContainer.querySelectorAll('.bcw-quick-reply-btn');
+        btns.forEach(function (b) { b.classList.add('bcw-animate-in'); });
+      });
+    });
+  }
+
+  function displayCarousel(cards) {
+    var carouselContainer = document.createElement('div');
+    carouselContainer.className = 'bcw-carousel-container';
+
+    cards.forEach(function (card) {
+      var cardEl = document.createElement('div');
+      cardEl.className = 'bcw-carousel-card';
+
+      var html = '';
+      if (card.image_url)
+        html +=
+          '<img src="' +
+          card.image_url +
+          '" class="bcw-carousel-img" alt="' +
+          (card.title || 'Card image') +
+          '">';
+      html += '<div class="bcw-carousel-body">';
+      if (card.title)
+        html += '<div class="bcw-carousel-title">' + card.title + '</div>';
+      if (card.subtitle)
+        html +=
+          '<div class="bcw-carousel-subtitle">' + card.subtitle + '</div>';
+
+      cardEl.innerHTML = html;
+      var bodyEl = cardEl.querySelector('.bcw-carousel-body');
+
+      if (card.buttons) {
+        card.buttons.forEach(function (btnData) {
+          var buttonEl = document.createElement('button');
+          buttonEl.className = 'bcw-carousel-btn';
+          buttonEl.textContent = btnData.label;
+          buttonEl.onclick = function () {
+            if (btnData.type === 'web_url')
+              window.open(btnData.data, '_blank');
+            else if (btnData.type === 'phone')
+              window.location.href = 'tel:' + btnData.data;
+            else if (btnData.type === 'postback' || btnData.type === 'text')
+              sendMessage(btnData.data, btnData.label);
+          };
+          bodyEl.appendChild(buttonEl);
+        });
+      }
+      carouselContainer.appendChild(cardEl);
+    });
+
+    appendMsgElement(carouselContainer);
+  }
+
+  // ─── Send Message ────────────────────────────────────────────────────
+  async function sendMessage(payloadText, uiText) {
+    var textToSend = payloadText || inputEl.value.trim();
+    if (!textToSend) return;
+
+    var displayText = uiText || textToSend;
+    appendMsgElement(createBubble(displayText, 'user'));
+
+    chatHistory.push({ sender: 'user', text: textToSend, uiText: displayText });
+    saveHistory();
+
+    inputEl.value = '';
+
+    try {
+      await fetch(`${WORKER_URL}/api/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId, botId: BOT_ID, text: textToSend }),
+      });
+    } catch (err) {
+      console.error('[BotnoiChatWidget] Send error:', err);
     }
+  }
 
-    async function processNextTTS() {
-        if (ttsQueue.length === 0) { ttsBusy = false; return; }
-        ttsBusy = true;
-        var text = ttsQueue.shift();
+  sendBtn.addEventListener('click', function () {
+    sendMessage();
+  });
+  inputEl.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') sendMessage();
+  });
 
-        var endpoint = BNV_VERSION === 2
-            ? 'https://api-voice.botnoi.ai/openapi/v1/generate_audio_v2'
-            : 'https://api-voice.botnoi.ai/openapi/v1/generate_audio';
+  // ─── TTS: Text Sanitisation & Audio Generation ───────────────────────
+  function sanitizeForTTS(text) {
+    if (!text) return '';
+    // Strip URLs
+    var cleaned = text.replace(/https?:\/\/[^\s]+/gi, '');
+    // Strip markdown-style links [text](url)
+    cleaned = cleaned.replace(/\[([^\]]*)]\([^)]*\)/g, '$1');
+    // Strip HTML tags
+    cleaned = cleaned.replace(/<[^>]*>/g, '');
+    // Collapse whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    return cleaned;
+  }
 
-        try {
-            var res = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Botnoi-Token': BNV_KEY,
-                },
-                body: JSON.stringify({
-                    text: text,
-                    speaker: BNV_SPEAKER,
-                    volume: 1,
-                    speed: 1,
-                    type_media: 'mp3',
-                    save_file: 'true',
-                    language: 'th',
-                    page: 'user',
-                }),
-            });
+  function extractSpeakableText(reply) {
+    // Only extract text from 'text' and 'quick_reply' (the prompt text) and 'postback'
+    // Ignore: image, file, location, video, audio, sticker, carousel
+    switch (reply.type) {
+      case 'text':
+        return sanitizeForTTS(reply.text);
+      case 'quick_reply':
+        return reply.quick_reply && reply.quick_reply.text
+          ? sanitizeForTTS(reply.quick_reply.text)
+          : '';
+      case 'postback':
+        return reply.postback && reply.postback.data
+          ? sanitizeForTTS(reply.postback.data)
+          : '';
+      default:
+        return '';
+    }
+  }
 
-            if (res.ok) {
-                var data = await res.json();
-                if (data.audio_url && window.WebAvatar) {
-                    // Wait for previous audio to finish before playing next
-                    window.WebAvatar.playAudio(data.audio_url);
-                }
-            } else {
-                console.warn('[BotnoiChatWidget] TTS API error:', res.status);
-            }
-        } catch (err) {
-            console.warn('[BotnoiChatWidget] TTS fetch error:', err);
+  var ttsQueue = [];
+  var ttsBusy = false;
+
+  function speakText(text) {
+    if (!BNV_KEY || !text) return;
+    ttsQueue.push(text);
+    if (!ttsBusy) processNextTTS();
+  }
+
+  async function processNextTTS() {
+    if (ttsQueue.length === 0) { ttsBusy = false; return; }
+    ttsBusy = true;
+    var text = ttsQueue.shift();
+
+    var endpoint = BNV_VERSION === 2
+      ? 'https://api-voice.botnoi.ai/openapi/v1/generate_audio_v2'
+      : 'https://api-voice.botnoi.ai/openapi/v1/generate_audio';
+
+    try {
+      var res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Botnoi-Token': BNV_KEY,
+        },
+        body: JSON.stringify({
+          text: text,
+          speaker: BNV_SPEAKER,
+          volume: 1,
+          speed: 1,
+          type_media: 'mp3',
+          save_file: 'true',
+          language: 'th',
+          page: 'user',
+        }),
+      });
+
+      if (res.ok) {
+        var data = await res.json();
+        if (data.audio_url && window.WebAvatar) {
+          // Wait for previous audio to finish before playing next
+          window.WebAvatar.playAudio(data.audio_url);
         }
-
-        // Small delay then process next in queue
-        setTimeout(processNextTTS, 300);
+      } else {
+        console.warn('[BotnoiChatWidget] TTS API error:', res.status);
+        showWarningMsg('Voice generation failed (HTTP ' + res.status + '). Text-to-speech is unavailable.');
+      }
+    } catch (err) {
+      console.warn('[BotnoiChatWidget] TTS fetch error:', err);
+      showWarningMsg('Voice generation error: could not reach the TTS service.');
     }
+
+    // Small delay then process next in queue
+    setTimeout(processNextTTS, 300);
+  }
 })();

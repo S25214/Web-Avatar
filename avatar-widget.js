@@ -185,6 +185,15 @@
                 }
 
                 window.addEventListener('resize', this._onResizeBound = () => this._onResize());
+
+                // When the tab becomes visible again, flush the accumulated clock time
+                // so the first animate() frame doesn't have a huge delta spike.
+                document.addEventListener('visibilitychange', this._onVisibilityChangeBound = () => {
+                    if (document.visibilityState === 'visible') {
+                        this.clock.getDelta(); // drain accumulated time
+                    }
+                });
+
                 console.log("Avatar Widget Initialized");
                 window.dispatchEvent(new Event('avatar-widget-ready'));
             } catch (e) {
@@ -684,7 +693,9 @@
 
         _animate() {
             this.animationFrameId = requestAnimationFrame(() => this._animate());
-            const deltaTime = this.clock.getDelta();
+            // Clamp delta to 1/30s max to prevent huge time jumps when
+            // the browser tab was hidden and requestAnimationFrame was throttled.
+            const deltaTime = Math.min(this.clock.getDelta(), 1 / 30);
             if (this.mixer) {
                 this.mixer.update(deltaTime);
 
