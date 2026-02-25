@@ -321,18 +321,17 @@
       gap: 16px;
       box-sizing: border-box;
       overflow: visible;
+      background: var(--bcw-bg);
     }
     #bcw-setup-form .bcw-setup-title {
       font-size: 16px;
       font-weight: 700;
       color: var(--bcw-title-text);
-      margin: 0 0 4px 0;
       text-align: center;
     }
     #bcw-setup-form .bcw-setup-desc {
       font-size: 12px;
       color: var(--bcw-title-text);
-      margin: 0 0 8px 0;
       text-align: center;
       line-height: 1.4;
     }
@@ -352,7 +351,7 @@
       border-radius: 10px;
       font-size: 13px;
       font-family: inherit;
-      background: var(--bcw-bg);
+      background: #fff;
       color: var(--bcw-title-text);
       outline: none;
       transition: border-color 0.2s;
@@ -419,7 +418,7 @@
     .bcw-toggle-track {
       position: absolute;
       inset: 0;
-      background: var(--bcw-border);
+      background: var(--bcw-primary);
       border-radius: 11px;
       cursor: pointer;
       transition: background 0.25s;
@@ -1146,6 +1145,8 @@
     // Hide normal chat elements
     messagesEl.style.display = 'none';
     document.getElementById('bcw-input-area').style.display = 'none';
+    document.getElementById('bcw-volume-group').style.display = 'none';
+    document.getElementById('bcw-clear-btn').style.display = 'none';
 
     // Create form if not already present
     if (document.getElementById('bcw-setup-form')) return;
@@ -1169,7 +1170,7 @@
       '<span id="bcw-v-label-2" class="' + (BNV_VERSION === 2 ? 'bcw-active' : '') + '">v2</span>' +
       '</div>' +
       '</div>' +
-      '<input type="text" id="bcw-setup-speaker" value="' + BNV_SPEAKER + '" placeholder="Speaker ID, e.g. 13" style="width:100%;padding:10px 12px;border:1.5px solid var(--bcw-border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--bcw-bg);color:var(--bcw-title-text);outline:none;box-sizing:border-box" />' +
+      '<input type="text" id="bcw-setup-speaker" value="' + BNV_SPEAKER + '" placeholder="Speaker ID, e.g. 13" style="width:100%;padding:10px 12px;border:1.5px solid var(--bcw-border);border-radius:10px;font-size:13px;font-family:inherit;background:#fff;color:var(--bcw-title-text);outline:none;box-sizing:border-box" />' +
       '<p class="bcw-setup-error" id="bcw-setup-error"></p>' +
       '<button class="bcw-setup-submit" id="bcw-setup-go">Connect</button>';
 
@@ -1228,6 +1229,8 @@
       form.remove();
       messagesEl.style.display = '';
       document.getElementById('bcw-input-area').style.display = '';
+      document.getElementById('bcw-volume-group').style.display = '';
+      document.getElementById('bcw-clear-btn').style.display = '';
 
       // Proceed with normal init
       initialized = true;
