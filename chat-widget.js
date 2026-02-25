@@ -62,10 +62,13 @@
     :root {
       --bcw-primary: #a7e6ff;
       --bcw-primary-text: #272525;
-      --bcw-secondary: #e2dfdf;
-      --bcw-secondary-text: #272525;
-      --bcw-bg: #f7f8fa;
-      --bcw-surface: #ffffff;
+      --bcw-secondary: #555;
+      --bcw-secondary-text: #fff;
+      --bcw-title-text: #333;
+      --bcw-primary-subtitle-text: #666;
+      --bcw-status-text: #999;
+      --bcw-bg: #eee;
+      --bcw-surface: #fff;
       --bcw-border: #e0e0e0;
       --bcw-danger: #dc3545;
       --bcw-font: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -95,7 +98,7 @@
       height: var(--bcw-fab-size);
       border-radius: 50%;
       background: var(--bcw-primary);
-      color: var(--bcw-primary-text);
+      color: var(--bcw-title-text);
       border: none;
       cursor: pointer;
       display: flex;
@@ -186,7 +189,7 @@
     #bcw-header-title {
       font-weight: 700;
       font-size: 15px;
-      color: #333;
+      color: var(--bcw-title-text);
       margin: 0;
       padding: 0;
       white-space: nowrap;
@@ -200,7 +203,7 @@
       margin: 0;
       padding: 0;
       font-size: 11px;
-      color: #999;
+      color: var(--bcw-status-text);
     }
     #botnoi-chat-widget .bcw-status-dot {
       width: 7px;
@@ -294,7 +297,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--bcw-primary-text);
+      background: var(--bcw-secondary-text);
       cursor: pointer;
       margin-top: -4px;
     }
@@ -302,7 +305,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--bcw-primary-text);
+      background: var(--bcw-secondary-text);
       cursor: pointer;
       border: none;
     }
@@ -557,7 +560,7 @@
       margin: 0;
       background: var(--bcw-surface);
       border: 1.5px solid var(--bcw-primary);
-      color: var(--bcw-primary-text);
+      color: var(--bcw-title-text);
       border-radius: 20px;
       cursor: pointer;
       font-size: 13px;
@@ -575,7 +578,6 @@
     }
     #botnoi-chat-widget .bcw-quick-reply-btn:hover {
       background: var(--bcw-primary);
-      color: var(--bcw-primary-text);
     }
 
     /* ── Carousel ──────────────────────────────── */
@@ -593,7 +595,7 @@
     #botnoi-chat-widget .bcw-carousel-card {
       min-width: 210px;
       max-width: 230px;
-      border: 1px solid var(--bcw-border);
+      border: 5px solid var(--bcw-primary);
       border-radius: 10px;
       overflow: hidden;
       background: var(--bcw-surface);
@@ -624,11 +626,11 @@
       font-size: 14px;
       margin: 0 0 4px 0;
       padding: 0;
-      color: #333;
+      color: var(--bcw-primary-text);
     }
     #botnoi-chat-widget .bcw-carousel-subtitle {
       font-size: 12px;
-      color: #666;
+      color: var(--bcw-primary-subtitle-text);
       margin: 0 0 10px 0;
       padding: 0;
       flex: 1;
@@ -641,7 +643,7 @@
       text-align: center;
       border: 1.5px solid var(--bcw-primary);
       background: var(--bcw-surface);
-      color: var(--bcw-primary-text);
+      color: var(--bcw-title-text);
       border-radius: 6px;
       cursor: pointer;
       font-size: 12px;
@@ -679,7 +681,7 @@
       padding: 9px 16px;
       background: transparent;
       font-weight: 700;
-      color: var(--bcw-primary-text);
+      color: var(--bcw-title-text);
       border: 1.5px solid var(--bcw-border);
       border-radius: 24px;
       cursor: pointer;
@@ -714,7 +716,7 @@
     #bcw-collapse-btn svg {
       width: 16px;
       height: 16px;
-      fill: #666;
+      fill: var(--bcw-title-text);
     }
 
     /* ── Avatar container ─────────────────────── */
@@ -796,6 +798,106 @@
     .bcw-warning-msg.bcw-fading {
       animation: bcw-fadeOut 1s ease forwards;
     }
+
+    /* ── flex2html overrides ───────────────────────────────────────────── */
+    /* flex2html.css sets -webkit-user-select:none on .chatbox — re-enable  */
+    #botnoi-chat-widget .bcw-flex-msg.chatbox,
+    #botnoi-chat-widget .bcw-flex-msg.chatbox * {
+      -webkit-user-select: text !important;
+      -moz-user-select: text !important;
+      user-select: text !important;
+    }
+    /* The .chatbox wrapper uses flex2html's class for font/reset scoping.   */
+    /* We explicitly re-establish all critical layout properties to survive   */
+    /* the widget's CSS context (parent flex container, box-sizing resets).  */
+
+    /* 1. Wrapper: block box in the chat column, no inherited flex sizing     */
+    #botnoi-chat-widget .bcw-flex-msg.chatbox {
+      display: block !important;
+      width: auto !important;
+      max-width: 100% !important;
+      background-color: transparent !important;
+      padding: 0 !important;
+      flex: none !important;
+      margin: 0 0 10px 0;
+      /* Entry animation — same motion as bot messages */
+      opacity: 0;
+      transform: translateX(-14px) scale(0.97);
+      transition: opacity 0.45s cubic-bezier(.22,.61,.36,1),
+                  transform 0.55s cubic-bezier(.34,1.4,.64,1);
+    }
+    #botnoi-chat-widget .bcw-flex-msg.bcw-animate-in {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+
+    /* 2. LySlider: make sure it's a proper scroll container, not flex        */
+    #botnoi-chat-widget .bcw-flex-msg .LySlider {
+      display: block;
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+    #botnoi-chat-widget .bcw-flex-msg .LySlider .lyInner {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+    }
+
+    /* 3. Cards: explicit sizes per bubble size class                          */
+    #botnoi-chat-widget .bcw-flex-msg .LySlider .lyItem {
+      flex: none;
+      width: 80%;
+      max-width: 300px;
+    }
+    #botnoi-chat-widget .bcw-flex-msg .LySlider .lyItem.LyGi { max-width: 480px; }
+    #botnoi-chat-widget .bcw-flex-msg .LySlider .lyItem.LyMe { max-width: 300px; }
+
+    /* 4. Bubble card: must be a flex column so header/body/footer stack       */
+    #botnoi-chat-widget .bcw-flex-msg .T1 {
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden;
+    }
+
+    /* 5. Sections (header, hero, body, footer): must be flex columns too      */
+    #botnoi-chat-widget .bcw-flex-msg .T1 .t1Header,
+    #botnoi-chat-widget .bcw-flex-msg .T1 .t1Hero {
+      display: flex !important;
+      flex-direction: column !important;
+      flex: none !important;
+    }
+    #botnoi-chat-widget .bcw-flex-msg .T1 .t1Body {
+      display: flex !important;
+      flex-direction: column !important;
+      flex: 1 0 auto !important;
+    }
+    #botnoi-chat-widget .bcw-flex-msg .T1 .t1Footer {
+      display: flex !important;
+      flex-direction: column !important;
+      flex: none !important;
+    }
+
+    /* 8. Restore ExMgnT* / ExMgnL* margins wiped by .chatbox * { margin:0 }  */
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnTXxs { margin-top:  2px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnTXs  { margin-top:  4px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnTSm  { margin-top:  6px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnTMd  { margin-top:  8px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnTLg  { margin-top: 10px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnTXl  { margin-top: 12px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnTXxl { margin-top: 14px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnLXxs { margin-left:  2px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnLXs  { margin-left:  4px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnLSm  { margin-left:  6px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnLMd  { margin-left:  8px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnLLg  { margin-left: 10px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnLXl  { margin-left: 12px !important; }
+    #botnoi-chat-widget .bcw-flex-msg .ExMgnLXxl { margin-left: 14px !important; }
+
+    /* 9. Scale cards slightly to fit the chat panel width                    */
+    #botnoi-chat-widget .bcw-flex-msg .LySlider {
+      zoom: 0.8;
+    }
+
   `;
 
   // ─── HTML Template ───────────────────────────────────────────────────
@@ -1155,6 +1257,40 @@
       document.head.appendChild(ablyScript);
     }
 
+    // Load flex2html CSS + JS (needed for 'flex' type bot replies)
+    if (!window.flex2html) {
+      // Derive base path from this script's src so it works regardless of
+      // where the page is hosted (the flex2html folder lives next to chat-widget.js)
+      var scriptBase = (function () {
+        var s = document.currentScript ||
+          (function () {
+            var scripts = document.getElementsByTagName('script');
+            return scripts[scripts.length - 1];
+          })();
+        return s.src ? s.src.substring(0, s.src.lastIndexOf('/') + 1) : '';
+      })();
+
+      // Inject CSS
+      if (!document.getElementById('bcw-flex2html-css')) {
+        var flexCss = document.createElement('link');
+        flexCss.id = 'bcw-flex2html-css';
+        flexCss.rel = 'stylesheet';
+        flexCss.href = scriptBase + './flex2html/flex2html.css';
+        document.head.appendChild(flexCss);
+      }
+
+      // Inject JS
+      pending++;
+      var flexScript = document.createElement('script');
+      flexScript.src = scriptBase + './flex2html/flex2html.min.js';
+      flexScript.onload = onReady;
+      flexScript.onerror = function () {
+        console.warn('[BotnoiChatWidget] Failed to load flex2html.');
+        onReady(); // proceed without flex support
+      };
+      document.head.appendChild(flexScript);
+    }
+
     // Load Avatar Widget (if enabled)
     if (AVATAR_ENABLED && !window.WebAvatar) {
       pending++;
@@ -1510,6 +1646,9 @@
       case 'carousel':
         displayCarousel(reply.carousel_cards);
         break;
+      case 'flex':
+        displayFlex(reply.flex);
+        break;
       case 'postback':
         if (reply.postback && reply.postback.data) {
           var el2 = createBubble(reply.postback.data, 'bot');
@@ -1558,6 +1697,9 @@
         break;
       case 'carousel':
         displayCarousel(reply.carousel_cards);
+        break;
+      case 'flex':
+        displayFlex(reply.flex);
         break;
       case 'postback':
         if (reply.postback && reply.postback.data) {
@@ -1653,6 +1795,43 @@
     div.className = 'bcw-msg bcw-' + sender + '-msg';
     div.innerHTML = '<audio controls src="' + url + '"></audio>';
     appendMsgElement(div);
+  }
+
+  // ─── Flex Message (LINE Flex Message rendered via flex2html) ────────
+  var _flexCounter = 0;
+  function displayFlex(flexBody) {
+    if (typeof window.flex2html !== 'function') {
+      console.warn('[BotnoiChatWidget] flex2html not loaded; skipping flex message.');
+      return;
+    }
+
+    // Create a wrapper div inserted into the message list.
+    // Do NOT use bcw-msg/bcw-bot-msg here — those carry max-width:80% which
+    // compounds with LySlider lyItem's own 80% width and collapses the card.
+    var wrapper = document.createElement('div');
+    // 'chatbox' activates flex2html's scoped .chatbox * CSS resets (font-size:16px
+    // base, proper box model) without the global * bleed we removed from the CSS.
+    wrapper.className = 'bcw-flex-msg chatbox';
+    // flex2html targets an element by ID, so give each wrapper a unique ID
+    var flexId = 'bcw-flex-' + (++_flexCounter);
+    wrapper.id = flexId;
+
+    messagesEl.appendChild(wrapper);
+
+    // Render flex content into the wrapper element
+    flex2html(flexId, { type: 'flex', altText: 'Flex Message', contents: flexBody });
+
+    // flex2html's carousel_struc() always appends a bare <br> after the
+    // LySlider div. In the chat list this adds an unwanted blank line.
+    wrapper.querySelectorAll('br').forEach(function (br) { br.parentNode.removeChild(br); });
+
+    bcwScrollToBottom();
+    // Trigger entry animation
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        wrapper.classList.add('bcw-animate-in');
+      });
+    });
   }
 
   function displayQuickReply(qrData) {
