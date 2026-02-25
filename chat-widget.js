@@ -235,7 +235,7 @@
       flex-shrink: 0;
     }
     #bcw-clear-btn:hover { background: #ffe6e6; }
-    #bcw-clear-btn svg { width: 16px; height: 16px; fill: var(--bcw-secondary-text); }
+    #bcw-clear-btn svg { width: 16px; height: 16px; fill: var(--bcw-title-text); }
     #bcw-clear-btn:hover svg { fill: var(--bcw-danger); }
 
     /* ── Volume Control ────────────────────────── */
@@ -259,7 +259,7 @@
       flex-shrink: 0;
     }
     #bcw-volume-btn:hover { background: var(--bcw-bg); }
-    #bcw-volume-btn svg { width: 16px; height: 16px; fill: var(--bcw-secondary-text); }
+    #bcw-volume-btn svg { width: 16px; height: 16px; fill: var(--bcw-title-text); }
     #bcw-volume-slider-wrap {
       overflow: hidden;
       width: 0;
@@ -297,7 +297,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--bcw-secondary-text);
+      background: var(--bcw-title-text);
       cursor: pointer;
       margin-top: -4px;
     }
@@ -305,7 +305,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--bcw-secondary-text);
+      background: var(--bcw-title-text);
       cursor: pointer;
       border: none;
     }
