@@ -125,6 +125,30 @@
             background: #28c840;
         }
 
+        .copy-btn {
+            margin-left: auto;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            color: #a6adc8;
+            font-size: 0.72rem;
+            font-family: inherit;
+            padding: 3px 10px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.16);
+            color: #cdd6f4;
+        }
+
+        .copy-btn.copied {
+            color: #a6e3a1;
+            border-color: #a6e3a1;
+        }
+
         .code-block pre {
             margin: 0;
             padding: 18px 22px;
@@ -167,8 +191,9 @@
                 <span class="dot-red"></span>
                 <span class="dot-yellow"></span>
                 <span class="dot-green"></span>
+                <button class="copy-btn" id="demo-copy-btn" onclick="copyWidgetCode()">Copy</button>
             </div>
-            <pre><span class="tok-tag">&lt;script</span> <span class="tok-attr">src</span>=<span class="tok-str">"https://webavatar.didthat.cc/chat-widget.js"</span>
+            <pre id="demo-code-pre"><span class="tok-tag">&lt;script</span> <span class="tok-attr">src</span>=<span class="tok-str">"https://webavatar.didthat.cc/chat-widget.js"</span>
     <span class="tok-attr">data-bot-id</span>=<span class="tok-str">"YOUR_BOT_ID"</span>
     <span class="tok-attr">data-bnv-key</span>=<span class="tok-str">"YOUR_BNV_KEY"</span>
     <span class="tok-attr">data-bnv-version</span>=<span class="tok-str">"1 or 2"</span>
@@ -184,7 +209,123 @@
     </div>
 
     <!-- เว้นว่างไว้เพื่อกรอกเองบน ui -->
-    <script src="./chat-widget.js" data-bot-id="" data-bnv-key="">
+    <script src="./chat-widget.js" data-bot-id="" data-bnv-key="" id="bcw-script">
+    </script>
+
+    <script>
+        (function () {
+            function esc(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function tok(cls, text) {
+                return '<span class="' + cls + '">' + esc(text) + '</span>';
+            }
+
+            function buildCodeHtml(cfg) {
+                var attrs = [
+                    ['data-bot-id', cfg.botId || 'YOUR_BOT_ID'],
+                    ['data-bnv-key', cfg.bnvKey || 'YOUR_BNV_KEY'],
+                    ['data-bnv-version', cfg.bnvVersion || '1'],
+                    ['data-bnv-speaker', cfg.bnvSpeaker || 'SPEAKER_ID'],
+                    ['data-avatar-url', cfg.avatarUrl || 'AVATAR_URL']
+                ];
+
+                var lines = attrs.map(function (a) {
+                    return '    ' + tok('tok-attr', a[0]) + '=' + tok('tok-str', '"' + a[1] + '"');
+                });
+
+                return (
+                    tok('tok-tag', '<script') +
+                    ' ' + tok('tok-attr', 'src') + '=' + tok('tok-str', '"https://webavatar.didthat.cc/chat-widget.js"') + '\n' +
+                    lines.join('\n') +
+                    tok('tok-tag', '>\n<\/script>')
+                );
+            }
+
+            function readConfig() {
+                var sc = document.getElementById('bcw-script');
+                var attr = function (name, lsKey) {
+                    return (sc && sc.getAttribute(name)) || (lsKey && localStorage.getItem(lsKey)) || '';
+                };
+                return {
+                    botId: attr('data-bot-id', 'bcw_bot_id'),
+                    bnvKey: attr('data-bnv-key', 'bcw_bnv_key'),
+                    bnvVersion: attr('data-bnv-version', 'bcw_bnv_version'),
+                    bnvSpeaker: attr('data-bnv-speaker', 'bcw_bnv_speaker'),
+                    avatarUrl: attr('data-avatar-url', 'bcw_avatar_url')
+                };
+            }
+
+            function updateCodeBlock() {
+                var pre = document.getElementById('demo-code-pre');
+                if (pre) pre.innerHTML = buildCodeHtml(readConfig());
+            }
+
+            // Initial render
+            updateCodeBlock();
+
+            // Re-render whenever localStorage changes (e.g. after widget setup form is saved)
+            window.addEventListener('storage', function (e) {
+                var keys = ['bcw_bot_id', 'bcw_bnv_key', 'bcw_bnv_version', 'bcw_bnv_speaker', 'bcw_avatar_url'];
+                if (keys.indexOf(e.key) !== -1) updateCodeBlock();
+            });
+
+            // Also re-render on focus (catches same-tab localStorage writes)
+            window.addEventListener('focus', updateCodeBlock);
+
+            // Expose copy helper
+            window.copyWidgetCode = function () {
+                var cfg = readConfig();
+                var attrs = [
+                    'data-bot-id="' + (cfg.botId || 'YOUR_BOT_ID') + '"',
+                    'data-bnv-key="' + (cfg.bnvKey || 'YOUR_BNV_KEY') + '"',
+                    'data-bnv-version="' + (cfg.bnvVersion || '1') + '"',
+                    'data-bnv-speaker="' + (cfg.bnvSpeaker || 'SPEAKER_ID') + '"',
+                    'data-avatar-url="' + (cfg.avatarUrl || 'AVATAR_URL') + '"'
+                ];
+                var text = '<script src="https://webavatar.didthat.cc/chat-widget.js"\n    ' +
+                    attrs.join('\n    ') +
+                    '>\n<\/script>';
+
+                navigator.clipboard.writeText(text).then(function () {
+                    var btn = document.getElementById('demo-copy-btn');
+                    if (!btn) return;
+                    btn.textContent = 'Copied!';
+                    btn.classList.add('copied');
+                    setTimeout(function () {
+                        btn.textContent = 'Copy';
+                        btn.classList.remove('copied');
+                    }, 2000);
+                }).catch(function () {
+                    // Fallback for http
+                    var ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    var btn = document.getElementById('demo-copy-btn');
+                    if (btn) {
+                        btn.textContent = 'Copied!';
+                        btn.classList.add('copied');
+                        setTimeout(function () {
+                            btn.textContent = 'Copy';
+                            btn.classList.remove('copied');
+                        }, 2000);
+                    }
+                });
+            };
+
+            // Poll for same-tab localStorage changes every 2 s (widget setup saves without triggering 'storage' event in same tab)
+            setInterval(updateCodeBlock, 2000);
+        })();
     </script>
 
     <!-- ตัวอย่าง option -->
