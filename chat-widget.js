@@ -325,13 +325,13 @@
     #bcw-setup-form .bcw-setup-title {
       font-size: 16px;
       font-weight: 700;
-      color: var(--bcw-secondary-text);
+      color: var(--bcw-title-text);
       margin: 0 0 4px 0;
       text-align: center;
     }
     #bcw-setup-form .bcw-setup-desc {
       font-size: 12px;
-      color: #999;
+      color: var(--bcw-title-text);
       margin: 0 0 8px 0;
       text-align: center;
       line-height: 1.4;
@@ -343,7 +343,7 @@
       width: 100%;
       font-size: 12px;
       font-weight: 600;
-      color: var(--bcw-secondary-text);
+      color: var(--bcw-title-text);
     }
     #bcw-setup-form input[type="text"] {
       width: 100%;
@@ -353,7 +353,7 @@
       font-size: 13px;
       font-family: inherit;
       background: var(--bcw-bg);
-      color: var(--bcw-secondary-text);
+      color: var(--bcw-title-text);
       outline: none;
       transition: border-color 0.2s;
       box-sizing: border-box;
@@ -393,7 +393,7 @@
     .bcw-toggle-label {
       font-size: 12px;
       font-weight: 600;
-      color: var(--bcw-secondary-text);
+      color: var(--bcw-title-text);
     }
     .bcw-toggle-wrap {
       display: flex;
@@ -404,7 +404,7 @@
       color: #999;
       flex-shrink: 0;
     }
-    .bcw-toggle-wrap .bcw-active { color: var(--bcw-secondary-text); }
+    .bcw-toggle-wrap .bcw-active { color: var(--bcw-title-text); }
     .bcw-toggle {
       position: relative;
       width: 40px;
@@ -1169,7 +1169,7 @@
       '<span id="bcw-v-label-2" class="' + (BNV_VERSION === 2 ? 'bcw-active' : '') + '">v2</span>' +
       '</div>' +
       '</div>' +
-      '<input type="text" id="bcw-setup-speaker" value="' + BNV_SPEAKER + '" placeholder="Speaker ID, e.g. 13" style="width:100%;padding:10px 12px;border:1.5px solid var(--bcw-border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--bcw-bg);color:var(--bcw-secondary-text);outline:none;box-sizing:border-box" />' +
+      '<input type="text" id="bcw-setup-speaker" value="' + BNV_SPEAKER + '" placeholder="Speaker ID, e.g. 13" style="width:100%;padding:10px 12px;border:1.5px solid var(--bcw-border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--bcw-bg);color:var(--bcw-title-text);outline:none;box-sizing:border-box" />' +
       '<p class="bcw-setup-error" id="bcw-setup-error"></p>' +
       '<button class="bcw-setup-submit" id="bcw-setup-go">Connect</button>';
 
