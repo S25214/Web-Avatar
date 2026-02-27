@@ -1611,6 +1611,13 @@
     // 1. Clear chat messages from DOM and localStorage
     messagesEl.innerHTML = '';
     localStorage.removeItem(`botnoi_history_${userId}`);
+    // Clear cached audio from IndexedDB too
+    _openAudioDb().then(function (db) {
+      try {
+        var tx = db.transaction('audio', 'readwrite');
+        tx.objectStore('audio').clear();
+      } catch (e) { }
+    }).catch(function () { });
     chatHistory = [];
 
     sessionCount++;
@@ -2184,6 +2191,9 @@
         if (data.audio_url && window.WebAvatar) {
           // Wait for the animation API to respond before starting audio playback
           var animName = await triggerAnimation(item.userInput, item.botText);
+          // Fetch audio once via proxy, cache in IDB as base64, play immediately
+          var playSource = await _fetchAndCacheAudio(data.audio_url);
+          if (!playSource) playSource = data.audio_url; // fallback to URL
           // Persist audio URL + animation name on the bubble DOM element
           if (item.bubbleRef && item.bubbleRef.el) {
             attachReplayData(item.bubbleRef.el, data.audio_url, animName);
@@ -2203,7 +2213,7 @@
               saveHistory();
             }
           }
-          window.WebAvatar.playAudio(data.audio_url);
+          window.WebAvatar.playAudio(playSource);
         }
       } else {
         console.warn('[BotnoiChatWidget] TTS API error:', res.status);
@@ -2216,6 +2226,78 @@
 
     // Small delay then process next in queue
     setTimeout(processNextTTS, 300);
+  }
+
+  // ─── IndexedDB Audio Cache ───────────────────────────────────
+  // Audio blobs are fetched once via proxy, encoded as base64 data-URLs,
+  // and stored in IndexedDB so replay never needs a network request.
+
+  var _bcwAudioDb = null;
+
+  function _openAudioDb() {
+    if (_bcwAudioDb) return Promise.resolve(_bcwAudioDb);
+    return new Promise(function (resolve, reject) {
+      var req = indexedDB.open('bcw-audio-cache', 1);
+      req.onupgradeneeded = function (e) {
+        e.target.result.createObjectStore('audio');
+      };
+      req.onsuccess = function (e) {
+        _bcwAudioDb = e.target.result;
+        resolve(_bcwAudioDb);
+      };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+
+  function _getAudioCache(url) {
+    return _openAudioDb().then(function (db) {
+      return new Promise(function (resolve) {
+        var req = db.transaction('audio', 'readonly').objectStore('audio').get(url);
+        req.onsuccess = function () { resolve(req.result || null); };
+        req.onerror = function () { resolve(null); };
+      });
+    }).catch(function () { return null; });
+  }
+
+  function _setAudioCache(url, dataUrl) {
+    return _openAudioDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction('audio', 'readwrite');
+        tx.objectStore('audio').put(dataUrl, url);
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
+      });
+    }).catch(function () { });
+  }
+
+  /**
+   * Fetch audio from a cross-origin URL via the avatar's corsProxy, encode it
+   * as a base64 data-URL, persist in IDB, and return the data-URL.
+   * Returns null on failure so callers can fall back to the original URL.
+   */
+  async function _fetchAndCacheAudio(audioUrl) {
+    // Check IDB cache first — avoid redundant downloads
+    var cached = await _getAudioCache(audioUrl);
+    if (cached) return cached;
+
+    try {
+      var proxy = (window.WebAvatar && window.WebAvatar.corsProxy) || 'https://cors.didthat.workers.dev/?';
+      var proxyUrl = proxy + (proxy.endsWith('?') ? '' : '&') + 'url=' + encodeURIComponent(audioUrl);
+      var res = await fetch(proxyUrl);
+      if (!res.ok) return null;
+      var blob = await res.blob();
+      var dataUrl = await new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onloadend = function () { resolve(reader.result); };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      await _setAudioCache(audioUrl, dataUrl);
+      return dataUrl;
+    } catch (e) {
+      console.warn('[BotnoiChatWidget] Audio cache fetch failed:', e);
+      return null;
+    }
   }
 
   // ─── Replay Helpers ───────────────────────────────────────────────────
@@ -2265,10 +2347,11 @@
 
   /**
    * Replay audio (and animation) for a bot bubble.
-   * - If audio URL was stored: replay it, optionally re-loading the animation first.
-   * - If no audio was stored (TTS interrupted): call TTS API fresh without animation.
+   * Checks IndexedDB for a cached base64 data-URL first — plays instantly
+   * with no network request. Falls back to the S3 URL (proxy re-download)
+   * or fresh TTS generation if neither source is available.
    */
-  function replayBubble(el) {
+  async function replayBubble(el) {
     var audioUrl = el.dataset.bcwAudioUrl || '';
     var animName = el.dataset.bcwAnimName || '';
     var ttsText = el.dataset.bcwTtsText || '';
@@ -2277,11 +2360,13 @@
     clearTTSQueue();
 
     if (audioUrl && window.WebAvatar) {
-      // Replay stored audio; optionally re-trigger the stored animation first
+      // Re-trigger stored animation
       if (animName && typeof window.WebAvatar.loadAnimation === 'function') {
         window.WebAvatar.loadAnimation(animName);
       }
-      window.WebAvatar.playAudio(audioUrl);
+      // Try IDB cache first (base64 data-URL), fall back to URL
+      var cached = await _getAudioCache(audioUrl);
+      window.WebAvatar.playAudio(cached || audioUrl);
     } else if (ttsText) {
       // TTS never ran for this bubble — call API fresh, skip animation
       ttsQueue.push({ text: ttsText, userInput: '', botText: ttsText, bubbleRef: null });
