@@ -11,6 +11,8 @@
 (function () {
   'use strict';
 
+  const AVATAR_WIDGET_SRC = 'https://webavatar.didthat.cc/avatar-widget.js';
+
   // ─── Read config from the script tag ─────────────────────────────────
   const currentScript =
     document.currentScript ||
@@ -1216,7 +1218,7 @@
     form.innerHTML =
       '<span class="bcw-setup-title">Widget Setup</span>' +
       '<span class="bcw-setup-desc">Enter your credentials to connect the widget.</span>' +
-      (!currentScript.getAttribute('data-avatar-url') ? '<label>Avatar URL<input type="text" id="bcw-setup-avatar" value="' + AVATAR_MODEL + '" placeholder="e.g. Botnoi" /></label>' : '') +
+      (!currentScript.getAttribute('data-avatar-url') ? '<label><span style="display:flex;justify-content:space-between;align-items:center">Avatar URL<button id="bcw-browse-models" style="background:none;border:none;cursor:pointer;font-size:11px;opacity:0.7;text-decoration:underline;color:inherit;padding:0;font-family:inherit">Browse →</button></span><input type="text" id="bcw-setup-avatar" value="' + AVATAR_MODEL + '" placeholder="e.g. Botnoi" /></label>' : '') +
       (!BOT_ID ? '<label><span style="display:flex;justify-content:space-between;align-items:center">Bot ID<a href="https://console.botnoi.ai/manage" target="_blank" rel="noopener" style="font-size:11px;opacity:0.7;text-decoration:underline;color:inherit">Get ID →</a></span><input type="text" id="bcw-setup-botid" placeholder="e.g. 64464df59f76af17c9ca0ed3" /></label>' : '') +
       (!BNV_KEY ? '<label><span style="display:flex;justify-content:space-between;align-items:center">Botnoi Voice Key<a href="https://voice.botnoi.ai/developer/api" target="_blank" rel="noopener" style="font-size:11px;opacity:0.7;text-decoration:underline;color:inherit">Get Key →</a></span><input type="text" id="bcw-setup-bnvkey" placeholder="e.g. b3FId29Ea3Rr..." /></label>' : '') +
       (!currentScript.getAttribute('data-bnv-speaker') ?
@@ -1238,6 +1240,43 @@
 
     panel.insertBefore(form, messagesEl);
 
+    // Browse available avatar models
+    var browseBtn = document.getElementById('bcw-browse-models');
+    if (browseBtn) {
+      browseBtn.addEventListener('click', async function (e) {
+        e.preventDefault();
+        browseBtn.textContent = 'Loading…';
+        browseBtn.disabled = true;
+
+        // avatar-widget.js may not be loaded yet (it normally loads after Connect).
+        // Load it on-demand so getModels() can fetch the manifest.
+        if (!window.WebAvatar) {
+          await new Promise(function (resolve) {
+            var s = document.createElement('script');
+            s.src = AVATAR_WIDGET_SRC;
+            s.onload = resolve;
+            s.onerror = resolve; // resolve anyway so we still show the prompt
+            document.head.appendChild(s);
+          });
+        }
+
+        if (window.WebAvatar && typeof window.WebAvatar.preload === 'function') {
+          try { await window.WebAvatar.preload(); } catch (_) { }
+        }
+
+        browseBtn.textContent = 'Browse →';
+        browseBtn.disabled = false;
+
+        var models = (window.WebAvatar && typeof window.WebAvatar.getModels === 'function')
+          ? await window.WebAvatar.getModels() : [];
+        var avatarInp = document.getElementById('bcw-setup-avatar');
+        var msg = models.length
+          ? 'Available models:\n• ' + models.join('\n• ') + '\n\nEnter a model name:'
+          : 'No models found.\n\nEnter a model name:';
+        var chosen = prompt(msg, avatarInp ? avatarInp.value : '');
+        if (chosen !== null && avatarInp) avatarInp.value = chosen.trim();
+      });
+    }
     // Toggle label highlight (only present if data-bnv-speaker was not pre-set)
     var verCheckbox = document.getElementById('bcw-setup-version');
     var vLabel1 = document.getElementById('bcw-v-label-1');
@@ -1362,7 +1401,7 @@
     if (AVATAR_ENABLED && !window.WebAvatar) {
       pending++;
       var avatarScript = document.createElement('script');
-      avatarScript.src = 'https://webavatar.didthat.cc/avatar-widget.js';
+      avatarScript.src = AVATAR_WIDGET_SRC;
       avatarScript.onload = onReady;
       avatarScript.onerror = function () {
         console.warn('[BotnoiChatWidget] Failed to load avatar widget.');
