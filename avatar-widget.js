@@ -580,31 +580,56 @@
             let isBlob = false;
 
             if (isUrl) {
-                try {
-                    const response = await fetch(source);
-                    if (response.ok) {
-                        const blob = await response.blob();
-                        playbackSource = URL.createObjectURL(blob);
-                        isBlob = true;
-                    } else {
-                        throw new Error(`Fetch status: ${response.status}`);
-                    }
-                } catch (err) {
+                // Detect cross-origin URLs to avoid a doomed direct fetch that
+                // would log a CORS error even when the proxy fallback succeeds.
+                const isCrossOrigin = (() => {
+                    try {
+                        const u = new URL(source);
+                        return u.origin !== window.location.origin;
+                    } catch { return false; }
+                })();
+
+                if (isCrossOrigin && this.corsProxy) {
+                    // Go straight to the proxy — no console CORS error
                     try {
                         let proxyUrl = this.corsProxy;
-                        if (proxyUrl.includes('?')) {
-                            proxyUrl += (proxyUrl.endsWith('?') ? "" : "&") + "url=" + encodeURIComponent(source);
-                        } else {
-                            proxyUrl += "?url=" + encodeURIComponent(source);
-                        }
+                        proxyUrl += (proxyUrl.endsWith('?') ? "" : "&") + "url=" + encodeURIComponent(source);
                         const proxyResp = await fetch(proxyUrl);
                         if (proxyResp.ok) {
                             const blob = await proxyResp.blob();
                             playbackSource = URL.createObjectURL(blob);
                             isBlob = true;
+                        } else {
+                            console.warn("[AvatarWidget] Proxy fetch failed:", proxyResp.status);
                         }
                     } catch (proxyErr) {
-                        console.error("Proxy fetch error:", proxyErr);
+                        console.error("[AvatarWidget] Proxy fetch error:", proxyErr);
+                    }
+                } else {
+                    // Same-origin or no proxy configured — attempt direct fetch
+                    try {
+                        const response = await fetch(source);
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            playbackSource = URL.createObjectURL(blob);
+                            isBlob = true;
+                        } else {
+                            throw new Error(`Fetch status: ${response.status}`);
+                        }
+                    } catch (err) {
+                        console.warn("[AvatarWidget] Direct fetch failed, trying proxy:", err);
+                        try {
+                            let proxyUrl = this.corsProxy;
+                            proxyUrl += (proxyUrl.endsWith('?') ? "" : "&") + "url=" + encodeURIComponent(source);
+                            const proxyResp = await fetch(proxyUrl);
+                            if (proxyResp.ok) {
+                                const blob = await proxyResp.blob();
+                                playbackSource = URL.createObjectURL(blob);
+                                isBlob = true;
+                            }
+                        } catch (proxyErr) {
+                            console.error("[AvatarWidget] Proxy fetch error:", proxyErr);
+                        }
                     }
                 }
             } else if (!source.startsWith('data:audio') && !isUrl) {

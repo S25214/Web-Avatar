@@ -1071,6 +1071,8 @@
   let initialized = false;
   let ably = null;
   let channel = null;
+  let lastJWT = null;        // JWT from the most recent /api/send response
+  let lastUserInput = '';    // Last text sent by the user (for animation API)
 
   let hwid = localStorage.getItem('botnoi_hwid');
   if (!hwid) {
@@ -1489,7 +1491,7 @@
     channel.subscribe('bot-reply', function (message) {
       const reply_data = JSON.parse(message.data);
       const replies = reply_data.messages;
-      
+
       var ttsTexts = [];
 
       // Collect TTS text upfront (all replies, regardless of timing)
@@ -1505,11 +1507,13 @@
         }, index * BCW_BUBBLE_STEP);
       });
 
-      // Speak after the last bubble has been queued (not after it appears,
-      // so TTS can start overlapping naturally with the animation sequence)
+      // Queue each TTS segment individually so animation fires with each one
       if (ttsTexts.length > 0) {
+        var capturedUserInput = lastUserInput;
         setTimeout(function () {
-          speakText(ttsTexts.join(' '));
+          ttsTexts.forEach(function (seg) {
+            speakText(seg, capturedUserInput, seg);
+          });
         }, (replies.length - 1) * BCW_BUBBLE_STEP);
       }
     });
@@ -1930,12 +1934,17 @@
 
     inputEl.value = '';
 
+    lastUserInput = textToSend;
     try {
-      await fetch(`${WORKER_URL}/api/send`, {
+      var sendRes = await fetch(`${WORKER_URL}/api/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: userId, botId: BOT_ID, text: textToSend }),
       });
+      if (sendRes.ok) {
+        var sendData = await sendRes.json();
+        if (sendData.token) lastJWT = sendData.token;
+      }
     } catch (err) {
       console.error('[BotnoiChatWidget] Send error:', err);
     }
@@ -1984,16 +1993,61 @@
   var ttsQueue = [];
   var ttsBusy = false;
 
-  function speakText(text) {
+  // ─── Animation API ───────────────────────────────────────────────────
+  /**
+   * Returns a Promise that always resolves (never rejects) so callers can
+   * safely await it without worrying about errors blocking subsequent work.
+   * Resolves with the animation name on success, or null if skipped/failed.
+   */
+  function triggerAnimation(userInput, botText) {
+    // Do not fire animation if TTS is unavailable (no BNV_KEY) or prerequisites missing
+    if (!BNV_KEY || !lastJWT || !window.WebAvatar || typeof window.WebAvatar.loadAnimation !== 'function') {
+      return Promise.resolve(null);
+    }
+    var jwt = lastJWT; // capture at call time
+    return fetch('https://getanim-zb2xurnl2a-as.a.run.app', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + jwt,
+      },
+      body: JSON.stringify({
+        app: 'avatar',
+        input: [
+          { role: 'user', content: userInput },
+          { role: 'bot', content: botText },
+        ],
+      }),
+    })
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(res.status); })
+      .then(function (data) {
+        if (data.animation && window.WebAvatar && typeof window.WebAvatar.loadAnimation === 'function') {
+          window.WebAvatar.loadAnimation(data.animation);
+          console.log('[BotnoiChatWidget] Animation selected:', data.animation);
+        }
+        return data.animation || null;
+      })
+      .catch(function (err) {
+        console.warn('[BotnoiChatWidget] Animation API error:', err);
+        return null; // always resolve so audio is never blocked
+      });
+  }
+
+  /**
+   * Enqueue a TTS segment. userInput + botText are stored alongside the text
+   * so the animation API can be fired in sync with each TTS call.
+   */
+  function speakText(text, userInput, botText) {
     if (!BNV_KEY || !text) return;
-    ttsQueue.push(text);
+    ttsQueue.push({ text: text, userInput: userInput || '', botText: botText || text });
     if (!ttsBusy) processNextTTS();
   }
 
   async function processNextTTS() {
     if (ttsQueue.length === 0) { ttsBusy = false; return; }
     ttsBusy = true;
-    var text = ttsQueue.shift();
+    var item = ttsQueue.shift();
+    var text = item.text;
 
     var endpoint = BNV_VERSION === 2
       ? 'https://api-voice.botnoi.ai/openapi/v1/generate_audio_v2'
@@ -2021,7 +2075,8 @@
       if (res.ok) {
         var data = await res.json();
         if (data.audio_url && window.WebAvatar) {
-          // Wait for previous audio to finish before playing next
+          // Wait for the animation API to respond before starting audio playback
+          await triggerAnimation(item.userInput, item.botText);
           window.WebAvatar.playAudio(data.audio_url);
         }
       } else {
