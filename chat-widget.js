@@ -1216,39 +1216,43 @@
     form.innerHTML =
       '<span class="bcw-setup-title">Widget Setup</span>' +
       '<span class="bcw-setup-desc">Enter your credentials to connect the widget.</span>' +
-      '<label>Avatar URL<input type="text" id="bcw-setup-avatar" value="' + AVATAR_MODEL + '" placeholder="e.g. Botnoi" /></label>' +
-      (!BOT_ID ? '<label>Bot ID<input type="text" id="bcw-setup-botid" placeholder="e.g. 64464df59f76af17c9ca0ed3" /></label>' : '') +
-      (!BNV_KEY ? '<label>Botnoi Voice Key<input type="text" id="bcw-setup-bnvkey" placeholder="e.g. b3FId29Ea3Rr..." /></label>' : '') +
-      '<div class="bcw-toggle-row">' +
-      '<span class="bcw-toggle-label">Speaker</span>' +
-      '<div class="bcw-toggle-wrap">' +
-      '<span id="bcw-v-label-1" class="' + (BNV_VERSION === 1 ? 'bcw-active' : '') + '">v1</span>' +
-      '<label class="bcw-toggle">' +
-      '<input type="checkbox" id="bcw-setup-version" ' + (BNV_VERSION === 2 ? 'checked' : '') + ' />' +
-      '<span class="bcw-toggle-track"></span>' +
-      '</label>' +
-      '<span id="bcw-v-label-2" class="' + (BNV_VERSION === 2 ? 'bcw-active' : '') + '">v2</span>' +
-      '</div>' +
-      '</div>' +
-      '<input type="text" id="bcw-setup-speaker" value="' + BNV_SPEAKER + '" placeholder="Speaker ID, e.g. 13" style="width:100%;padding:10px 12px;border:1.5px solid var(--bcw-border);border-radius:10px;font-size:13px;font-family:inherit;background:#fff;color:var(--bcw-title-text);outline:none;box-sizing:border-box" />' +
+      (!currentScript.getAttribute('data-avatar-url') ? '<label>Avatar URL<input type="text" id="bcw-setup-avatar" value="' + AVATAR_MODEL + '" placeholder="e.g. Botnoi" /></label>' : '') +
+      (!BOT_ID ? '<label><span style="display:flex;justify-content:space-between;align-items:center">Bot ID<a href="https://console.botnoi.ai/manage" target="_blank" rel="noopener" style="font-size:11px;opacity:0.7;text-decoration:underline;color:inherit">Get ID →</a></span><input type="text" id="bcw-setup-botid" placeholder="e.g. 64464df59f76af17c9ca0ed3" /></label>' : '') +
+      (!BNV_KEY ? '<label><span style="display:flex;justify-content:space-between;align-items:center">Botnoi Voice Key<a href="https://voice.botnoi.ai/developer/api" target="_blank" rel="noopener" style="font-size:11px;opacity:0.7;text-decoration:underline;color:inherit">Get Key →</a></span><input type="text" id="bcw-setup-bnvkey" placeholder="e.g. b3FId29Ea3Rr..." /></label>' : '') +
+      (!currentScript.getAttribute('data-bnv-speaker') ?
+        '<div class="bcw-toggle-row">' +
+        '<span class="bcw-toggle-label">Speaker</span>' +
+        '<div class="bcw-toggle-wrap">' +
+        '<span id="bcw-v-label-1" class="' + (BNV_VERSION === 1 ? 'bcw-active' : '') + '">v1</span>' +
+        '<label class="bcw-toggle">' +
+        '<input type="checkbox" id="bcw-setup-version" ' + (BNV_VERSION === 2 ? 'checked' : '') + ' />' +
+        '<span class="bcw-toggle-track"></span>' +
+        '</label>' +
+        '<span id="bcw-v-label-2" class="' + (BNV_VERSION === 2 ? 'bcw-active' : '') + '">v2</span>' +
+        '</div>' +
+        '</div>' +
+        '<input type="text" id="bcw-setup-speaker" value="' + BNV_SPEAKER + '" placeholder="Speaker ID, e.g. 13" style="width:100%;padding:10px 12px;border:1.5px solid var(--bcw-border);border-radius:10px;font-size:13px;font-family:inherit;background:#fff;color:var(--bcw-title-text);outline:none;box-sizing:border-box" />'
+        : '') +
       '<p class="bcw-setup-error" id="bcw-setup-error"></p>' +
       '<button class="bcw-setup-submit" id="bcw-setup-go">Connect</button>';
 
     panel.insertBefore(form, messagesEl);
 
-    // Toggle label highlight
+    // Toggle label highlight (only present if data-bnv-speaker was not pre-set)
     var verCheckbox = document.getElementById('bcw-setup-version');
     var vLabel1 = document.getElementById('bcw-v-label-1');
     var vLabel2 = document.getElementById('bcw-v-label-2');
-    verCheckbox.addEventListener('change', function () {
-      if (verCheckbox.checked) {
-        vLabel1.classList.remove('bcw-active');
-        vLabel2.classList.add('bcw-active');
-      } else {
-        vLabel1.classList.add('bcw-active');
-        vLabel2.classList.remove('bcw-active');
-      }
-    });
+    if (verCheckbox) {
+      verCheckbox.addEventListener('change', function () {
+        if (verCheckbox.checked) {
+          vLabel1.classList.remove('bcw-active');
+          vLabel2.classList.add('bcw-active');
+        } else {
+          vLabel1.classList.add('bcw-active');
+          vLabel2.classList.remove('bcw-active');
+        }
+      });
+    }
 
     document.getElementById('bcw-setup-go').addEventListener('click', function () {
       var errEl = document.getElementById('bcw-setup-error');
@@ -1275,9 +1279,9 @@
         if (CONFIG_SAVE) localStorage.setItem('bcw_bnv_key', BNV_KEY);
       }
 
-      AVATAR_MODEL = (avatarInput && avatarInput.value.trim()) || 'Botnoi';
-      BNV_VERSION = verCheckbox.checked ? 2 : 1;
-      BNV_SPEAKER = speakerInput.value.trim() || '13';
+      AVATAR_MODEL = (avatarInput && avatarInput.value.trim()) || AVATAR_MODEL || 'Botnoi';
+      BNV_VERSION = verCheckbox ? (verCheckbox.checked ? 2 : 1) : BNV_VERSION;
+      BNV_SPEAKER = speakerInput ? (speakerInput.value.trim() || '13') : BNV_SPEAKER;
       if (CONFIG_SAVE) {
         localStorage.setItem('bcw_avatar_url', AVATAR_MODEL);
         localStorage.setItem('bcw_bnv_version', String(BNV_VERSION));
