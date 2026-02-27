@@ -1,12 +1,16 @@
-/**
- * Botnoi Chat Widget — Embeddable Script
- *
- * Usage:
- *   <script src="chat-widget.js" data-bot-id="YOUR_BOT_ID"></script>
- *
- * Optional attributes:
- *   data-worker-url="https://custom-worker.example.com"
- *   data-title="My Assistant"
+/*
+  Botnoi Chat Widget — Embeddable Script
+  Usage:
+     <script src="https://webavatar.didthat.cc/chat-widget.js"
+        data-config-save="(default: true) false to disable config persistence"
+        data-title="(default: Botnoi Assistant)"
+        data-bot-id="Leave blank for manual user input"
+        data-avatar="(default: true) false to disable avatar"
+        data-avatar-url="(default: Botnoi) Name from available model list or url to vrm file. Example: https://example.com/avatar.vrm"
+        data-bnv-key="Leave blank for manual user input"
+        data-bnv-version="(default: 1)"
+        data-bnv-speaker="(default: 13)">
+    </script>
  */
 (function () {
   'use strict';
@@ -443,11 +447,19 @@
     .bcw-toggle input:checked + .bcw-toggle-track::after {
       transform: translateX(18px);
     }
-    #bcw-messages {
+    /* Outer: clips the rubber-band transform so it never bleeds over header/input */
+    #bcw-messages-outer {
       flex: 1;
+      overflow: hidden;
+      background: var(--bcw-bg); /* matches inner — fills any gap during rubber-band */
+      min-height: 0;            /* required for flex children to shrink */
+    }
+    #bcw-messages {
+      width: 100%;
+      height: 100%;
       overflow-y: auto;
       padding: 16px;
-      margin: 0;
+      box-sizing: border-box;
       background: var(--bcw-bg);
       display: flex;
       flex-direction: column;
@@ -966,7 +978,7 @@
           </svg>
         </button>
       </div>
-      <div id="bcw-messages"></div>
+      <div id="bcw-messages-outer"><div id="bcw-messages"></div></div>
       <div id="bcw-input-area">
         <input type="text" id="bcw-input" placeholder="Connecting…" autocomplete="off" disabled />
         <button id="bcw-send-btn" disabled><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 25 25" fill="currentColor"><path d="M7.12,17,.55,13.36l0,0a1.06,1.06,0,0,1-.47-.95,1,1,0,0,1,.57-.88L23.76.08a.74.74,0,0,1,.51,0L7.1,17.07ZM7,18.57V24.3a.5.5,0,0,0,.88.32l4-4.88,4.92,2.76a1,1,0,0,0,.88.11,1,1,0,0,0,.64-.67L24.82,1a.78.78,0,0,0,0-.16Z"/></svg></button>
@@ -1001,6 +1013,7 @@
   const sendBtn = document.getElementById('bcw-send-btn');
   const collapseBtn = document.getElementById('bcw-collapse-btn');
   const messagesEl = document.getElementById('bcw-messages');
+  const messagesOuterEl = document.getElementById('bcw-messages-outer');
   const clearBtn = document.getElementById('bcw-clear-btn');
   const headerAvatar = document.getElementById('bcw-header-avatar');
   const headerTitle = document.getElementById('bcw-header-title');
@@ -1205,7 +1218,7 @@
   // ─── Setup Form ────────────────────────────────────────────────────────
   function showSetupForm() {
     // Hide normal chat elements
-    messagesEl.style.display = 'none';
+    messagesOuterEl.style.display = 'none';
     document.getElementById('bcw-input-area').style.display = 'none';
     document.getElementById('bcw-volume-group').style.display = 'none';
     document.getElementById('bcw-clear-btn').style.display = 'none';
@@ -1330,7 +1343,7 @@
       // Remove form and restore chat UI
       needsSetup = false;
       form.remove();
-      messagesEl.style.display = '';
+      messagesOuterEl.style.display = '';
       document.getElementById('bcw-input-area').style.display = '';
       document.getElementById('bcw-volume-group').style.display = '';
       document.getElementById('bcw-clear-btn').style.display = '';
