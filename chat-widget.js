@@ -9,7 +9,8 @@
         data-avatar-url="(default: Botnoi) Name from available model list or url to vrm file. Example: https://example.com/avatar.vrm"
         data-bnv-key="Leave blank for manual user input"
         data-bnv-version="(default: 1)"
-        data-bnv-speaker="(default: 13)">
+        data-bnv-speaker="(default: 13)"
+        data-auto-focus-input="(default: false) true to auto focus input">
     </script>
  */
 (function () {
@@ -24,6 +25,8 @@
       const scripts = document.getElementsByTagName('script');
       return scripts[scripts.length - 1];
     })();
+
+  const AUTO_FOCUS_INPUT = currentScript.getAttribute('data-auto-focus-input') === 'true'; //default false
 
   let BOT_ID = currentScript.getAttribute('data-bot-id') || localStorage.getItem('bcw_bot_id') || '';
   const WORKER_URL =
@@ -713,6 +716,13 @@
       margin: 0;
       background: var(--bcw-surface);
       flex-shrink: 0;
+      /* Explicit bottom radii matching the panel — prevents mobile browsers from
+         flickering between rounded and square corners on every keypress.
+         When #bcw-panel clips via overflow:hidden the browser can mis-time the
+         repaint triggered by keyboard resize; own radii avoid that dependency. */
+      border-bottom-left-radius: 16px;
+      border-bottom-right-radius: 16px;
+      will-change: transform; /* promote to compositor layer → stable paint */
     }
     #bcw-input {
       flex: 1;
@@ -1196,7 +1206,9 @@
     } else if (needsSetup) {
       showSetupForm();
     } else {
-      inputEl.focus();
+      if (AUTO_FOCUS_INPUT) {
+        inputEl.focus();
+      }
     }
   }
 
@@ -1493,7 +1505,9 @@
       inputEl.disabled = false;
       sendBtn.disabled = false;
       inputEl.placeholder = 'Type a message…';
-      inputEl.focus();
+      if (AUTO_FOCUS_INPUT) {
+        inputEl.focus();
+      }
     } catch (err) {
       inputEl.placeholder = 'Network error occurred.';
       setStatus('offline', 'Offline');
