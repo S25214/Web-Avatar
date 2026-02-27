@@ -1263,7 +1263,7 @@
       '<p class="bcw-setup-error" id="bcw-setup-error"></p>' +
       '<button class="bcw-setup-submit" id="bcw-setup-go">Connect</button>';
 
-    panel.insertBefore(form, messagesEl);
+    panel.insertBefore(form, messagesOuterEl);
 
     // Browse available avatar models
     var browseBtn = document.getElementById('bcw-browse-models');
