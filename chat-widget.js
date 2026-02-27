@@ -1086,7 +1086,7 @@
     localStorage.getItem('botnoi_session_count') || '1',
     10
   );
-  let userId = `user_${hwid}_${sessionCount}`;
+  let userId = `WebAvatarUser_${hwid}_${sessionCount}`;
   let chatHistory = JSON.parse(
     localStorage.getItem(`botnoi_history_${userId}`) || '[]'
   );
@@ -1541,7 +1541,7 @@
     localStorage.setItem('botnoi_session_count', sessionCount.toString());
 
     // Update userId now so it's correct even if we early-return below
-    userId = `user_${hwid}_${sessionCount}`;
+    userId = `WebAvatarUser_${hwid}_${sessionCount}`;
 
     // Reset header bot info and status
     headerTitle.textContent = WIDGET_TITLE;
