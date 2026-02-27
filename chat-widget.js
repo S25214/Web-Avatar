@@ -501,9 +501,47 @@
       margin-left: 0;
       border-bottom-left-radius: 4px;
       transform: translateX(-14px) scale(0.97);
+      position: relative;
     }
     #botnoi-chat-widget .bcw-bot-msg.bcw-animate-in {
       transform: translateX(0) scale(1);
+    }
+
+    /* ── Replay button ─────────────────────────────── */
+    #botnoi-chat-widget .bcw-replay-btn {
+      position: absolute;
+      bottom: 0px;
+      right: -20px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--bcw-surface);
+      border: 1px solid var(--bcw-border);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, background 0.2s;
+      padding: 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+      z-index: 1;
+    }
+    #botnoi-chat-widget .bcw-bot-msg:hover .bcw-replay-btn,
+    #botnoi-chat-widget .bcw-bot-msg.bcw-replay-hover .bcw-replay-btn,
+    #botnoi-chat-widget .bcw-bot-msg.bcw-row-hover .bcw-replay-btn {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #botnoi-chat-widget .bcw-replay-btn:hover {
+      background: var(--bcw-primary);
+    }
+    #botnoi-chat-widget .bcw-replay-btn svg {
+      width: 10px;
+      height: 10px;
+      fill: var(--bcw-title-text);
+      flex-shrink: 0;
     }
     /* Despawn: collapse height + fade out */
     @keyframes bcw-shrinkOut {
@@ -594,7 +632,7 @@
     #botnoi-chat-widget .bcw-carousel-card {
       min-width: 210px;
       max-width: 230px;
-      border: 5px solid var(--bcw-primary);
+      border: 1px solid var(--bcw-primary);
       border-radius: 10px;
       overflow: hidden;
       background: var(--bcw-surface);
@@ -913,7 +951,7 @@
         </div>
         <div id="bcw-volume-group">
           <button id="bcw-volume-btn" title="Volume">
-            <svg id="bcw-vol-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M301.1 34.8C312.6 40 320 51.4 320 64V448c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352H64c-35.3 0-64-28.7-64-64V224c0-35.3 28.7-64 64-64h67.8L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3zM412.6 181.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393 285.2 400 271.4 400 256s-7.1-29.2-17.8-37.2c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5z"/></svg>
+            <svg id="bcw-vol-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M533.6 32.5C598.5 85.2 640 165.8 640 256s-41.5 170.7-106.4 223.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C557.5 398.2 592 331.2 592 256s-34.5-142.2-88.7-186.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM473.1 107c43.2 35.2 70.9 88.9 70.9 149s-27.7 113.8-70.9 149c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C475.3 341.3 496 301.1 496 256s-20.7-85.3-53.2-111.8c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zm-60.5 74.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393 285.2 400 271.4 400 256s-7.1-29.2-17.8-37.2c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM301.1 34.8C312.6 40 320 51.4 320 64V448c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352H64c-35.3 0-64-28.7-64-64V224c0-35.3 28.7-64 64-64h67.8L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3z"/></svg>
             <svg id="bcw-mute-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" style="display:none"><path d="M301.1 34.8C312.6 40 320 51.4 320 64V448c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352H64c-35.3 0-64-28.7-64-64V224c0-35.3 28.7-64 64-64h67.8L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3zM425 167l55 55 55-55c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-55 55 55 55c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-55-55-55 55c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l55-55-55-55c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0z"/></svg>
           </button>
           <div id="bcw-volume-slider-wrap">
@@ -985,6 +1023,26 @@
     _scrollTimer = setTimeout(function () {
       messagesEl.classList.remove('bcw-scrolling');
     }, 900);
+  }, { passive: true });
+
+  // ─── Row-level replay button hover ──────────────────────────────────
+  // Show the replay button whenever the cursor is anywhere in the same
+  // horizontal row as a bot bubble, not just directly over the bubble.
+  messagesEl.addEventListener('mousemove', function (e) {
+    var bubbles = messagesEl.querySelectorAll('.bcw-bot-msg');
+    for (var i = 0; i < bubbles.length; i++) {
+      var rect = bubbles[i].getBoundingClientRect();
+      if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        bubbles[i].classList.add('bcw-row-hover');
+      } else {
+        bubbles[i].classList.remove('bcw-row-hover');
+      }
+    }
+  }, { passive: true });
+  messagesEl.addEventListener('mouseleave', function () {
+    messagesEl.querySelectorAll('.bcw-bot-msg.bcw-row-hover').forEach(function (el) {
+      el.classList.remove('bcw-row-hover');
+    });
   }, { passive: true });
 
   // ─── Rubber-Band Overscroll (touch) ──────────────────────────────────
@@ -1492,27 +1550,41 @@
       const reply_data = JSON.parse(message.data);
       const replies = reply_data.messages;
 
-      var ttsTexts = [];
-
-      // Collect TTS text upfront (all replies, regardless of timing)
+      // Build TTS items; bubbleRef will be populated when the stagger fires
+      var ttsItems = [];
       replies.forEach(function (reply) {
         var extracted = extractSpeakableText(reply);
-        if (extracted) ttsTexts.push(extracted);
+        if (extracted) {
+          var canTrack = reply.type === 'text' || reply.type === 'postback' || reply.type === 'quick_reply';
+          ttsItems.push({
+            text: extracted,
+            reply: reply,
+            bubbleRef: canTrack ? { el: null } : null,
+          });
+        }
       });
 
-      // Spawn each bubble sequentially with a staggered delay
+      // Spawn each bubble sequentially; link bubbleRef when element is created
       replies.forEach(function (reply, index) {
         setTimeout(function () {
-          handleBotReply(reply, true);
+          var el = handleBotReply(reply, true);
+          if (el) {
+            for (var i = 0; i < ttsItems.length; i++) {
+              if (ttsItems[i].reply === reply && ttsItems[i].bubbleRef && !ttsItems[i].bubbleRef.el) {
+                ttsItems[i].bubbleRef.el = el;
+                break;
+              }
+            }
+          }
         }, index * BCW_BUBBLE_STEP);
       });
 
       // Queue each TTS segment individually so animation fires with each one
-      if (ttsTexts.length > 0) {
+      if (ttsItems.length > 0) {
         var capturedUserInput = lastUserInput;
         setTimeout(function () {
-          ttsTexts.forEach(function (seg) {
-            speakText(seg, capturedUserInput, seg);
+          ttsItems.forEach(function (item) {
+            speakText(item.text, capturedUserInput, item.text, item.bubbleRef, item.reply);
           });
         }, (replies.length - 1) * BCW_BUBBLE_STEP);
       }
@@ -1628,6 +1700,13 @@
       case 'text': {
         var el = createBubble(reply.text, 'bot');
         el.classList.add('bcw-animate-in');
+        el.dataset.bcwTtsText = sanitizeForTTS(reply.text);
+        addReplayButton(el);
+        attachReplayData(el, reply.audioUrl, reply.animName);
+        // Remove stale QR rows (same cleanup appendMsgElement does in live flow)
+        messagesEl.querySelectorAll('.bcw-quick-replies').forEach(function (qr) {
+          if (qr.parentNode) qr.parentNode.removeChild(qr);
+        });
         messagesEl.appendChild(el);
         break;
       }
@@ -1649,9 +1728,11 @@
       case 'sticker':
         displayImage(reply.sticker.sticker_image_url, 'bot');
         break;
-      case 'quick_reply':
-        displayQuickReply(reply.quick_reply);
+      case 'quick_reply': {
+        var qrEl = displayQuickReply(reply.quick_reply);
+        if (qrEl) attachReplayData(qrEl, reply.audioUrl, reply.animName);
         break;
+      }
       case 'carousel':
         displayCarousel(reply.carousel_cards);
         break;
@@ -1662,12 +1743,23 @@
         if (reply.postback && reply.postback.data) {
           var el2 = createBubble(reply.postback.data, 'bot');
           el2.classList.add('bcw-animate-in');
+          el2.dataset.bcwTtsText = sanitizeForTTS(reply.postback.data);
+          addReplayButton(el2);
+          attachReplayData(el2, reply.audioUrl, reply.animName);
+          // Remove stale QR rows
+          messagesEl.querySelectorAll('.bcw-quick-replies').forEach(function (qr) {
+            if (qr.parentNode) qr.parentNode.removeChild(qr);
+          });
           messagesEl.appendChild(el2);
         }
         break;
     }
   }
 
+  /**
+   * handleBotReply — returns the primary bubble element for text/postback types
+   * so connectToChannel can link it to the TTS queue item (bubbleRef).
+   */
   function handleBotReply(reply, saveToStorage) {
     if (saveToStorage) {
       chatHistory.push({ sender: 'bot', reply: reply });
@@ -1675,9 +1767,13 @@
     }
 
     switch (reply.type) {
-      case 'text':
-        appendMsgElement(createBubble(reply.text, 'bot'));
-        break;
+      case 'text': {
+        var el = createBubble(reply.text, 'bot');
+        el.dataset.bcwTtsText = sanitizeForTTS(reply.text);
+        addReplayButton(el);
+        appendMsgElement(el);
+        return el;
+      }
       case 'image':
         displayImage(reply.image.original_img_url, 'bot');
         break;
@@ -1702,20 +1798,25 @@
         displayImage(reply.sticker.sticker_image_url, 'bot');
         break;
       case 'quick_reply':
-        displayQuickReply(reply.quick_reply);
-        break;
+        return displayQuickReply(reply.quick_reply);
       case 'carousel':
         displayCarousel(reply.carousel_cards);
         break;
       case 'flex':
         displayFlex(reply.flex);
         break;
-      case 'postback':
+      case 'postback': {
         if (reply.postback && reply.postback.data) {
-          appendMsgElement(createBubble(reply.postback.data, 'bot'));
+          var el2 = createBubble(reply.postback.data, 'bot');
+          el2.dataset.bcwTtsText = sanitizeForTTS(reply.postback.data);
+          addReplayButton(el2);
+          appendMsgElement(el2);
+          return el2;
         }
         break;
+      }
     }
+    return null;
   }
 
   function appendMsgElement(element) {
@@ -1844,8 +1945,12 @@
   }
 
   function displayQuickReply(qrData) {
+    var qrBubble = null;
     if (qrData.text) {
-      appendMsgElement(createBubble(qrData.text, 'bot'));
+      qrBubble = createBubble(qrData.text, 'bot');
+      qrBubble.dataset.bcwTtsText = sanitizeForTTS(qrData.text);
+      addReplayButton(qrBubble);
+      appendMsgElement(qrBubble);
     }
     var qrContainer = document.createElement('div');
     qrContainer.className = 'bcw-quick-replies';
@@ -1871,6 +1976,7 @@
         btns.forEach(function (b) { b.classList.add('bcw-animate-in'); });
       });
     });
+    return qrBubble; // caller can use this for attachReplayData
   }
 
   function displayCarousel(cards) {
@@ -2034,12 +2140,13 @@
   }
 
   /**
-   * Enqueue a TTS segment. userInput + botText are stored alongside the text
-   * so the animation API can be fired in sync with each TTS call.
+   * Enqueue a TTS segment. userInput + botText drive the animation API;
+   * bubbleRef (optional) links the queue item to its DOM bubble element so
+   * audio URL and animation name can be stored there after TTS resolves.
    */
-  function speakText(text, userInput, botText) {
+  function speakText(text, userInput, botText, bubbleRef, replyRef) {
     if (!BNV_KEY || !text) return;
-    ttsQueue.push({ text: text, userInput: userInput || '', botText: botText || text });
+    ttsQueue.push({ text: text, userInput: userInput || '', botText: botText || text, bubbleRef: bubbleRef || null, replyRef: replyRef || null });
     if (!ttsBusy) processNextTTS();
   }
 
@@ -2076,7 +2183,26 @@
         var data = await res.json();
         if (data.audio_url && window.WebAvatar) {
           // Wait for the animation API to respond before starting audio playback
-          await triggerAnimation(item.userInput, item.botText);
+          var animName = await triggerAnimation(item.userInput, item.botText);
+          // Persist audio URL + animation name on the bubble DOM element
+          if (item.bubbleRef && item.bubbleRef.el) {
+            attachReplayData(item.bubbleRef.el, data.audio_url, animName);
+          }
+          // Persist into chatHistory entry so data survives page reload
+          if (item.replyRef) {
+            var histEntry = null;
+            for (var i = chatHistory.length - 1; i >= 0; i--) {
+              if (chatHistory[i].sender === 'bot' && chatHistory[i].reply === item.replyRef) {
+                histEntry = chatHistory[i];
+                break;
+              }
+            }
+            if (histEntry) {
+              if (data.audio_url) histEntry.reply.audioUrl = data.audio_url;
+              if (animName) histEntry.reply.animName = animName;
+              saveHistory();
+            }
+          }
           window.WebAvatar.playAudio(data.audio_url);
         }
       } else {
@@ -2091,4 +2217,76 @@
     // Small delay then process next in queue
     setTimeout(processNextTTS, 300);
   }
+
+  // ─── Replay Helpers ───────────────────────────────────────────────────
+
+  /** Drain TTS queue and stop current audio immediately. */
+  function clearTTSQueue() {
+    ttsQueue.length = 0;
+    ttsBusy = false;
+    if (window.WebAvatar) window.WebAvatar.stopAudio();
+  }
+
+  /**
+   * Attach a speaker replay button to a bot bubble element.
+   * Safe to call multiple times — skips if button already present.
+   */
+  function addReplayButton(el) {
+    if (el.querySelector('.bcw-replay-btn')) return;
+    var btn = document.createElement('button');
+    btn.className = 'bcw-replay-btn';
+    btn.title = 'Replay';
+    // Speaker icon (Font Awesome solid speaker path)
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M533.6 32.5C598.5 85.2 640 165.8 640 256s-41.5 170.7-106.4 223.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C557.5 398.2 592 331.2 592 256s-34.5-142.2-88.7-186.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM473.1 107c43.2 35.2 70.9 88.9 70.9 149s-27.7 113.8-70.9 149c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C475.3 341.3 496 301.1 496 256s-20.7-85.3-53.2-111.8c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zm-60.5 74.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393 285.2 400 271.4 400 256s-7.1-29.2-17.8-37.2c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM301.1 34.8C312.6 40 320 51.4 320 64V448c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352H64c-35.3 0-64-28.7-64-64V224c0-35.3 28.7-64 64-64h67.8L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3z"/></svg>';
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      replayBubble(el);
+    });
+    // Touch: show button for 3 s then hide again
+    el.addEventListener('touchstart', function () {
+      el.classList.add('bcw-replay-hover');
+      clearTimeout(el._bcwReplayTimer);
+      el._bcwReplayTimer = setTimeout(function () {
+        el.classList.remove('bcw-replay-hover');
+      }, 3000);
+    }, { passive: true });
+    el.appendChild(btn);
+  }
+
+  /**
+   * Store audio URL + animation name on a bubble element after TTS resolves.
+   * Called from processNextTTS once both TTS and animation APIs have responded.
+   */
+  function attachReplayData(el, audioUrl, animName) {
+    if (!el) return;
+    if (audioUrl) el.dataset.bcwAudioUrl = audioUrl;
+    if (animName) el.dataset.bcwAnimName = animName;
+  }
+
+  /**
+   * Replay audio (and animation) for a bot bubble.
+   * - If audio URL was stored: replay it, optionally re-loading the animation first.
+   * - If no audio was stored (TTS interrupted): call TTS API fresh without animation.
+   */
+  function replayBubble(el) {
+    var audioUrl = el.dataset.bcwAudioUrl || '';
+    var animName = el.dataset.bcwAnimName || '';
+    var ttsText = el.dataset.bcwTtsText || '';
+
+    // Interrupt anything currently playing/queued
+    clearTTSQueue();
+
+    if (audioUrl && window.WebAvatar) {
+      // Replay stored audio; optionally re-trigger the stored animation first
+      if (animName && typeof window.WebAvatar.loadAnimation === 'function') {
+        window.WebAvatar.loadAnimation(animName);
+      }
+      window.WebAvatar.playAudio(audioUrl);
+    } else if (ttsText) {
+      // TTS never ran for this bubble — call API fresh, skip animation
+      ttsQueue.push({ text: ttsText, userInput: '', botText: ttsText, bubbleRef: null });
+      processNextTTS();
+    }
+  }
+
 })();
