@@ -1487,7 +1487,9 @@
   function connectToChannel() {
     channel = ably.channels.get(`chat-${userId}`);
     channel.subscribe('bot-reply', function (message) {
-      const replies = JSON.parse(message.data);
+      const reply_data = JSON.parse(message.data);
+      const replies = reply_data.messages;
+      
       var ttsTexts = [];
 
       // Collect TTS text upfront (all replies, regardless of timing)
