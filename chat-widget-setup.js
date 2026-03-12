@@ -418,6 +418,8 @@
     const WebAvatarSetup = {
         overlay: null,
         botId: null,
+        avatarWidgetSrc: null,
+        chatWidgetSrc: null,
         speakersData: { v1: [], v2: [] },
         vrmModels: [],
         currentVersion: 'v1',
@@ -498,16 +500,18 @@
                     return;
                 }
                 const script = document.createElement('script');
-                script.src = './avatar-widget.js';
+                script.src = this.avatarWidgetSrc;
                 script.onload = resolve;
                 script.onerror = reject;
                 document.head.appendChild(script);
             });
         },
 
-        init: async function(bot_id, ui_lang = 'en') {
+        init: async function(bot_id, ui_lang = 'en', avatar_widget_src = 'https://webavatar.didthat.cc/avatar-widget.js', chat_widget_src = 'https://webavatar.didthat.cc/chat-widget.js') {
             this.botId = bot_id;
             this.uiLang = ui_lang;
+            this.avatarWidgetSrc = avatar_widget_src;
+            this.chatWidgetSrc = chat_widget_src;
             this.audioElement = new Audio();
             
             this.audioElement.addEventListener('play', () => this.updatePlayButtons());
@@ -685,7 +689,7 @@
                 const versionNum = this.currentVersion === 'v1' ? '1' : '2';
                 const speakerId = this.selectedSpeaker ? this.selectedSpeaker.speaker_id : '13';
                 const avatarName = this.selectedCharacter || 'Botnoi'; // Use selected character
-                const rawScriptText = `<script src="https://webavatar.didthat.cc/chat-widget.js"\n    data-bot-id="${this.botId}"\n    data-bnv-version="${versionNum}"\n    data-bnv-speaker="${speakerId}"\n    data-avatar-url="${avatarName}">\n</script>`;
+                const rawScriptText = `<script src="${this.chatWidgetSrc}"\n    data-bot-id="${this.botId}"\n    data-bnv-version="${versionNum}"\n    data-bnv-speaker="${speakerId}"\n    data-avatar-url="${avatarName}">\n</script>`;
                 
                 navigator.clipboard.writeText(rawScriptText).then(() => {
                     const btn = document.getElementById('waCopyBtn');
@@ -765,7 +769,7 @@
             const speakerId = this.selectedSpeaker ? this.selectedSpeaker.speaker_id : '13';
             const avatarName = this.selectedCharacter || 'Botnoi'; // Use selected character
             
-            const scriptHtml = `&lt;<span class="wa-c-tag">script</span> <span class="wa-c-attr">src</span>=<span class="wa-c-str">"https://webavatar.didthat.cc/chat-widget.js"</span>
+            const scriptHtml = `&lt;<span class="wa-c-tag">script</span> <span class="wa-c-attr">src</span>=<span class="wa-c-str">"${this.chatWidgetSrc}"</span>
     <span class="wa-c-attr">data-bot-id</span>=<span class="wa-c-str">"${this.botId}"</span>
     <span class="wa-c-attr">data-bnv-version</span>=<span class="wa-c-str">"${versionNum}"</span>
     <span class="wa-c-attr">data-bnv-speaker</span>=<span class="wa-c-str">"${speakerId}"</span>
@@ -1093,7 +1097,7 @@
 
             const newScript = document.createElement('script');
             newScript.id = 'wa-dynamic-injected-script';
-            newScript.src = './chat-widget.js?t=' + Date.now();
+            newScript.src = this.chatWidgetSrc + '?t=' + Date.now();
             newScript.setAttribute('data-bot-id', this.botId);
             newScript.setAttribute('data-bnv-version', versionNum);
             newScript.setAttribute('data-bnv-speaker', speakerId);
