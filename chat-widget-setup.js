@@ -88,10 +88,36 @@
             letter-spacing: 0.5px;
         }
 
+        .wa-setup-link {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 13px;
+            color: #00aeef;
+            text-decoration: none;
+            text-transform: none;
+            font-weight: 500;
+            letter-spacing: normal;
+            background: transparent;
+            padding-left: 8px;
+            z-index: 2;
+        }
+
+        .wa-setup-link:hover {
+            text-decoration: underline;
+        }
+
         .wa-setup-input-group {
             display: flex;
             gap: 12px;
             margin-bottom: 8px;
+        }
+
+        .wa-setup-input-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
         }
 
         .wa-setup-error-text {
@@ -104,6 +130,8 @@
 
         .wa-setup-input {
             flex: 1;
+            width: 100%;
+            box-sizing: border-box;
             padding: 12px 16px;
             border: 1px solid #d1d5db;
             border-radius: 8px;
@@ -113,6 +141,10 @@
             background: white;
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        #waBnvKeyInput {
+            padding-right: 85px;
         }
 
         .wa-setup-input:focus {
@@ -592,7 +624,10 @@
 
                     <div class="wa-setup-section-title">${this.t('bnvKey')}</div>
                     <div class="wa-setup-input-group">
-                        <input type="text" id="waBnvKeyInput" class="wa-setup-input" placeholder="${this.t('loading')}" disabled>
+                        <div class="wa-setup-input-wrapper">
+                            <input type="text" id="waBnvKeyInput" class="wa-setup-input" placeholder="${this.t('loading')}" disabled>
+                            <a href="https://voice.botnoi.ai/developer/api" target="_blank" class="wa-setup-link">Get Key </a>
+                        </div>
                         <button id="waBnvSaveBtn" class="wa-setup-save-btn" disabled>${this.t('save')}</button>
                     </div>
                     <div id="waBnvErrorText" class="wa-setup-error-text"></div>
