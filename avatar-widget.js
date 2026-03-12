@@ -14,14 +14,26 @@
     function detectBaseUrl() {
         // Priority 1: document.currentScript (if script is loaded normally)
         if (document.currentScript && document.currentScript.src) {
-            return document.currentScript.src.substring(0, document.currentScript.src.lastIndexOf('/') + 1);
+            try {
+                return new URL('.', document.currentScript.src).href;
+            } catch (e) {
+                return document.currentScript.src.substring(0, document.currentScript.src.lastIndexOf('/') + 1);
+            }
         }
 
         // Priority 2: Try to find the script by filename
         const scripts = document.getElementsByTagName('script');
-        for (let script of scripts) {
-            if (script.src && script.src.includes('avatar-widget.js')) {
-                return script.src.substring(0, script.src.lastIndexOf('/') + 1);
+        const knownScripts = ['avatar-widget.js', 'chat-widget.js', 'chat-widget-setup.js'];
+        
+        for (let name of knownScripts) {
+            for (let script of scripts) {
+                if (script.src && script.src.includes(name)) {
+                    try {
+                        return new URL('.', script.src).href;
+                    } catch (e) {
+                        return script.src.substring(0, script.src.lastIndexOf('/') + 1);
+                    }
+                }
             }
         }
 
