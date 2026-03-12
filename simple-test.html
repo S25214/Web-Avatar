@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>Simple Widget Test</title>
     <!-- The only integration line needed -->
-    <script src="https://webavatar.didthat.cc/avatar-widget.js"></script>
+    <!-- <script src="https://webavatar.didthat.cc/avatar-widget.js"></script> -->
     <style>
         body {
             background: #333;
@@ -18,12 +18,21 @@
     <h1>Widget Integration Test</h1>
     <p>The avatar should appear in the bottom right.</p>
 
-    <script>
+    <!-- <script>
         // Init logic - immediate usage
         window.WebAvatar.init({
             modelUrl: 'Volley',
             animationUrl: 'Greeting'
         });
+    </script> -->
+    <!-- note พี่นัท โหลด script ไป host บน botnoi.ai นะครับ -->
+    <!-- data-bnv-key เว้นว่างหรือไม่มีเลย ถ้าอยากให้ user กรอกเอง -->
+    <!-- data-avatar-url default เป็น Botnoi หรือ url ไฟล์ VRM เช่น https://example.com/avatar/model.vrm -->
+    <script src="./chat-widget.js"
+        data-bot-id=""
+        data-bnv-version="1"
+        data-bnv-speaker="13"
+        data-avatar-url="Botnoi">
     </script>
 </body>
 

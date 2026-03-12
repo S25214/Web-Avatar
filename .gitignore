@@ -1,1 +1,8 @@
 cors/
+node_modules/
+chat-widget/
+flex2html/
+.env
+.env.local
+package-lock.json
+package.json

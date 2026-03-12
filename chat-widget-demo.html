@@ -195,7 +195,7 @@
             </div>
             <pre id="demo-code-pre"><span class="tok-tag">&lt;script</span> <span class="tok-attr">src</span>=<span class="tok-str">"https://webavatar.didthat.cc/chat-widget.js"</span>
     <span class="tok-attr">data-bot-id</span>=<span class="tok-str">"YOUR_BOT_ID"</span>
-    <span class="tok-attr">data-bnv-key</span>=<span class="tok-str">"YOUR_BNV_KEY"</span>
+    <!-- <span class="tok-attr">data-bnv-key</span>=<span class="tok-str">"YOUR_BNV_KEY"</span> -->
     <span class="tok-attr">data-bnv-version</span>=<span class="tok-str">"1 or 2"</span>
     <span class="tok-attr">data-bnv-speaker</span>=<span class="tok-str">"SPEAKER_ID"</span>
     <span class="tok-attr">data-avatar-url</span>=<span class="tok-str">"AVATAR_URL"</span><span class="tok-tag">&gt;
@@ -209,7 +209,7 @@
     </div>
 
     <!-- เว้นว่างไว้เพื่อกรอกเองบน ui -->
-    <script src="./chat-widget.js" data-bot-id="" data-bnv-key="" id="bcw-script">
+    <script src="./chat-widget.js" data-bot-id="" data-title="Setup" id="bcw-script">
     </script>
 
     <script>
@@ -229,7 +229,7 @@
             function buildCodeHtml(cfg) {
                 var attrs = [
                     ['data-bot-id', cfg.botId || 'YOUR_BOT_ID'],
-                    ['data-bnv-key', cfg.bnvKey || 'YOUR_BNV_KEY'],
+                    // ['data-bnv-key', cfg.bnvKey || 'YOUR_BNV_KEY'],
                     ['data-bnv-version', cfg.bnvVersion || '1 or 2'],
                     ['data-bnv-speaker', cfg.bnvSpeaker || 'SPEAKER_ID'],
                     ['data-avatar-url', cfg.avatarUrl || 'AVATAR_URL']
@@ -254,7 +254,7 @@
                 };
                 return {
                     botId: attr('data-bot-id', 'bcw_bot_id'),
-                    bnvKey: attr('data-bnv-key', 'bcw_bnv_key'),
+                    // bnvKey: attr('data-bnv-key', 'bcw_bnv_key'),
                     bnvVersion: attr('data-bnv-version', 'bcw_bnv_version'),
                     bnvSpeaker: attr('data-bnv-speaker', 'bcw_bnv_speaker'),
                     avatarUrl: attr('data-avatar-url', 'bcw_avatar_url')
@@ -291,7 +291,7 @@
                 var cfg = readConfig();
                 var attrs = [
                     'data-bot-id="' + (cfg.botId || 'YOUR_BOT_ID') + '"',
-                    'data-bnv-key="' + (cfg.bnvKey || 'YOUR_BNV_KEY') + '"',
+                    // 'data-bnv-key="' + (cfg.bnvKey || 'YOUR_BNV_KEY') + '"',
                     'data-bnv-version="' + (cfg.bnvVersion || '1') + '"',
                     'data-bnv-speaker="' + (cfg.bnvSpeaker || 'SPEAKER_ID') + '"',
                     'data-avatar-url="' + (cfg.avatarUrl || 'AVATAR_URL') + '"'

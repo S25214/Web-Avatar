@@ -66,6 +66,7 @@
             this.offsetY = defaultOffsetY + ((options.offset && options.offset.y) || 0);
             this.border = options.border || false;
             this.modelUrl = options.modelUrl || 'Kitagawa';
+            this.zIndex = options.zIndex !== undefined ? options.zIndex : 9999;
 
             // Support multiple default animations
             const defaultAnim = options.defaultAnimationUrl || ['Idleloop', 'idle_breatheloop', 'Idle_Swayloop', 'Idle_Offensive'];
@@ -253,7 +254,7 @@
                 position: 'fixed',
                 width: `${this.width}px`,
                 height: `${this.height}px`,
-                zIndex: '9999',
+                zIndex: `${this.zIndex}`,
                 pointerEvents: 'none',
                 border: this.border ? '1px solid red' : 'none'
             };
