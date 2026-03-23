@@ -4,92 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Widget Setup Test</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
-        }
-
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 500px;
-        }
-
-        h1 {
-            color: #333;
-            margin-top: 0;
-            margin-bottom: 20px;
-        }
-
-        p {
-            color: #666;
-            margin-bottom: 30px;
-            line-height: 1.5;
-        }
-
-        .setup-trigger-btn {
-            background-color: #00aeef;
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0, 174, 239, 0.2);
-            transition: all 0.2s ease;
-        }
-
-        .setup-trigger-btn:hover {
-            background-color: #0098d6;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 174, 239, 0.3);
-        }
-
-        .setup-trigger-btn:active {
-            transform: translateY(0);
-        }
-
-        .lang-btn {
-            background-color: #f39c12;
-            box-shadow: 0 4px 6px rgba(243, 156, 18, 0.2);
-        }
-
-        .lang-btn:hover {
-            background-color: #e67e22;
-            box-shadow: 0 6px 12px rgba(243, 156, 18, 0.3);
-        }
-    </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Dashboard Sandbox</h1>
-        <p>This is a mock dashboard representing your main site. Click the button below to test the WebAvatar Setup modular script.</p>
+    <div class="container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+        <h1>Chat Widget Install</h1>
+        <p>This is a mock website representing your main site.</p>
         
-        <div style="display: flex; gap: 10px; justify-content: center;">
+        <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
+            <input type="text" id="botIdInput" placeholder="Enter Bot ID" value="64464df59f76af17c9ca0ed3" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 320px;">
             <button id="toggleLangSetup" class="setup-trigger-btn lang-btn">
-                Switch to TH
+                EN
             </button>
             <button id="openWidgetSetup" class="setup-trigger-btn">
-                Configure Web Chat
+                Install
             </button>
         </div>
     </div>
 
     <!-- 1. Include the modular script you just created -->
     <script src="https://webavatar.didthat.cc/chat-widget-setup.js"></script>
-    <!-- 2. Attach the click event using WebAvatarSetup.init('<bot-id>', '<language>', '<avatar-widget-src>', '<chat-widget-src>') -->
+    <!-- 2. Attach the click event using WebAvatarSetup.init('<bot-id>', '<ui-language>', '<avatar-widget-src>', '<chat-widget-src>') -->
     <script>
         let currentLang = 'en';
         const toggleLangBtn = document.getElementById('toggleLangSetup');
@@ -97,12 +32,12 @@
         toggleLangBtn.addEventListener('click', function() {
             currentLang = currentLang === 'en' ? 'th' : 'en';
             document.documentElement.lang = currentLang;
-            toggleLangBtn.textContent = currentLang === 'en' ? 'Switch to TH' : 'Switch to EN';
+            toggleLangBtn.textContent = currentLang === 'en' ? 'EN' : 'TH';
         });
 
         document.getElementById('openWidgetSetup').addEventListener('click', function() {
-            // Replace '64464df59f76af17c9ca0ed3' with any bot ID you want.
-            WebAvatarSetup.init('64464df59f76af17c9ca0ed3', currentLang, 'https://webavatar.didthat.cc/avatar-widget.js', 'https://webavatar.didthat.cc/chat-widget.js');
+            const botId = document.getElementById('botIdInput').value.trim();
+            WebAvatarSetup.init(botId, currentLang, 'https://webavatar.didthat.cc/avatar-widget.js', 'https://webavatar.didthat.cc/chat-widget.js');
         });
     </script>
 
