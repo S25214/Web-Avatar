@@ -88,7 +88,7 @@
     </div>
 
     <!-- 1. Include the modular script you just created -->
-    <script src="./chat-widget-setup.js"></script>
+    <script src="https://webavatar.didthat.cc/chat-widget-setup.js"></script>
     <!-- 2. Attach the click event using WebAvatarSetup.init('<bot-id>', '<language>', '<avatar-widget-src>', '<chat-widget-src>') -->
     <script>
         let currentLang = 'en';
@@ -101,8 +101,8 @@
         });
 
         document.getElementById('openWidgetSetup').addEventListener('click', function() {
-            // Replace 'test_bot_123' with any dummy bot ID you want to test
-            WebAvatarSetup.init('64464df59f76af17c9ca0ed3', currentLang);
+            // Replace '64464df59f76af17c9ca0ed3' with any bot ID you want.
+            WebAvatarSetup.init('64464df59f76af17c9ca0ed3', currentLang, 'https://webavatar.didthat.cc/avatar-widget.js', 'https://webavatar.didthat.cc/chat-widget.js');
         });
     </script>
 

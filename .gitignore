@@ -1,6 +1,8 @@
 cors/
 node_modules/
 chat-widget/
+chat-widget-setup/
+avatar-widget/
 flex2html/
 .env
 .env.local
