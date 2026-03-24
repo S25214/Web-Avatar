@@ -19,15 +19,16 @@
         }
 
         #toolbar {
-            background: #f0f0f0;
+            background: #2b2b2b;
+            color: #e0e0e0;
             padding: 10px;
             display: flex;
             gap: 10px;
             align-items: center;
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid #111;
             z-index: 1000;
             /* Ensure toolbar is above everything */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
             position: relative;
             transition: margin-top 0.3s ease-in-out;
         }
@@ -41,24 +42,24 @@
             transform: translateX(-50%);
             width: 50px;
             height: 20px;
-            background: #f0f0f0;
+            background: #2b2b2b;
             border-bottom-left-radius: 10px;
             border-bottom-right-radius: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid #111;
             border-top: none;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
             z-index: 1001;
             font-size: 10px;
-            color: #555;
+            color: #aaa;
             user-select: none;
         }
 
         #toolbar-notch:hover {
-            background-color: #e0e0e0;
+            background-color: #3b3b3b;
         }
 
         .toolbar-group {
@@ -71,39 +72,110 @@
             flex-grow: 1;
         }
 
-        #urlInput {
+        #urlInput, #audioInput {
             flex-grow: 1;
             padding: 8px;
-            border: 1px solid #ccc;
+            border: 1px solid #444;
             border-radius: 4px;
             font-size: 14px;
             min-width: 50px;
+            background: #333;
+            color: #e0e0e0;
         }
 
-        select {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-            cursor: pointer;
+        .custom-select {
+            position: relative;
             width: 150px;
-            /* Default width on desktop */
+            font-size: 14px;
+        }
+
+        .custom-select-button {
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #333;
+            color: #e0e0e0;
+            cursor: pointer;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .custom-select-button::after {
+            content: '▼';
+            font-size: 10px;
+            margin-left: 8px;
+        }
+
+        .custom-select-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #333;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-top: none;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 2000;
+            display: none;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .custom-select-options.open {
+            display: block;
+        }
+
+        .custom-select-options li {
+            padding: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .custom-select-options li:hover {
+            background: #444;
+            color: #fff;
+        }
+
+        .custom-select-options li.selected {
+            background: #555;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .custom-select-options li.selected:hover {
+            background: #666;
+            color: #fff;
+        }
+
+        #toolbar button {
+            background-color: #444;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #toolbar button:hover {
+            background-color: #555;
         }
 
         #loadBtn {
             padding: 8px 16px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
             font-size: 14px;
             font-weight: bold;
             white-space: nowrap;
-        }
-
-        #loadBtn:hover {
-            background-color: #0056b3;
         }
 
         /* Mobile Responsive Styles */
@@ -119,7 +191,7 @@
 
             /* #select-group inherits .toolbar-group styles (width: 100%) */
 
-            select {
+            .custom-select {
                 flex: 1;
                 /* Grow to fill space */
                 width: 0;
@@ -134,7 +206,26 @@
             border: none;
             width: 100%;
             height: 100%;
-            background-color: #fff;
+            background-color: #464646;
+            display: none;
+        }
+
+        #emptyState {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start !important;
+            justify-content: top !important;
+            background-color: #1e1e1e;
+            color: #666;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #emptyState p {
+            margin: 0;
+            font-size: 14px;
+            
         }
     </style>
     <!-- Widget Loader Script (No type="module" so it runs immediately to inject importmap) -->
@@ -151,8 +242,14 @@
             <button id="loadBtn">Load</button>
         </div>
         <div class="toolbar-group" id="select-group">
-            <select id="modelSelect"></select>
-            <select id="animSelect"></select>
+            <div class="custom-select" id="modelSelectContainer">
+                <div class="custom-select-button" id="modelSelectBtn">Loading...</div>
+                <ul class="custom-select-options" id="modelSelectOpts"></ul>
+            </div>
+            <div class="custom-select" id="animSelectContainer">
+                <div class="custom-select-button" id="animSelectBtn">Loading...</div>
+                <ul class="custom-select-options" id="animSelectOpts"></ul>
+            </div>
         </div>
         <div class="toolbar-group" id="audio-group">
             <input type="text" id="audioInput" placeholder="Audio URL or Base64" style="width: 150px;">
@@ -160,17 +257,21 @@
             <button id="stopAudioBtn">Stop</button>
             <label for="volumeSlider">Vol:</label>
             <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" style="width: 60px;">
-            <button id="disconnectBtn" style="background-color: #dc3545; margin-left: 10px;">X</button>
         </div>
-        <div style="font-size: 12px; margin-bottom: 5px; display: flex; gap: 10px; align-items: center;">
-            <label>Cam X: <input type="range" id="camX" min="-3" max="3" step="0.1" value="0"
-                    style="width: 50px;"></label>
-            <label>Cam Y: <input type="range" id="camY" min="-3" max="3" step="0.1" value="0"
-                    style="width: 50px;"></label>
-            <label>Cam Z: <input type="range" id="camZ" min="-3" max="3" step="0.1" value="0"
-                    style="width: 50px;"></label>
+        <div style="font-size: 12px; margin-bottom: 5px; display: flex; gap: 8px; align-items: center; justify-content: center;">
+            <span>Cam:</span>
+            <button id="camUpBtn" style="padding: 2px 8px;">↑</button>
+            <button id="camDownBtn" style="padding: 2px 8px;">↓</button>
+            <button id="camLeftBtn" style="padding: 2px 8px;">←</button>
+            <button id="camRightBtn" style="padding: 2px 8px;">→</button>
+            <button id="camZUpBtn" style="padding: 2px 8px; margin-left: 5px;">Z ↑</button>
+            <button id="camZDownBtn" style="padding: 2px 8px;">Z ↓</button>
         </div>
         <div id="toolbar-notch" title="Toggle Toolbar">▲</div>
+    </div>
+
+    <div id="emptyState">
+        <p>Drag and drop a .vrm or .vrma file here, or enter a URL above to load a website.</p>
     </div>
 
     <iframe id="siteFrame" src="about:blank"></iframe>
@@ -184,53 +285,96 @@
         border: 4px dashed #007bff;
         z-index: 9999;
         justify-content: center;
-        align-items: center;
+        align-items: top;
+        padding-top: 100px;
         font-size: 24px;
         font-weight: bold;
         color: #007bff;
-        pointer-events: none;
-    ">Drop VRM file here</div>
+        z-index: 10000;
+    ">Drop VRM or VRMA file here</div>
 
     <script>
         const initWidget = async () => {
+            let cameraTarget = { x: 0, y: 0, z: -3 };
+
             // Initialize Widget using the new global API
             window.WebAvatar.init({
+                position: 'center',
+                offset: { x: 0, y: 100 },
+                cameraTarget: cameraTarget,
                 onAnimationLoaded: (url) => {
-                    const animSelect = document.getElementById('animSelect');
-                    if (animSelect) {
-                        // Check exact match or by filename
-                        const filename = url.split('/').pop().toLowerCase();
-                        for (let i = 0; i < animSelect.options.length; i++) {
-                            const optVal = animSelect.options[i].value.toLowerCase();
-                            // If selector has simple names, we check by simple name
-                            if (url.endsWith(optVal) || optVal === filename) {
-                                animSelect.selectedIndex = i;
-                                break;
-                            }
-                        }
+                    const animSelectContainer = document.getElementById('animSelectContainer');
+                    if (animSelectContainer && animSelectContainer.selectByUrlMatch) {
+                        animSelectContainer.selectByUrlMatch(url);
                     }
                 }
             });
 
-            const populateSelect = (selectId, assets, defaultName) => {
-                const select = document.getElementById(selectId);
-                select.innerHTML = '';
-                let defaultValue = null;
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-select-options').forEach(el => el.classList.remove('open'));
+            });
 
-                console.log(`Populating ${selectId} with ${assets.length} assets`);
+            const setupCustomSelect = (containerId, btnId, optsId, assets, defaultName, onChange) => {
+                const container = document.getElementById(containerId);
+                const btn = document.getElementById(btnId);
+                const optsList = document.getElementById(optsId);
+                optsList.innerHTML = '';
+                
+                let selectedValue = null;
+                const optionsElements = [];
+
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const isOpen = optsList.classList.contains('open');
+                    document.querySelectorAll('.custom-select-options').forEach(el => el.classList.remove('open'));
+                    if (!isOpen) optsList.classList.add('open');
+                };
+
+                const selectOption = (val, text, trigger = true) => {
+                    selectedValue = val;
+                    btn.textContent = text;
+                    optionsElements.forEach(li => {
+                        if (li.dataset.value === val) li.classList.add('selected');
+                        else li.classList.remove('selected');
+                    });
+                    if (trigger && onChange) onChange(val);
+                };
 
                 assets.forEach(fileName => {
-                    const option = document.createElement('option');
-                    option.value = fileName; // Simple filename, e.g. "Blossom.vrm"
-                    option.textContent = fileName.replace(/\.[^/.]+$/, ""); // Remove extension
-                    select.appendChild(option);
+                    const li = document.createElement('li');
+                    li.dataset.value = fileName;
+                    const textContent = fileName.replace(/\.[^/.]+$/, "");
+                    li.textContent = textContent;
+                    li.onclick = (e) => {
+                        e.stopPropagation();
+                        selectOption(fileName, textContent);
+                        optsList.classList.remove('open');
+                    };
+                    optsList.appendChild(li);
+                    optionsElements.push(li);
 
                     if (fileName.toLowerCase().includes(defaultName.toLowerCase())) {
-                        defaultValue = fileName;
-                        option.selected = true;
+                        selectedValue = fileName;
+                        btn.textContent = textContent;
+                        li.classList.add('selected');
                     }
                 });
-                return defaultValue || (assets.length > 0 ? assets[0] : null);
+
+                if (!selectedValue && assets.length > 0) {
+                    selectOption(assets[0], assets[0].replace(/\.[^/.]+$/, ""), false);
+                }
+
+                container.selectByUrlMatch = (url) => {
+                    const filename = url.split('/').pop().toLowerCase();
+                    for (const li of optionsElements) {
+                        const optVal = li.dataset.value.toLowerCase();
+                        if (url.endsWith(optVal) || optVal === filename) {
+                            selectOption(li.dataset.value, li.textContent, false);
+                            break;
+                        }
+                    }
+                };
             };
 
             const models = await window.WebAvatar.getModels();
@@ -238,8 +382,13 @@
             const anims = await window.WebAvatar.getAnimations();
             console.log("anims", anims);
 
-            populateSelect('modelSelect', models, 'Kitagawa');
-            populateSelect('animSelect', anims, 'Idleloop');
+            setupCustomSelect('modelSelectContainer', 'modelSelectBtn', 'modelSelectOpts', models, 'Kitagawa', (val) => {
+                if (window.WebAvatar) window.WebAvatar.loadModel(val);
+            });
+            
+            setupCustomSelect('animSelectContainer', 'animSelectBtn', 'animSelectOpts', anims, 'Idleloop', (val) => {
+                if (window.WebAvatar) window.WebAvatar.loadAnimation(val);
+            });
 
 
             // Handle URL loading
@@ -249,12 +398,19 @@
 
             const loadSite = () => {
                 let url = urlInput.value.trim();
+                const emptyState = document.getElementById('emptyState');
                 if (url) {
                     if (!url.startsWith('http://') && !url.startsWith('https://')) {
                         url = 'https://' + url;
                         urlInput.value = url;
                     }
                     siteFrame.src = url;
+                    siteFrame.style.display = 'block';
+                    if (emptyState) emptyState.style.display = 'none';
+                } else {
+                    siteFrame.src = 'about:blank';
+                    siteFrame.style.display = 'none';
+                    if (emptyState) emptyState.style.display = 'flex';
                 }
             };
 
@@ -266,24 +422,13 @@
             });
             // loadBtn.click();
 
-            // Model and Animation Switching
-            const modelSelect = document.getElementById('modelSelect');
-            const animSelect = document.getElementById('animSelect');
-
-            modelSelect.addEventListener('change', (e) => {
-                window.WebAvatar.loadModel(e.target.value);
-            });
-
-            animSelect.addEventListener('change', (e) => {
-                window.WebAvatar.loadAnimation(e.target.value);
-            });
+            
 
             // Audio Controls
             const audioInput = document.getElementById('audioInput');
             const playAudioBtn = document.getElementById('playAudioBtn');
             const stopAudioBtn = document.getElementById('stopAudioBtn');
             const volumeSlider = document.getElementById('volumeSlider');
-            const disconnectBtn = document.getElementById('disconnectBtn');
 
             playAudioBtn.addEventListener('click', () => {
                 const source = audioInput.value.trim();
@@ -299,39 +444,37 @@
             });
 
             const updateCamera = () => {
-                const x = parseFloat(document.getElementById('camX').value);
-                const y = parseFloat(document.getElementById('camY').value);
-                const z = parseFloat(document.getElementById('camZ').value);
-                if (window.WebAvatar) window.WebAvatar.setCameraPosition(x, y, z);
+                if (window.WebAvatar) window.WebAvatar.setCameraPosition(cameraTarget.x, cameraTarget.y, cameraTarget.z);
             };
 
-            document.getElementById('camX').addEventListener('input', updateCamera);
-            document.getElementById('camY').addEventListener('input', updateCamera);
-            document.getElementById('camZ').addEventListener('input', updateCamera);
+            const camStep = 0.1;
+            document.getElementById('camUpBtn').addEventListener('click', () => { cameraTarget.y += camStep; updateCamera(); });
+            document.getElementById('camDownBtn').addEventListener('click', () => { cameraTarget.y -= camStep; updateCamera(); });
+            document.getElementById('camLeftBtn').addEventListener('click', () => { cameraTarget.x -= camStep; updateCamera(); });
+            document.getElementById('camRightBtn').addEventListener('click', () => { cameraTarget.x += camStep; updateCamera(); });
+            
+            document.getElementById('camZUpBtn').addEventListener('click', () => { cameraTarget.z -= camStep * 5; updateCamera(); });
+            document.getElementById('camZDownBtn').addEventListener('click', () => { cameraTarget.z += camStep * 5; updateCamera(); });
 
             volumeSlider.addEventListener('input', (e) => {
                 if (window.WebAvatar) window.WebAvatar.setVolume(parseFloat(e.target.value));
-            });
-
-            disconnectBtn.addEventListener('click', () => {
-                if (window.WebAvatar) window.WebAvatar.disconnect();
             });
 
             // VRM Drag & Drop
             const dropOverlay = document.getElementById('dropOverlay');
             let dragCounter = 0;
 
-            document.body.addEventListener('dragenter', (e) => {
+            window.addEventListener('dragenter', (e) => {
                 e.preventDefault();
                 dragCounter++;
                 dropOverlay.style.display = 'flex';
             });
 
-            document.body.addEventListener('dragover', (e) => {
+            window.addEventListener('dragover', (e) => {
                 e.preventDefault();
             });
 
-            document.body.addEventListener('dragleave', (e) => {
+            window.addEventListener('dragleave', (e) => {
                 e.preventDefault();
                 dragCounter--;
                 if (dragCounter <= 0) {
@@ -340,7 +483,7 @@
                 }
             });
 
-            document.body.addEventListener('drop', (e) => {
+            window.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dragCounter = 0;
                 dropOverlay.style.display = 'none';
@@ -348,14 +491,20 @@
                 const file = e.dataTransfer.files[0];
                 if (!file) return;
 
-                if (!file.name.toLowerCase().endsWith('.vrm')) {
-                    alert('Please drop a .vrm file');
+                const fileName = file.name.toLowerCase();
+                if (!fileName.endsWith('.vrm') && !fileName.endsWith('.vrma')) {
+                    alert('Please drop a .vrm or .vrma file');
                     return;
                 }
 
                 const blobUrl = URL.createObjectURL(file);
-                console.log(`Loading dropped VRM: ${file.name}`);
-                window.WebAvatar.loadModel(blobUrl);
+                if (fileName.endsWith('.vrma')) {
+                    console.log(`Loading dropped VRMA: ${file.name}`);
+                    window.WebAvatar.loadAnimation(blobUrl);
+                } else {
+                    console.log(`Loading dropped VRM: ${file.name}`);
+                    window.WebAvatar.loadModel(blobUrl);
+                }
             });
 
             // Toolbar Collapse Logic
