@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Widget Setup Test</title>
+    <title>WebAvatar Chat Setup</title>
 </head>
 <body>
 
     <div class="container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0;">
-        <h1>Chat Widget Install</h1>
-        <p>This is a mock website representing your main site.</p>
-        
+        <h1>WebAvatar Chat</h1>
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-            <input type="text" id="botIdInput" placeholder="Enter Bot ID" value="64464df59f76af17c9ca0ed3" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 320px;">
+            <input type="text" id="botIdInput" placeholder="Enter Bot ID" value="" style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 180px;">
             <button id="toggleLangSetup" class="setup-trigger-btn lang-btn">
                 EN
             </button>
@@ -37,6 +35,7 @@
 
         document.getElementById('openWidgetSetup').addEventListener('click', function() {
             const botId = document.getElementById('botIdInput').value.trim();
+            if (!botId || botId.length !== 24) { return; }
             WebAvatarSetup.init(botId, currentLang, 'https://webavatar.didthat.cc/avatar-widget.js', 'https://webavatar.didthat.cc/chat-widget.js');
         });
     </script>
