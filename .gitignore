@@ -8,3 +8,4 @@ flex2html/
 .env.local
 package-lock.json
 package.json
+customer_provider_design.md
