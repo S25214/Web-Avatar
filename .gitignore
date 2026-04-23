@@ -4,8 +4,9 @@ chat-widget/
 chat-widget-setup/
 avatar-widget/
 flex2html/
+BACKUP/
 .env
 .env.local
 package-lock.json
 package.json
-customer_provider_design.md
+custom_provider_design.md

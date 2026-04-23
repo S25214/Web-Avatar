@@ -96,6 +96,7 @@
             <label>Streaming audio chunks</label>
             <div class="btn-group">
                 <button onclick="testPushAudioChunk()" class="secondary">pushAudioChunk() (test tone)</button>
+                <button onclick="toggleMicStreaming()" id="mic-stream-btn" class="secondary">Start Mic Streaming</button>
                 <button onclick="testEndAudio()" class="secondary">endAudio()</button>
             </div>
         </div>
@@ -146,7 +147,7 @@
 
     <!-- Load the chat widget in CUSTOM mode -->
     <script
-        src="./chat-widget.js"
+        src="https://webavatar.didthat.cc/chat-widget.js"
         data-provider="custom"
         data-widget-id="demo-widget-001"
         data-title="Custom Bot"
@@ -247,6 +248,86 @@
         function testEndAudio() {
             ChatWidget.endAudio();
             log('log-info', '🔚 endAudio()');
+        }
+
+        // --- Mic Streaming State ---
+        let micAudioContext = null;
+        let micStreamSource = null;
+        let micProcessor = null;
+        let localStream = null;
+        let isMicStreaming = false;
+
+        async function toggleMicStreaming() {
+            const btn = document.getElementById('mic-stream-btn');
+
+            if (isMicStreaming) {
+                // Stop streaming and clean up audio nodes
+                if (micProcessor) {
+                    micProcessor.disconnect();
+                    micProcessor.onaudioprocess = null;
+                }
+                if (micStreamSource) micStreamSource.disconnect();
+                if (micAudioContext) micAudioContext.close();
+                if (localStream) localStream.getTracks().forEach(t => t.stop());
+                
+                isMicStreaming = false;
+                btn.textContent = "Start Mic Streaming";
+                btn.classList.remove('danger');
+                btn.classList.add('secondary');
+                
+                ChatWidget.endAudio();
+                log('log-info', '🎙️ Mic Streaming:', 'Stopped & called endAudio()');
+            } else {
+                // Start streaming
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    // Let the browser use its native hardware sample rate
+                    micAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    micStreamSource = micAudioContext.createMediaStreamSource(localStream);
+                    
+                    // Create a processor to extract raw PCM data chunks (4096 frames per chunk)
+                    micProcessor = micAudioContext.createScriptProcessor(4096, 1, 1);
+                    
+                    let chunkCount = 0;
+                    micProcessor.onaudioprocess = (e) => {
+                        const inputData = e.inputBuffer.getChannelData(0); 
+                        
+                        // Clone the Float32Array to a new ArrayBuffer
+                        const pcmBuffer = new Float32Array(inputData).buffer;
+                        
+                        // Push raw PCM to the widget IMMEDIATELY (No array buffering here)
+                        ChatWidget.pushAudioChunk(pcmBuffer, {
+                            pcm: true,
+                            sampleRate: micAudioContext.sampleRate, 
+                            channels: 1,
+                            bitDepth: 32
+                        });
+                        
+                        chunkCount++;
+                        if (chunkCount % 10 === 0) {
+                             log('log-mic', '🎙️ Pushed PCM chunk:', (pcmBuffer.byteLength / 1024).toFixed(1) + 'KB @ ' + micAudioContext.sampleRate + 'Hz');
+                        }
+                    };
+
+                    // Routing: Mic -> Processor -> Muted Gain Node -> Destination
+                    const dummyGain = micAudioContext.createGain();
+                    dummyGain.gain.value = 0; 
+                    
+                    micStreamSource.connect(micProcessor);
+                    micProcessor.connect(dummyGain);
+                    dummyGain.connect(micAudioContext.destination);
+
+                    isMicStreaming = true;
+                    btn.textContent = "Stop Mic Streaming";
+                    btn.classList.remove('secondary');
+                    btn.classList.add('danger');
+                    log('log-info', '🎙️ Mic Streaming:', 'Started pushing raw PCM chunks');
+
+                } catch (err) {
+                    log('log-error', '🎙️ Mic Error:', err.message);
+                }
+            }
         }
 
         function testPlayAnimation() {

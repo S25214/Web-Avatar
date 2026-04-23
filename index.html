@@ -258,6 +258,18 @@
             <label for="volumeSlider">Vol:</label>
             <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" style="width: 60px;">
         </div>
+        <div class="toolbar-group" id="emotion-group">
+            <select id="emotionSelect" style="padding: 2px;">
+                <option value="idle">Idle</option>
+                <option value="angry">Angry</option>
+                <option value="happy">Happy</option>
+                <option value="sad">Sad</option>
+                <option value="surprised">Surprised</option>
+                <option value="disgust">Disgust</option>
+            </select>
+            <input type="number" id="emotionDuration" placeholder="Secs" value="0" step="0.1" style="width: 50px;">
+            <button id="playEmotionBtn">Play</button>
+        </div>
         <div style="font-size: 12px; margin-bottom: 5px; display: flex; gap: 8px; align-items: center; justify-content: center;">
             <span>Cam:</span>
             <button id="camUpBtn" style="padding: 2px 8px;">↑</button>
@@ -302,6 +314,9 @@
                 position: 'center',
                 offset: { x: 0, y: 100 },
                 cameraTarget: cameraTarget,
+                randomGeneric: false,
+                defaultAnimationUrl: 'Idleloop',
+                sss: false,
                 onAnimationLoaded: (url) => {
                     const animSelectContainer = document.getElementById('animSelectContainer');
                     if (animSelectContainer && animSelectContainer.selectByUrlMatch) {
@@ -458,6 +473,18 @@
 
             volumeSlider.addEventListener('input', (e) => {
                 if (window.WebAvatar) window.WebAvatar.setVolume(parseFloat(e.target.value));
+            });
+
+            // Emotion Controls
+            const playEmotionBtn = document.getElementById('playEmotionBtn');
+            const emotionSelect = document.getElementById('emotionSelect');
+            const emotionDuration = document.getElementById('emotionDuration');
+
+            playEmotionBtn.addEventListener('click', () => {
+                if (window.WebAvatar) {
+                    const duration = parseFloat(emotionDuration.value) || 0;
+                    window.WebAvatar.setEmotion(emotionSelect.value, duration);
+                }
             });
 
             // VRM Drag & Drop
