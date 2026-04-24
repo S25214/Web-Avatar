@@ -207,6 +207,18 @@
             <p>Plays audio and drives lip-sync. <code>source</code> can be a URL or a Base64 string.</p>
         </li>
         <li>
+            <span class="method-signature">window.WebAvatar.pushAudioChunk(chunk, options)</span>
+            <p>Pushes a chunk of audio for streaming playback. Supports Raw PCM (<code>{ pcm: true }</code>), WAV, MP3, and OGG. Automatically handles lip-sync and serialization.</p>
+        </li>
+        <li>
+            <span class="method-signature">window.WebAvatar.endAudio()</span>
+            <p>Signals the end of an audio stream, flushing any remaining buffered data.</p>
+        </li>
+        <li>
+            <span class="method-signature">window.WebAvatar.playStream(mediaStream)</span>
+            <p>Connects an external <code>MediaStream</code> (e.g., from a Mic or WebRTC) to the avatar for real-time lip-sync.</p>
+        </li>
+        <li>
             <span class="method-signature">window.WebAvatar.stopAudio()</span>
             <p>Stops playback and resets lip-sync.</p>
         </li>
@@ -217,6 +229,10 @@
         <li>
             <span class="method-signature">window.WebAvatar.setCameraPosition(x, y, z)</span>
             <p>Sets the user camera offset {x, y, z} relative to the default camera position.</p>
+        </li>
+        <li>
+            <span class="method-signature">window.WebAvatar.setEmotion(name, duration)</span>
+            <p>Sets the avatar's current emotion. Available emotions: <code>happy</code>, <code>sad</code>, <code>angry</code>, <code>surprised</code>, <code>relaxed</code>, <code>idle</code>. <code>duration</code> is optional (in seconds).</p>
         </li>
         <li>
             <span class="method-signature">async window.WebAvatar.getModels()</span>
@@ -257,6 +273,17 @@
     ├── Idleloop.vrma
     └── ...
     </pre>
+
+    <h2>Technical Overview (Internal Modules)</h2>
+    <p>The <code>avatar-widget.js</code> is composed of several specialized modules that handle different aspects of the 3D experience:</p>
+    <ul>
+        <li><strong>Orchestrator:</strong> Manages the lifecycle, Three.js scene, and rendering loop.</li>
+        <li><strong>Animation System:</strong> Handles VRMA loading and smooth crossfade transitions with root-motion compensation.</li>
+        <li><strong>Audio & Lip-Sync:</strong> Features an MFCC-based phoneme detection engine (aa, ih, ou, ee, oh) that maps audio frequencies to VRM blendshapes in real-time.</li>
+        <li><strong>Emotion System:</strong> A dedicated expression manager for the 6 core emotions (happy, sad, angry, surprised, relaxed, idle) with spring-damper smoothing.</li>
+        <li><strong>Environment:</strong> Automatic lighting setup, dynamic camera follow with exponential lerp, and decorative floor grid.</li>
+        <li><strong>Automatic Behaviors:</strong> Includes randomized eye blinking and idle state switching.</li>
+    </ul>
 
 </body>
 

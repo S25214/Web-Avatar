@@ -94,8 +94,9 @@
             </div>
 
             <label>Streaming audio chunks</label>
+            <input type="file" id="audio-upload" accept="audio/*" style="width:100%; margin-bottom:10px; font-size:0.75rem; color:#94a3b8;" />
             <div class="btn-group">
-                <button onclick="testPushAudioChunk()" class="secondary">pushAudioChunk() (test tone)</button>
+                <button onclick="testPushAudioChunk()" class="secondary">pushAudioChunk() (Upload)</button>
                 <button onclick="toggleMicStreaming()" id="mic-stream-btn" class="secondary">Start Mic Streaming</button>
                 <button onclick="testEndAudio()" class="secondary">endAudio()</button>
             </div>
@@ -147,7 +148,8 @@
 
     <!-- Load the chat widget in CUSTOM mode -->
     <script
-        src="https://webavatar.didthat.cc/chat-widget.js"
+        src="./chat-widget.js"
+        data-avatar-widget-src="./avatar-widget.js"
         data-provider="custom"
         data-widget-id="demo-widget-001"
         data-title="Custom Bot"
@@ -210,39 +212,46 @@
             log('log-info', '🔇 stopAudio()');
         }
 
-        function testPushAudioChunk() {
-            log('log-info', '📦 pushAudioChunk: Creating test tone…');
-            // Generate a short test tone as ArrayBuffer
-            const sampleRate = 22050;
-            const duration = 0.5;
-            const numSamples = sampleRate * duration;
-            const buffer = new ArrayBuffer(44 + numSamples * 2);
-            const view = new DataView(buffer);
+        async function testPushAudioChunk() {
+            const fileInput = document.getElementById('audio-upload');
+            const file = fileInput.files[0];
 
-            // WAV header
-            const writeString = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
-            writeString(0, 'RIFF');
-            view.setUint32(4, 36 + numSamples * 2, true);
-            writeString(8, 'WAVE');
-            writeString(12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true);
-            writeString(36, 'data');
-            view.setUint32(40, numSamples * 2, true);
-
-            for (let i = 0; i < numSamples; i++) {
-                const t = i / sampleRate;
-                const val = Math.sin(2 * Math.PI * 440 * t) * 0.3;
-                view.setInt16(44 + i * 2, val * 32767, true);
+            if (!file) {
+                log('log-error', '📦 pushAudioChunk:', 'Please select an audio file first!');
+                fileInput.click();
+                return;
             }
 
-            ChatWidget.pushAudioChunk(buffer);
-            log('log-info', '📦 Pushed 440Hz test tone (0.5s)');
+            log('log-info', '📦 pushAudioChunk:', `Streaming ${file.name}…`);
+            try {
+                // Use the file stream reader for realistic streaming
+                const reader = file.stream().getReader();
+                let chunkCount = 0;
+                let totalBytes = 0;
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    // value is a Uint8Array, we pass the buffer
+                    ChatWidget.pushAudioChunk(value.buffer);
+                    
+                    totalBytes += value.byteLength;
+                    chunkCount++;
+                    
+                    if (chunkCount % 5 === 0) {
+                        log('log-info', '📦 Streaming...', (totalBytes / 1024).toFixed(1) + ' KB pushed');
+                    }
+
+                    // Optional: add a tiny delay to simulate real network streaming if the file is small/local
+                    // await new Promise(r => setTimeout(r, 10));
+                }
+
+                ChatWidget.endAudio();
+                log('log-info', '📦 pushAudioChunk:', 'Finished streaming ' + (totalBytes / 1024).toFixed(1) + ' KB');
+            } catch (err) {
+                log('log-error', '📦 pushAudioChunk Error:', err.message);
+            }
         }
 
         function testEndAudio() {
@@ -345,6 +354,26 @@
                 } else {
                     const size = data && data.blob ? (data.blob.size / 1024).toFixed(1) + 'KB' : 'no blob';
                     log('log-mic', '🎤 onMicToggle:', 'Recording stopped (' + size + ')');
+
+                    // --- NEW PLAYBACK LOGIC ---
+                    if (data && data.blob) {
+                        log('log-info', '▶️ Playing back:', 'Recorded audio...');
+                        
+                        // Create a temporary URL for the Blob
+                        const audioUrl = URL.createObjectURL(data.blob);
+                        const audio = new Audio(audioUrl);
+                        
+                        // Clean up the URL from memory after it finishes playing
+                        audio.onended = () => {
+                            URL.revokeObjectURL(audioUrl);
+                            log('log-info', '⏹️ Playback finished', '');
+                        };
+                        
+                        // Play the audio
+                        audio.play().catch(err => {
+                            log('log-error', '▶️ Playback failed:', err.message);
+                        });
+                    }
                 }
             });
 

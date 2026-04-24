@@ -9,4 +9,4 @@ BACKUP/
 .env.local
 package-lock.json
 package.json
-custom_provider_design.md
+ARCHITECTURE_REFERENCE.md
