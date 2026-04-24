@@ -5,6 +5,7 @@ chat-widget-setup/
 avatar-widget/
 flex2html/
 BACKUP/
+TEST/
 .env
 .env.local
 package-lock.json
