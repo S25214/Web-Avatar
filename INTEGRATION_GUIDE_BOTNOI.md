@@ -6,35 +6,50 @@ This guide provides a condensed reference for integrating the WebAvatar Chat Wid
 
 ## 1. Quick Start
 
-Add this script to your HTML before `</body>`. Botnoi mode is active if `data-bot-id` is present or `data-provider="botnoi"`.
+Paste the universal embed snippet into your HTML before `</body>`. Botnoi mode is active when `botId` is present or `provider` is set to `"botnoi"`.
+
+Works on **any framework**: plain HTML, React, Vue, Angular, Next.js, Svelte.
 
 ```html
-<script
-  src="https://webavatar.didthat.cc/chat-widget.js"
-  data-bot-id="YOUR_BOTNOI_BOT_ID"
-  data-bnv-version="1"
-  data-bnv-speaker="13"
-  data-avatar-url="Botnoi"
-></script>
+<script>
+    window.ChatWidgetConfig = {
+        botId: "YOUR_BOTNOI_BOT_ID",
+        bnvVersion: "1",
+        bnvSpeaker: "13",
+        avatarUrl: "Botnoi"
+    };
+    (function() {
+        if (document.getElementById('webavatar-jssdk')) return;
+        var s = document.createElement('script');
+        s.id = 'webavatar-jssdk';
+        s.src = 'https://webavatar.didthat.cc/chat-widget.js';
+        s.async = true;
+        (document.head || document.body).appendChild(s);
+    })();
+</script>
 ```
+
+For **React/Vue/Angular/Svelte**, paste the JavaScript body into your component's mount lifecycle (`useEffect`, `onMounted`, `ngAfterViewInit`, `onMount`) — the code is identical, no translation needed.
 
 ---
 
-## 2. Configuration Attributes (`data-*`)
+## 2. Configuration (`window.ChatWidgetConfig`)
 
 ### Botnoi-Specific
-| Attribute | Description |
+| Key | Description |
 |---|---|
-| `data-bot-id` | **Required**. Your Botnoi Chatbot ID. |
-| `data-bnv-version` | Botnoi Voice API version (`"1"` or `"2"`). Default: `"1"`. |
-| `data-bnv-speaker` | Botnoi Voice speaker ID. Default: `"13"`. |
+| `botId` | **Required**. Your Botnoi Chatbot ID. |
+| `bnvVersion` | Botnoi Voice API version (`"1"` or `"2"`). Default: `"1"`. |
+| `bnvSpeaker` | Botnoi Voice speaker ID. Default: `"13"`. |
 
 ### Universal
-| Attribute | Description |
+| Key | Description |
 |---|---|
-| `data-avatar-url` | Built-in name (e.g., `"Botnoi"`) or full URL to a `.vrm` file. |
-| `data-title` | Title shown in the chat header. |
-| `data-persist-history`| `"true"` or `"false"` (default: `"true"`). |
+| `avatarUrl` | Built-in name (e.g., `"Botnoi"`) or full URL to a `.vrm` file. |
+| `title` | Title shown in the chat header. |
+| `persistHistory` | `"true"` or `"false"` (default: `"true"`). |
+| `avatar` | Set to `"false"` to disable 3D avatar entirely. |
+| `color` | Theme color hex, e.g. `"#a7e6ff"`. |
 
 ---
 
@@ -81,7 +96,7 @@ ChatWidget.clearHistory();
 ---
 
 ## 5. Troubleshooting for AI Agents
-- **"Connecting..." Stuck**: Check if `data-bot-id` is valid. Open the panel to see if a setup form appears (this happens if the ID is missing).
+- **"Connecting..." Stuck**: Check if `botId` is valid. Open the panel to see if a setup form appears (this happens if the ID is missing).
 - **CORS Errors**: Ensure the domain where you are embedding the widget is allowed in your Botnoi dashboard settings.
-- **No Voice**: Check `data-bnv-version` and `data-bnv-speaker`. Verify the browser isn't blocking autoplay (audio requires user interaction like clicking the widget FAB).
+- **No Voice**: Check `bnvVersion` and `bnvSpeaker`. Verify the browser isn't blocking autoplay (audio requires user interaction like clicking the widget FAB).
 - **Mic Limit**: Remember that in Botnoi mode, the recording is hard-limited to 10 seconds.

@@ -6,30 +6,45 @@ This guide provides a condensed reference for integrating the WebAvatar Chat Wid
 
 ## 1. Quick Start
 
-Add this script to your HTML before `</body>`. Custom mode is triggered by `data-provider="custom"`.
+Paste the universal embed snippet into your HTML before `</body>`. Custom mode is triggered by setting `provider: "custom"`.
+
+Works on **any framework**: plain HTML, React, Vue, Angular, Next.js, Svelte.
 
 ```html
-<script
-  src="https://webavatar.didthat.cc/chat-widget.js"
-  data-provider="custom"
-  data-widget-id="your-widget-id"
-  data-title="AI Assistant"
-  data-avatar-url="Botnoi"
-></script>
+<script>
+    window.ChatWidgetConfig = {
+        provider: "custom",
+        widgetId: "your-widget-id",
+        title: "AI Assistant",
+        avatarUrl: "Botnoi"
+    };
+    (function() {
+        if (document.getElementById('webavatar-jssdk')) return;
+        var s = document.createElement('script');
+        s.id = 'webavatar-jssdk';
+        s.src = 'https://webavatar.didthat.cc/chat-widget.js';
+        s.async = true;
+        (document.head || document.body).appendChild(s);
+    })();
+</script>
 ```
+
+For **React/Vue/Angular/Svelte**, paste the JavaScript body into your component's mount lifecycle (`useEffect`, `onMounted`, `ngAfterViewInit`, `onMount`) — the code is identical, no translation needed.
 
 ---
 
-## 2. Configuration Attributes (`data-*`)
+## 2. Configuration (`window.ChatWidgetConfig`)
 
-| Attribute | Description |
+| Key | Description |
 |---|---|
-| `data-provider` | Must be `"custom"`. |
-| `data-widget-id` | Required for AI auto-animation to work in custom mode. |
-| `data-avatar-url` | Built-in name (e.g., `"Botnoi"`) or full URL to a `.vrm` file. |
-| `data-title` | Title shown in the chat header. |
-| `data-mic-limit` | Max recording seconds (default: 0 = unlimited). |
-| `data-persist-history`| `"true"` or `"false"` (default: `"true"`). |
+| `provider` | Must be `"custom"`. |
+| `widgetId` | Required for AI auto-animation to work in custom mode. |
+| `avatarUrl` | Built-in name (e.g., `"Botnoi"`) or full URL to a `.vrm` file. |
+| `title` | Title shown in the chat header. |
+| `micLimit` | Max recording seconds (default: `0` = unlimited). |
+| `persistHistory` | `"true"` or `"false"` (default: `"true"`). |
+| `avatar` | Set to `"false"` to disable 3D avatar entirely. |
+| `color` | Theme color hex, e.g. `"#a7e6ff"`. |
 
 ---
 
@@ -106,7 +121,7 @@ ChatWidget.onMicToggle(async (isRecording, data) => {
 ---
 
 ## 5. Troubleshooting for AI Agents
-- **No Avatar?**: Ensure `data-avatar-url` is valid and the panel is open.
+- **No Avatar?**: Ensure `avatarUrl` is valid and the panel is open.
 - **Audio Lag?**: Use `pushAudioChunk` with raw PCM or self-decodable MP3 frames.
-- **Auto-anim fails?**: Check `data-widget-id` and ensure your domain (Origin) is authorized.
+- **Auto-anim fails?**: Check `widgetId` and ensure your domain (Origin) is authorized.
 - **Mic errors?**: Must use **HTTPS**. Check `data.error` in `onMicToggle`.

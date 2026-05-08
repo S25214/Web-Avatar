@@ -3,34 +3,57 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Simple Widget Test</title>
-    <style>
-        body {
-            background: #333;
-            color: white;
-        }
-    </style>
+    <title>WebAvatar Chat Widget</title>
 </head>
 
 <body>
-    <h1>Widget Integration Test</h1>
-    <p>The widget should appear in the bottom right.</p>
-    <div class="bn-customerchat">
-        <script src="./chat-widget.js"
-            data-provider="botnoi"
-            data-bot-id=""
-            data-title="TEST"
-            data-color="#ffffff"
-            data-bnv-version=""
-            data-bnv-speaker=""
-            data-avatar-url="">
-        </script>
-    </div>
 
-    
-    
+    <!--
+    ╔══════════════════════════════════════════════════════════════════╗
+    ║  WebAvatar Chat Widget — Universal Embed Snippet               ║
+    ╠══════════════════════════════════════════════════════════════════╣
+    ║                                                                ║
+    ║  Copy the <script> block below and paste it into your page.    ║
+    ║  Works on ANY framework: HTML, React, Vue, Angular, Next.js.   ║
+    ║                                                                ║
+    ║  For React/Vue/Angular, paste the JavaScript INSIDE the        ║
+    ║  <script> tag into your component's mount lifecycle:            ║
+    ║    • React:   useEffect(() => { ... }, [])                     ║
+    ║    • Vue:     onMounted(() => { ... })                         ║
+    ║    • Angular: ngAfterViewInit() { ... }                        ║
+    ║    • Svelte:  onMount(() => { ... })                           ║
+    ║  The code is identical — no translation needed.                ║
+    ║                                                                ║
+    ║  CONFIGURATION:                                                ║
+    ║    botId       (required) Your Botnoi Bot ID                   ║
+    ║    title       Chat window display name                        ║
+    ║    avatarUrl   3D avatar model: "Botnoi", "Kitagawa", etc.     ║
+    ║    bnvVersion  Voice version: "1" or "2"                       ║
+    ║    bnvSpeaker  Speaker ID (default: "13")                      ║
+    ║    avatar      Set to "false" to disable 3D avatar             ║
+    ║    color       Theme color hex, e.g. "#a7e6ff"                 ║
+    ║                                                                ║
+    ╚══════════════════════════════════════════════════════════════════╝
+    -->
+
+    <script>
+        window.ChatWidgetConfig = {
+            botId: "685baebc7a0d4755ee18b532",
+            title: "botnoidemoagent",
+            avatarUrl: "Kitagawa",
+            bnvVersion: "1",
+            bnvSpeaker: "2"
+        };
+        (function() {
+            if (document.getElementById('webavatar-jssdk')) return;
+            var s = document.createElement('script');
+            s.id = 'webavatar-jssdk';
+            s.src = './chat-widget.js';
+            s.async = true;
+            (document.head || document.body).appendChild(s);
+        })();
+    </script>
+
 </body>
 
 </html>
-
-  

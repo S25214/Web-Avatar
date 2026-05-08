@@ -8,29 +8,39 @@
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Provider Modes](#provider-modes)
-3. [Script Tag Attributes Reference](#script-tag-attributes-reference)
-4. [JavaScript API — `window.ChatWidget`](#javascript-api--windowchatwidget)
-5. [Avatar Widget API — `window.WebAvatar`](#avatar-widget-api--windowwebavatar)
-6. [Common Integration Patterns](#common-integration-patterns)
-7. [Troubleshooting](#troubleshooting)
+2. [Configuration Sources](#configuration-sources)
+3. [Provider Modes](#provider-modes)
+4. [Configuration Reference](#configuration-reference)
+5. [JavaScript API — `window.ChatWidget`](#javascript-api--windowchatwidget)
+6. [Avatar Widget API — `window.WebAvatar`](#avatar-widget-api--windowwebavatar)
+7. [Common Integration Patterns](#common-integration-patterns)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Quick Start
 
-Add a single `<script>` tag before the closing `</body>` tag. The widget injects its own UI (floating action button + chat panel) automatically.
+Paste the universal embed snippet before `</body>`. It works on **any framework**: plain HTML, React, Vue, Angular, Next.js, Svelte — no translation needed.
 
 ### Botnoi Provider (managed backend)
 
 ```html
-<script
-  src="https://webavatar.didthat.cc/chat-widget.js"
-  data-bot-id="YOUR_BOT_ID"
-  data-bnv-version="1"
-  data-bnv-speaker="13"
-  data-avatar-url="Botnoi"
-></script>
+<script>
+    window.ChatWidgetConfig = {
+        botId: "YOUR_BOT_ID",
+        bnvVersion: "1",
+        bnvSpeaker: "13",
+        avatarUrl: "Botnoi"
+    };
+    (function() {
+        if (document.getElementById('webavatar-jssdk')) return;
+        var s = document.createElement('script');
+        s.id = 'webavatar-jssdk';
+        s.src = 'https://webavatar.didthat.cc/chat-widget.js';
+        s.async = true;
+        (document.head || document.body).appendChild(s);
+    })();
+</script>
 ```
 
 The widget connects to the Botnoi chatbot backend, handles TTS, ASR, animations, and avatar lip-sync automatically.
@@ -38,16 +48,67 @@ The widget connects to the Botnoi chatbot backend, handles TTS, ASR, animations,
 ### Custom Provider (bring your own backend)
 
 ```html
-<script
-  src="https://webavatar.didthat.cc/chat-widget.js"
-  data-provider="custom"
-  data-widget-id="your-widget-id"
-  data-title="My Assistant"
-  data-avatar-url="Botnoi"
-></script>
+<script>
+    window.ChatWidgetConfig = {
+        provider: "custom",
+        widgetId: "your-widget-id",
+        title: "My Assistant",
+        avatarUrl: "Botnoi"
+    };
+    (function() {
+        if (document.getElementById('webavatar-jssdk')) return;
+        var s = document.createElement('script');
+        s.id = 'webavatar-jssdk';
+        s.src = 'https://webavatar.didthat.cc/chat-widget.js';
+        s.async = true;
+        (document.head || document.body).appendChild(s);
+    })();
+</script>
 ```
 
 In custom mode, **no backend is loaded**. You control all messaging, audio, and animation through the `window.ChatWidget` JavaScript API.
+
+### Framework Usage (React, Vue, Angular, Svelte)
+
+The JavaScript inside the `<script>` tag above is **identical** to what you'd use in any framework's mount lifecycle — just paste the code body:
+
+```js
+// React: useEffect(() => { ... }, [])
+// Vue:   onMounted(() => { ... })
+// Angular: ngAfterViewInit() { ... }
+// Svelte: onMount(() => { ... })
+
+window.ChatWidgetConfig = {
+    botId: "YOUR_BOT_ID",
+    avatarUrl: "Botnoi"
+};
+if (!document.getElementById('webavatar-jssdk')) {
+    var s = document.createElement('script');
+    s.id = 'webavatar-jssdk';
+    s.src = 'https://webavatar.didthat.cc/chat-widget.js';
+    s.async = true;
+    (document.head || document.body).appendChild(s);
+}
+```
+
+---
+
+## Configuration Sources
+
+The widget resolves configuration from **three sources**, checked in this priority order:
+
+| Priority | Source | Best For |
+|---|---|---|
+| 1 | `data-*` attributes on the `<script>` tag | Simple HTML pages (legacy) |
+| 2 | `data-*` attributes on a container `<div class="bn-customerchat">` | CMS embeds |
+| 3 | `window.ChatWidgetConfig` JS object | **All frameworks (recommended)** |
+
+The **`window.ChatWidgetConfig`** approach (Priority 3) is the **recommended universal method** because:
+- It doesn't rely on `document.currentScript` (which fails in async/bundled contexts like React, Next.js, Webpack, etc.)
+- It works identically in every framework
+- The config is a plain JavaScript object — easy to set dynamically
+
+> **Note**: If both `data-*` attributes and `ChatWidgetConfig` are present, `data-*` attributes take precedence for any key that appears in both.
 
 ---
 
@@ -55,15 +116,15 @@ In custom mode, **no backend is loaded**. You control all messaging, audio, and 
 
 The widget supports two mutually exclusive provider modes, determined at load time.
 
-### Botnoi Provider (`data-provider="botnoi"` or `data-bot-id` is present)
+### Botnoi Provider (`provider: "botnoi"` or `botId` is present)
 
 - **Fully managed**: connects to Botnoi chatbot platform realtime messaging.
 - **Built-in TTS**: generates voice from bot responses using Botnoi Voice API.
 - **Built-in ASR**: microphone button records audio → sends to Botnoi ASR endpoint → auto-fills user message.
 - **Auto-animation**: AI selects contextual avatar animations based on conversation content.
-- **Setup form**: if `data-bot-id` is not provided, a setup form is shown inside the panel for the user to enter credentials.
+- **Setup form**: if `botId` is not provided, a setup form is shown inside the panel for the user to enter credentials.
 
-### Custom Provider (`data-provider="custom"` or no `data-bot-id`)
+### Custom Provider (`provider: "custom"` or no `botId`)
 
 - **No backend loaded**: TTS and ASR are not initialized.
 - **You handle everything**: listen for user messages via `ChatWidget.onUserMessage()`, generate your own responses, and inject them via `ChatWidget.addBotMessage()`.
@@ -74,43 +135,45 @@ The widget supports two mutually exclusive provider modes, determined at load ti
 
 The provider is resolved in this order:
 
-1. If `data-provider="custom"` is explicitly set → **Custom mode**
-2. If `data-provider` is any other value → **Botnoi mode**
-3. If `data-provider` is not set but `data-bot-id` is present → **Botnoi mode**
-4. If neither `data-provider` nor `data-bot-id` is set → **Custom mode**
+1. If `provider` is `"custom"` → **Custom mode**
+2. If `provider` is any other value → **Botnoi mode**
+3. If `provider` is not set but `botId` is present → **Botnoi mode**
+4. If neither `provider` nor `botId` is set → **Custom mode**
 
 ---
 
-## Script Tag Attributes Reference
+## Configuration Reference
 
-All configuration is done via `data-*` attributes on the `<script>` tag.
+All configuration keys below can be set via `window.ChatWidgetConfig` (camelCase) or as `data-*` attributes (kebab-case).
 
-### Universal Attributes (both providers)
+### Universal Options (both providers)
 
-| Attribute | Type | Default | Description |
-|---|---|---|---|
-| `data-provider` | `"custom"` \| `"botnoi"` | Auto-detected | Explicitly set the provider mode. |
-| `data-title` | `string` | `"Botnoi Assistant"` | Text shown in the chat panel header. |
-| `data-avatar-url` | `string` | `"Botnoi"` | VRM model name (from the built-in model list) or a full URL to a `.vrm` file. |
-| `data-persist-history` | `"true"` \| `"false"` | `"true"` | Persist chat history in `localStorage` across page reloads. Set to `"false"` to disable. |
-| `data-auto-focus-input` | `"true"` \| `"false"` | `"false"` | Auto-focus the text input when the chat panel opens. |
+| ChatWidgetConfig Key | data-* Attribute | Type | Default | Description |
+|---|---|---|---|---|
+| `provider` | `data-provider` | `"custom"` \| `"botnoi"` | Auto-detected | Explicitly set the provider mode. |
+| `title` | `data-title` | `string` | `"Botnoi Assistant"` | Text shown in the chat panel header. |
+| `avatarUrl` | `data-avatar-url` | `string` | `"Botnoi"` | VRM model name (from the built-in model list) or a full URL to a `.vrm` file. |
+| `avatar` | `data-avatar` | `"true"` \| `"false"` | `"true"` | Set to `"false"` to disable the 3D avatar entirely. |
+| `persistHistory` | `data-persist-history` | `"true"` \| `"false"` | `"true"` | Persist chat history in `localStorage` across page reloads. |
+| `autoFocusInput` | `data-auto-focus-input` | `"true"` \| `"false"` | `"false"` | Auto-focus the text input when the chat panel opens. |
+| `color` | `data-color` | `string` | — | Theme color hex, e.g. `"#a7e6ff"`. |
 
-### Custom Provider Attributes
+### Custom Provider Options
 
-| Attribute | Type | Default | Description |
-|---|---|---|---|
-| `data-widget-id` | `string` | `""` | Widget ID for animation API authentication. The server validates this against the `Origin` header. Required for auto-animation to work in custom mode. |
-| `data-mic-limit` | `number` (seconds) | `0` (unlimited) | Maximum microphone recording duration in seconds. `0` means no limit. |
+| ChatWidgetConfig Key | data-* Attribute | Type | Default | Description |
+|---|---|---|---|---|
+| `widgetId` | `data-widget-id` | `string` | `""` | Widget ID for animation API authentication. Required for auto-animation in custom mode. |
+| `micLimit` | `data-mic-limit` | `number` (seconds) | `0` (unlimited) | Maximum microphone recording duration. `0` means no limit. |
 
-### Botnoi Provider Attributes
+### Botnoi Provider Options
 
-| Attribute | Type | Default | Description |
-|---|---|---|---|
-| `data-bot-id` | `string` | `""` | Your Botnoi chatbot ID. |
-| `data-bnv-version` | `"1"` \| `"2"` | `"1"` | Botnoi Voice API version for TTS. |
-| `data-bnv-speaker` | `string` | `"13"` | Botnoi Voice speaker ID for TTS. |
+| ChatWidgetConfig Key | data-* Attribute | Type | Default | Description |
+|---|---|---|---|---|
+| `botId` | `data-bot-id` | `string` | `""` | Your Botnoi chatbot ID. |
+| `bnvVersion` | `data-bnv-version` | `"1"` \| `"2"` | `"1"` | Botnoi Voice API version for TTS. |
+| `bnvSpeaker` | `data-bnv-speaker` | `string` | `"13"` | Botnoi Voice speaker ID for TTS. |
 
-> **Note**: In Botnoi mode, `data-mic-limit` is always forced to `10` seconds regardless of any attribute value.
+> **Note**: In Botnoi mode, `micLimit` is always forced to `10` seconds regardless of any configured value.
 
 ---
 
@@ -363,12 +426,21 @@ ChatWidget.setStatus("offline", "Disconnected");
 ### Pattern 1: Custom chatbot with your own API
 
 ```html
-<script
-  src="https://webavatar.didthat.cc/chat-widget.js"
-  data-provider="custom"
-  data-widget-id="my-widget-001"
-  data-title="My AI Assistant"
-></script>
+<script>
+    window.ChatWidgetConfig = {
+        provider: "custom",
+        widgetId: "my-widget-001",
+        title: "My AI Assistant"
+    };
+    (function() {
+        if (document.getElementById('webavatar-jssdk')) return;
+        var s = document.createElement('script');
+        s.id = 'webavatar-jssdk';
+        s.src = 'https://webavatar.didthat.cc/chat-widget.js';
+        s.async = true;
+        (document.head || document.body).appendChild(s);
+    })();
+</script>
 
 <script>
 ChatWidget.onUserMessage(async function(text) {
@@ -462,12 +534,21 @@ ws.onmessage = function(event) {
 ### Pattern 3: Custom ASR (speech-to-text)
 
 ```html
-<script
-  src="https://webavatar.didthat.cc/chat-widget.js"
-  data-provider="custom"
-  data-widget-id="my-widget"
-  data-mic-limit="15"
-></script>
+<script>
+    window.ChatWidgetConfig = {
+        provider: "custom",
+        widgetId: "my-widget",
+        micLimit: 15
+    };
+    (function() {
+        if (document.getElementById('webavatar-jssdk')) return;
+        var s = document.createElement('script');
+        s.id = 'webavatar-jssdk';
+        s.src = 'https://webavatar.didthat.cc/chat-widget.js';
+        s.async = true;
+        (document.head || document.body).appendChild(s);
+    })();
+</script>
 
 <script>
 // Register mic callback to handle recording results
@@ -505,14 +586,23 @@ peerConnection.ontrack = function(event) {
 ### Pattern 5: Botnoi with pre-configured credentials
 
 ```html
-<script
-  src="https://webavatar.didthat.cc/chat-widget.js"
-  data-bot-id="64464df59f76af17c9ca0ed3"
-  data-bnv-version="1"
-  data-bnv-speaker="13"
-  data-avatar-url="Botnoi"
-  data-title="My Botnoi Bot"
-></script>
+<script>
+    window.ChatWidgetConfig = {
+        botId: "64464df59f76af17c9ca0ed3",
+        bnvVersion: "1",
+        bnvSpeaker: "13",
+        avatarUrl: "Botnoi",
+        title: "My Botnoi Bot"
+    };
+    (function() {
+        if (document.getElementById('webavatar-jssdk')) return;
+        var s = document.createElement('script');
+        s.id = 'webavatar-jssdk';
+        s.src = 'https://webavatar.didthat.cc/chat-widget.js';
+        s.async = true;
+        (document.head || document.body).appendChild(s);
+    })();
+</script>
 ```
 
 ---
@@ -521,13 +611,13 @@ peerConnection.ontrack = function(event) {
 
 ### Widget doesn't appear
 
-- Ensure the script is loaded **before** `</body>` or after DOM is ready.
+- Ensure `window.ChatWidgetConfig` is set **before** the loader IIFE runs.
 - Check the browser console for errors.
 - The widget injects a floating action button (bottom-right by default). Look for `#botnoi-chat-widget` in the DOM.
 
 ### "Connecting…" state never resolves (Botnoi mode)
 
-- Verify `data-bot-id` is correct.
+- Verify `botId` is correct in your `ChatWidgetConfig`.
 - Look for CORS errors in the console.
 
 ### Mic button doesn't work
@@ -543,7 +633,7 @@ peerConnection.ontrack = function(event) {
 
 ### Auto-animation not working (Custom mode)
 
-- Set `data-widget-id` to a valid widget ID registered on the animation API server.
+- Set `widgetId` in your `ChatWidgetConfig` to a valid widget ID registered on the animation API server.
 - The animation API validates the `Origin` header against the widget ID — the embedding page's domain must be registered.
 
 ---
