@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAvatar — Fullscreen Live Voice Experience</title>
+    <meta name="description" content="Fullscreen AI avatar voice experience powered by Gemini Live.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Modern Reset & Base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: #050508;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #f1f1f6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient glowing backgrounds for premium feel */
+        .bg-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.04) 50%, transparent 100%);
+            top: -200px;
+            left: -200px;
+            filter: blur(80px);
+            z-index: 0;
+            pointer-events: none;
+            animation: pulse-glow 15s infinite alternate;
+        }
+
+        .bg-glow-right {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, rgba(236, 72, 153, 0.02) 60%, transparent 100%);
+            bottom: -150px;
+            right: -150px;
+            filter: blur(80px);
+            z-index: 0;
+            pointer-events: none;
+            animation: pulse-glow-right 12s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.2) translate(50px, 50px); }
+        }
+
+        @keyframes pulse-glow-right {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.1) translate(-30px, -30px); }
+        }
+
+        /* Glassmorphic Container */
+        .config-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 480px;
+            padding: 40px;
+            background: rgba(13, 13, 22, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .config-container.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .config-container.fade-out {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+
+        /* Typography */
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+            position: relative;
+        }
+
+        .logo-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: #ffffff;
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            z-index: -1;
+            opacity: 0.5;
+            filter: blur(6px);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 30%, #c7d2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 15px;
+            font-family: inherit;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-input::placeholder {
+            color: #475569;
+        }
+
+        .form-input:focus {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Button styling */
+        .btn-launch {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            color: #ffffff;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-launch::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.6s ease;
+        }
+
+        .btn-launch:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+            background: linear-gradient(135deg, #4f46e5, #9333ea);
+        }
+
+        .btn-launch:hover::before {
+            left: 100%;
+        }
+
+        .btn-launch:active {
+            transform: translateY(1px);
+        }
+
+        /* Status & Error Display */
+        .error-message {
+            color: #f43f5e;
+            font-size: 13px;
+            margin-top: 8px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Hide elements when active */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Subtle footer */
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: #475569;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient glowing backgrounds -->
+    <div id="bg-glow-left" class="bg-glow"></div>
+    <div id="bg-glow-right" class="bg-glow-right"></div>
+
+    <!-- Main Config Card -->
+    <div id="config-card" class="config-container">
+        <div class="header">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                </svg>
+            </div>
+            <h1>WebAvatar Live</h1>
+            <p class="subtitle">Enter parameters to initialize the voice experience</p>
+        </div>
+
+        <form id="config-form" onsubmit="handleFormSubmit(event)">
+            <div class="form-group">
+                <label class="form-label" for="widget-id">Widget ID</label>
+                <div class="input-wrapper">
+                    <input type="text" id="widget-id" class="form-input" placeholder="e.g. 65c92842..." required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="avatar-url">Avatar URL or ID (VRM)</label>
+                <div class="input-wrapper">
+                    <input type="text" id="avatar-url" class="form-input" placeholder="e.g. https://domain.com/avatar.vrm or custom-id" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-launch">
+                <span>Start Experience</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </button>
+            
+            <div id="validation-error" class="error-message">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span id="error-text">Please fill out all fields.</span>
+            </div>
+        </form>
+
+        <div class="footer">
+            WebAvatar © 2026. All rights reserved.
+        </div>
+    </div>
+
+    <script>
+        // Check URL parameters
+        function getQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                id: params.get('id'),
+                avatar: params.get('avatar')
+            };
+        }
+
+        // Apply parameters to inputs if present
+        const queryParams = getQueryParams();
+        const widgetIdInput = document.getElementById('widget-id');
+        const avatarUrlInput = document.getElementById('avatar-url');
+
+        if (queryParams.id) widgetIdInput.value = queryParams.id;
+        if (queryParams.avatar) avatarUrlInput.value = queryParams.avatar;
+
+        // Determine if we should show the form or load the script directly
+        const hasId = !!queryParams.id;
+        const hasAvatar = !!queryParams.avatar;
+
+        if (hasId && hasAvatar) {
+            // Load script immediately
+            loadWidgetScript(queryParams.id, queryParams.avatar);
+        } else {
+            // Show config form with entry animation
+            const configCard = document.getElementById('config-card');
+            // Allow DOM to register default state, then animate
+            setTimeout(() => {
+                configCard.classList.add('show');
+            }, 50);
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const widgetId = widgetIdInput.value.trim();
+            const avatarUrl = avatarUrlInput.value.trim();
+            const errorDiv = document.getElementById('validation-error');
+            const errorText = document.getElementById('error-text');
+
+            if (!widgetId || !avatarUrl) {
+                errorText.innerText = "Both fields are required.";
+                errorDiv.style.display = 'flex';
+                return;
+            }
+
+
+
+            errorDiv.style.display = 'none';
+
+            // Update URL parameters without page reload
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('id', widgetId);
+            newUrl.searchParams.set('avatar', avatarUrl);
+            window.history.pushState({ path: newUrl.href }, '', newUrl.href);
+
+            // Animate card fading out
+            const configCard = document.getElementById('config-card');
+            configCard.classList.add('fade-out');
+
+            setTimeout(() => {
+                configCard.classList.add('hidden');
+                // Fade out backgrounds as well
+                document.getElementById('bg-glow-left').classList.add('hidden');
+                document.getElementById('bg-glow-right').classList.add('hidden');
+                
+                // Launch script
+                loadWidgetScript(widgetId, avatarUrl);
+            }, 600);
+        }
+
+        function loadWidgetScript(widgetId, avatarUrl) {
+            // Configure the widget
+            window.ChatWidgetConfig = {
+                mode: "fullscreen",
+                widgetId: widgetId,
+                avatarUrl: avatarUrl,
+            };
+
+            // Dynamic script loading
+            if (document.getElementById('webavatar-jssdk')) return;
+            const s = document.createElement('script');
+            s.id = 'webavatar-jssdk';
+            s.src = 'https://webavatar.didthat.cc/chat-widget.js';
+            s.async = true;
+            (document.head || document.body).appendChild(s);
+        }
+    </script>
+</body>
+</html>
