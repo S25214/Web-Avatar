@@ -151,6 +151,33 @@
             box-shadow: 0 0 15px rgba(255, 93, 115, 0.2);
         }
 
+        .btn-play-green {
+            background: var(--success-color);
+            color: #0b0c10;
+            border: none;
+            padding: 0.25rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 1.75rem;
+            width: 1.75rem;
+            border-radius: 0.35rem;
+            margin-left: auto;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-play-green:hover {
+            background: #00e676;
+            color: #0b0c10;
+            box-shadow: 0 0 12px rgba(0, 245, 212, 0.4);
+            transform: scale(1.1);
+        }
+
+        .btn-play-green svg {
+            fill: #0b0c10;
+        }
+
         .main-container {
             display: grid;
             grid-template-columns: 320px 1fr;
@@ -758,6 +785,7 @@
                 grid-template-columns: 1fr !important;
             }
             .parameter-builder-row {
+                position: relative !important;
                 grid-template-columns: 1fr auto !important;
                 gap: 0.75rem 0.5rem !important;
                 background: rgba(255, 255, 255, 0.02) !important;
@@ -768,15 +796,30 @@
             }
             .parameter-builder-row .param-key {
                 grid-column: 1 / -1 !important;
+                padding-right: 2.2rem !important;
             }
             .parameter-builder-row .param-desc {
                 grid-column: 1 / -1 !important;
             }
             .parameter-builder-row > div:nth-child(3) {
-                grid-column: 1 / -1 !important;
+                grid-column: 1 !important;
+            }
+            .parameter-builder-row .toggle-container {
+                grid-column: 2 !important;
+                margin-left: 0.5rem !important;
+                justify-self: end !important;
+            }
+            .parameter-builder-row .param-delete-btn {
+                position: absolute !important;
+                top: 0.5rem !important;
+                right: 0.5rem !important;
+                margin: 0 !important;
+                padding: 0.2rem !important;
+                line-height: 1 !important;
             }
             .header-builder-row {
-                grid-template-columns: 1fr auto !important;
+                position: relative !important;
+                grid-template-columns: 1fr 1fr !important;
                 gap: 0.5rem !important;
                 background: rgba(255, 255, 255, 0.02) !important;
                 border: 1px solid var(--border-color) !important;
@@ -784,14 +827,19 @@
                 border-radius: 0.5rem !important;
             }
             .header-builder-row .header-key {
-                grid-column: 1 / -1 !important;
-            }
-            .header-builder-row .header-value {
                 grid-column: 1 !important;
             }
-            .header-builder-row .param-delete-btn {
+            .header-builder-row .header-value {
                 grid-column: 2 !important;
-                margin-left: 0 !important;
+                padding-right: 1.8rem !important;
+            }
+            .header-builder-row .param-delete-btn {
+                position: absolute !important;
+                top: 0.5rem !important;
+                right: 0.5rem !important;
+                margin: 0 !important;
+                padding: 0.2rem !important;
+                line-height: 1 !important;
             }
         }
     </style>
@@ -849,7 +897,7 @@
                 </div>
                 <div class="form-group">
                     <label for="new-widget-origins">Allowed Whitelist Origins (Separate by comma)</label>
-                    <input type="text" id="new-widget-origins" value="*">
+                    <input type="text" id="new-widget-origins" value="*, https://webavatar.didthat.cc" placeholder="*, https://webavatar.didthat.cc">
                 </div>
                 <div class="form-group">
                     <label for="new-widget-prompt">System Prompt</label>
@@ -1109,16 +1157,13 @@
                 item.className = `widget-item ${isActive ? 'active' : ''}`;
                 item.onclick = () => selectWidget(w);
 
-                let playButtonHtml = "";
-                if (isActive) {
-                    playButtonHtml = `
-                        <button class="btn btn-secondary" style="padding: 0.25rem; display: inline-flex; align-items: center; justify-content: center; height: 1.75rem; width: 1.75rem; border-radius: 0.35rem; margin-left: auto;" onclick="openPlayModal(event, '${escapeHtml(w.id)}')" title="Launch Live WebAvatar">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                            </svg>
-                        </button>
-                    `;
-                }
+                const playButtonHtml = `
+                    <button class="btn-play-green" onclick="openPlayModal(event, '${escapeHtml(w.id)}')" title="Launch Live WebAvatar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                    </button>
+                `;
                 
                 item.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:0.5rem;">
@@ -1308,7 +1353,7 @@
         // Open modal to create a completely new widget
         function openCreateWidgetModal() {
             document.getElementById("new-widget-id").value = "";
-            document.getElementById("new-widget-origins").value = "*";
+            document.getElementById("new-widget-origins").value = "*, https://webavatar.didthat.cc";
             document.getElementById("new-widget-prompt").value = "";
             document.getElementById("new-widget-bargein").checked = true;
             openModal("create-widget-overlay");
@@ -1322,6 +1367,12 @@
 
             if (!widgetId) {
                 alert("Widget ID is required.");
+                return;
+            }
+
+            const duplicateExists = widgets.some(w => w.id.toLowerCase() === widgetId.toLowerCase());
+            if (duplicateExists) {
+                alert(`Error: A widget with ID '${widgetId}' already exists. Please choose a unique name.`);
                 return;
             }
 
@@ -1451,6 +1502,12 @@
 
             if (newWidgetId === activeWidget.id) {
                 alert("The new widget ID must be different from the active widget ID.");
+                return;
+            }
+
+            const duplicateExists = widgets.some(w => w.id.toLowerCase() === newWidgetId.toLowerCase());
+            if (duplicateExists) {
+                alert(`Error: A widget with ID '${newWidgetId}' already exists. Please choose a unique name.`);
                 return;
             }
 
