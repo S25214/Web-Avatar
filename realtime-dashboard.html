@@ -1252,6 +1252,34 @@
                     </div>
                 </div>
 
+                <!-- Site Automation Tools -->
+                <div class="form-section">
+                    <div class="form-section-title">Site Automation Tools</div>
+                    <div class="form-group" style="flex-direction: column; gap: 0.8rem; align-items: flex-start;">
+                        <div class="toggle-container">
+                            <label class="switch">
+                                <input type="checkbox" id="edit-widget-nav" ${realtime.nav_enabled === true ? 'checked' : ''}>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Enable Page Navigation (allows Gemini to change pages)</span>
+                        </div>
+                        <div class="toggle-container">
+                            <label class="switch">
+                                <input type="checkbox" id="edit-widget-scroll" ${realtime.scroll_enabled === true ? 'checked' : ''}>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Enable Scrolling (allows Gemini to scroll to sections)</span>
+                        </div>
+                        <div class="toggle-container">
+                            <label class="switch">
+                                <input type="checkbox" id="edit-widget-form" ${realtime.form_enabled === true ? 'checked' : ''}>
+                                <span class="slider"></span>
+                            </label>
+                            <span>Enable Form Filling (allows Gemini to enter text into inputs)</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Custom tools catalog -->
                 <div class="form-section">
                     <div class="form-section-title">
@@ -1413,6 +1441,9 @@
             const origins = document.getElementById("edit-widget-origins").value.split(",").map(o => o.trim()).filter(o => o !== "");
             const prompt = document.getElementById("edit-widget-prompt").value.trim();
             const bargeIn = document.getElementById("edit-widget-bargein").checked;
+            const navEnabled = document.getElementById("edit-widget-nav").checked;
+            const scrollEnabled = document.getElementById("edit-widget-scroll").checked;
+            const formEnabled = document.getElementById("edit-widget-form").checked;
 
             try {
                 const res = await fetch(getEndpoint(), {
@@ -1424,6 +1455,9 @@
                         allowed_origins: origins,
                         prompt,
                         barge_in: bargeIn,
+                        nav_enabled: navEnabled,
+                        scroll_enabled: scrollEnabled,
+                        form_enabled: formEnabled,
                         tools: activeWidget.realtime.tools || [] // Save local state tool modifications
                     })
                 });
