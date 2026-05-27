@@ -400,7 +400,7 @@
         function loadWidgetScript(widgetId, avatarUrl) {
             // Configure the widget
             window.ChatWidgetConfig = {
-                mode: "fullscreen",
+                mode: "realtime-fullscreen",
                 widgetId: widgetId,
                 avatarUrl: avatarUrl,
             };
@@ -409,7 +409,7 @@
             if (document.getElementById('webavatar-jssdk')) return;
             const s = document.createElement('script');
             s.id = 'webavatar-jssdk';
-            s.src = 'https://webavatar.didthat.cc/chat-widget.js';
+            s.src = './chat-widget.js';
             s.async = true;
             (document.head || document.body).appendChild(s);
         }
