@@ -903,6 +903,41 @@
                     <label for="new-widget-prompt">System Prompt</label>
                     <textarea id="new-widget-prompt" rows="4" placeholder="You are a friendly AI Avatar..."></textarea>
                 </div>
+                <div class="form-group">
+                    <label for="new-widget-voice">Agent Voice</label>
+                    <select id="new-widget-voice">
+                        <option value="Zephyr" selected>Zephyr (Higher, Bright)</option>
+                        <option value="Puck">Puck (Middle, Upbeat)</option>
+                        <option value="Charon">Charon (Lower, Informative)</option>
+                        <option value="Kore">Kore (Middle, Firm)</option>
+                        <option value="Fenrir">Fenrir (Lower middle, Excitable)</option>
+                        <option value="Leda">Leda (Higher, Youthful)</option>
+                        <option value="Orus">Orus (Lower middle, Firm)</option>
+                        <option value="Aoede">Aoede (Middle, Breezy)</option>
+                        <option value="Callirrhoe">Callirrhoe (Middle, Easy-going)</option>
+                        <option value="Autonoe">Autonoe (Middle, Bright)</option>
+                        <option value="Enceladus">Enceladus (Lower, Breathy)</option>
+                        <option value="Iapetus">Iapetus (Lower middle, Clear)</option>
+                        <option value="Umbriel">Umbriel (Lower middle, Easy-going)</option>
+                        <option value="Algieba">Algieba (Lower, Smooth)</option>
+                        <option value="Despina">Despina (Middle, Smooth)</option>
+                        <option value="Erinome">Erinome (Middle, Clear)</option>
+                        <option value="Algenib">Algenib (Lower, Gravelly)</option>
+                        <option value="Rasalgethi">Rasalgethi (Middle, Informative)</option>
+                        <option value="Laomedeia">Laomedeia (Higher, Upbeat)</option>
+                        <option value="Achernar">Achernar (Higher, Soft)</option>
+                        <option value="Alnilam">Alnilam (Lower middle, Firm)</option>
+                        <option value="Schedar">Schedar (Lower middle, Even)</option>
+                        <option value="Gacrux">Gacrux (Middle, Mature)</option>
+                        <option value="Pulcherrima">Pulcherrima (Middle, Forward)</option>
+                        <option value="Achird">Achird (Lower middle, Friendly)</option>
+                        <option value="Zubenelgenubi">Zubenelgenubi (Lower middle, Casual)</option>
+                        <option value="Vindemiatrix">Vindemiatrix (Middle, Gentle)</option>
+                        <option value="Sadachbia">Sadachbia (Lower, Lively)</option>
+                        <option value="Sadaltager">Sadaltager (Middle, Knowledgeable)</option>
+                        <option value="Sulafat">Sulafat (Middle, Warm)</option>
+                    </select>
+                </div>
                 <div class="toggle-container">
                     <label class="switch">
                         <input type="checkbox" id="new-widget-bargein" checked>
@@ -1006,7 +1041,7 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="tool-description">Description (Helps Gemini decide when to call the tool)</label>
+                    <label for="tool-description">Description (Helps Agent decide when to call the tool)</label>
                     <textarea id="tool-description" rows="2" placeholder="Use this tool when the user wants to..."></textarea>
                 </div>
                 <div class="form-group">
@@ -1083,6 +1118,56 @@
     <script>
         let widgets = [];
         let activeWidget = null;
+        let currentAudioPreview = null;
+        let samplesBaseUrl = "https://gstatic.com/aistudio/voices/samples/";
+
+        const geminiVoices = [
+            { name: "Zephyr", url: samplesBaseUrl + "Zephyr.wav", pitch: "Higher", styles: ["Bright"] },
+            { name: "Puck", url: samplesBaseUrl + "Puck.wav", pitch: "Middle", styles: ["Upbeat"] },
+            { name: "Charon", url: samplesBaseUrl + "Charon.wav", pitch: "Lower", styles: ["Informative"] },
+            { name: "Kore", url: samplesBaseUrl + "Kore.wav", pitch: "Middle", styles: ["Firm"] },
+            { name: "Fenrir", url: samplesBaseUrl + "Fenrir.wav", pitch: "Lower middle", styles: ["Excitable"] },
+            { name: "Leda", url: samplesBaseUrl + "Leda.wav", pitch: "Higher", styles: ["Youthful"] },
+            { name: "Orus", url: samplesBaseUrl + "Orus.wav", pitch: "Lower middle", styles: ["Firm"] },
+            { name: "Aoede", url: samplesBaseUrl + "Aoede.wav", pitch: "Middle", styles: ["Breezy"] },
+            { name: "Callirrhoe", url: samplesBaseUrl + "Callirrhoe.wav", pitch: "Middle", styles: ["Easy-going"] },
+            { name: "Autonoe", url: samplesBaseUrl + "Autonoe.wav", pitch: "Middle", styles: ["Bright"] },
+            { name: "Enceladus", url: samplesBaseUrl + "Enceladus.wav", pitch: "Lower", styles: ["Breathy"] },
+            { name: "Iapetus", url: samplesBaseUrl + "Iapetus.wav", pitch: "Lower middle", styles: ["Clear"] },
+            { name: "Umbriel", url: samplesBaseUrl + "Umbriel.wav", pitch: "Lower middle", styles: ["Easy-going"] },
+            { name: "Algieba", url: samplesBaseUrl + "Algieba.wav", pitch: "Lower", styles: ["Smooth"] },
+            { name: "Despina", url: samplesBaseUrl + "Despina.wav", pitch: "Middle", styles: ["Smooth"] },
+            { name: "Erinome", url: samplesBaseUrl + "Erinome.wav", pitch: "Middle", styles: ["Clear"] },
+            { name: "Algenib", url: samplesBaseUrl + "Algenib.wav", pitch: "Lower", styles: ["Gravelly"] },
+            { name: "Rasalgethi", url: samplesBaseUrl + "Rasalgethi.wav", pitch: "Middle", styles: ["Informative"] },
+            { name: "Laomedeia", url: samplesBaseUrl + "Laomedeia.wav", pitch: "Higher", styles: ["Upbeat"] },
+            { name: "Achernar", url: samplesBaseUrl + "Achernar.wav", pitch: "Higher", styles: ["Soft"] },
+            { name: "Alnilam", url: samplesBaseUrl + "Alnilam.wav", pitch: "Lower middle", styles: ["Firm"] },
+            { name: "Schedar", url: samplesBaseUrl + "Schedar.wav", pitch: "Lower middle", styles: ["Even"] },
+            { name: "Gacrux", url: samplesBaseUrl + "Gacrux.wav", pitch: "Middle", styles: ["Mature"] },
+            { name: "Pulcherrima", url: samplesBaseUrl + "Pulcherrima.wav", pitch: "Middle", styles: ["Forward"] },
+            { name: "Achird", url: samplesBaseUrl + "Achird.wav", pitch: "Lower middle", styles: ["Friendly"] },
+            { name: "Zubenelgenubi", url: samplesBaseUrl + "Zubenelgenubi.wav", pitch: "Lower middle", styles: ["Casual"] },
+            { name: "Vindemiatrix", url: samplesBaseUrl + "Vindemiatrix.wav", pitch: "Middle", styles: ["Gentle"] },
+            { name: "Sadachbia", url: samplesBaseUrl + "Sadachbia.wav", pitch: "Lower", styles: ["Lively"] },
+            { name: "Sadaltager", url: samplesBaseUrl + "Sadaltager.wav", pitch: "Middle", styles: ["Knowledgeable"] },
+            { name: "Sulafat", url: samplesBaseUrl + "Sulafat.wav", pitch: "Middle", styles: ["Warm"] }
+        ];
+
+        function previewVoice() {
+            const selectEl = document.getElementById("edit-widget-voice");
+            if (!selectEl) return;
+            const voiceName = selectEl.value;
+            const voiceData = geminiVoices.find(v => v.name === voiceName);
+            if (voiceData) {
+                if (currentAudioPreview) {
+                    currentAudioPreview.pause();
+                    currentAudioPreview.currentTime = 0;
+                }
+                currentAudioPreview = new Audio(voiceData.url);
+                currentAudioPreview.play().catch(e => console.error("Audio play failed:", e));
+            }
+        }
 
         function escapeHtml(str) {
             if (!str) return '';
@@ -1193,6 +1278,11 @@
                 ? activeWidget.allowed_origins.join(", ") 
                 : "*";
 
+            const currentVoice = realtime.voice || "Zephyr";
+            const voiceOptionsHtml = geminiVoices.map(v => 
+                `<option value="${v.name}" ${currentVoice === v.name ? 'selected' : ''}>${v.name} (${v.pitch}, ${v.styles.join(", ")})</option>`
+            ).join("");
+
             panel.innerHTML = `
                 <div class="panel-header">
                     <button class="btn btn-secondary mobile-back-btn" onclick="backToWidgets()" style="padding:0.4rem 0.8rem; font-size:0.85rem; display:none; align-items:center; gap:0.25rem;">
@@ -1238,10 +1328,21 @@
 
                 <!-- System Instruction Section -->
                 <div class="form-section">
-                    <div class="form-section-title">Gemini Prompt & Barge-In</div>
+                    <div class="form-section-title">Agent Persona & Settings</div>
                     <div class="form-group">
                         <label for="edit-widget-prompt">System Prompt Override / Instructions</label>
                         <textarea id="edit-widget-prompt" rows="5"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-widget-voice">Agent Voice</label>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <select id="edit-widget-voice" style="flex:1;">
+                                ${voiceOptionsHtml}
+                            </select>
+                            <button class="btn btn-secondary" onclick="previewVoice()" style="padding:0.4rem 0.8rem; height: 100%; display:flex; align-items:center; justify-content:center; gap: 0.4rem;" title="Preview Voice">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg> Preview
+                            </button>
+                        </div>
                     </div>
                     <div class="toggle-container">
                         <label class="switch">
@@ -1261,21 +1362,21 @@
                                 <input type="checkbox" id="edit-widget-nav" ${realtime.nav_enabled === true ? 'checked' : ''}>
                                 <span class="slider"></span>
                             </label>
-                            <span>Enable Page Navigation (allows Gemini to change pages)</span>
+                            <span>Enable Page Navigation (allows Agent to change pages)</span>
                         </div>
                         <div class="toggle-container">
                             <label class="switch">
                                 <input type="checkbox" id="edit-widget-scroll" ${realtime.scroll_enabled === true ? 'checked' : ''}>
                                 <span class="slider"></span>
                             </label>
-                            <span>Enable Scrolling (allows Gemini to scroll to sections)</span>
+                            <span>Enable Scrolling (allows Agent to scroll to sections)</span>
                         </div>
                         <div class="toggle-container">
                             <label class="switch">
                                 <input type="checkbox" id="edit-widget-form" ${realtime.form_enabled === true ? 'checked' : ''}>
                                 <span class="slider"></span>
                             </label>
-                            <span>Enable Form Filling (allows Gemini to enter text into inputs)</span>
+                            <span>Enable Form Filling (allows Agent to enter text into inputs)</span>
                         </div>
                     </div>
                 </div>
@@ -1283,7 +1384,7 @@
                 <!-- Custom tools catalog -->
                 <div class="form-section">
                     <div class="form-section-title">
-                        <span>Gemini Live Core Tools (${realtime.tools?.length || 0})</span>
+                        <span>Agent Live Core Tools (${realtime.tools?.length || 0})</span>
                         <button class="btn btn-secondary" style="padding:0.4rem 0.8rem; font-size:0.8rem;" onclick="openAddToolModal()">+ Add Tool</button>
                     </div>
                     <div class="tool-box-list" id="editor-tools-list">
@@ -1383,6 +1484,7 @@
             document.getElementById("new-widget-id").value = "";
             document.getElementById("new-widget-origins").value = "*, https://webavatar.didthat.cc";
             document.getElementById("new-widget-prompt").value = "";
+            document.getElementById("new-widget-voice").value = "Zephyr";
             document.getElementById("new-widget-bargein").checked = true;
             openModal("create-widget-overlay");
         }
@@ -1391,6 +1493,7 @@
             const widgetId = document.getElementById("new-widget-id").value.trim();
             const whitelistOrigins = document.getElementById("new-widget-origins").value.split(",").map(o => o.trim()).filter(o => o !== "");
             const prompt = document.getElementById("new-widget-prompt").value.trim();
+            const voice = document.getElementById("new-widget-voice").value;
             const bargeIn = document.getElementById("new-widget-bargein").checked;
 
             if (!widgetId) {
@@ -1413,6 +1516,7 @@
                         enabled: true,
                         allowed_origins: whitelistOrigins,
                         prompt,
+                        voice,
                         barge_in: bargeIn,
                         create: true
                     })
@@ -1440,6 +1544,7 @@
             const enabled = document.getElementById("edit-widget-enabled").checked;
             const origins = document.getElementById("edit-widget-origins").value.split(",").map(o => o.trim()).filter(o => o !== "");
             const prompt = document.getElementById("edit-widget-prompt").value.trim();
+            const voice = document.getElementById("edit-widget-voice").value;
             const bargeIn = document.getElementById("edit-widget-bargein").checked;
             const navEnabled = document.getElementById("edit-widget-nav").checked;
             const scrollEnabled = document.getElementById("edit-widget-scroll").checked;
@@ -1454,6 +1559,7 @@
                         enabled,
                         allowed_origins: origins,
                         prompt,
+                        voice,
                         barge_in: bargeIn,
                         nav_enabled: navEnabled,
                         scroll_enabled: scrollEnabled,
@@ -1555,6 +1661,7 @@
                         enabled: activeWidget.enabled !== false,
                         allowed_origins: activeWidget.allowed_origins || ["*"],
                         prompt: activeWidget.realtime?.prompt || "",
+                        voice: activeWidget.realtime?.voice || "Zephyr",
                         barge_in: activeWidget.realtime?.barge_in !== false,
                         create: true
                     })
