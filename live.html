@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WebAvatar — Fullscreen Live Voice Experience</title>
     <meta name="description" content="Fullscreen AI avatar voice experience powered by Gemini Live.">
     
@@ -18,28 +18,39 @@
             margin: 0;
             padding: 0;
         }
+
+        html {
+            overflow-x: hidden;
+            width: 100%;
+            height: 100%;
+            touch-action: pan-y;
+        }
         
         body {
             background-color: #050508;
             font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #f1f1f6;
-            min-height: 100vh;
+            width: 100%;
+            min-height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow-x: hidden;
             position: relative;
+            touch-action: pan-y;
         }
 
         /* Ambient glowing backgrounds for premium feel */
         .bg-glow {
-            position: absolute;
-            width: 600px;
-            height: 600px;
+            position: fixed;
+            width: 60vw;
+            height: 60vw;
+            max-width: 600px;
+            max-height: 600px;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.04) 50%, transparent 100%);
-            top: -200px;
-            left: -200px;
+            top: -15vw;
+            left: -15vw;
             filter: blur(80px);
             z-index: 0;
             pointer-events: none;
@@ -47,13 +58,15 @@
         }
 
         .bg-glow-right {
-            position: absolute;
-            width: 500px;
-            height: 500px;
+            position: fixed;
+            width: 50vw;
+            height: 50vw;
+            max-width: 500px;
+            max-height: 500px;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, rgba(236, 72, 153, 0.02) 60%, transparent 100%);
-            bottom: -150px;
-            right: -150px;
+            bottom: -10vw;
+            right: -10vw;
             filter: blur(80px);
             z-index: 0;
             pointer-events: none;
@@ -74,8 +87,9 @@
         .config-container {
             position: relative;
             z-index: 10;
-            width: 100%;
+            width: calc(100% - 32px);
             max-width: 480px;
+            margin: 16px;
             padding: 40px;
             background: rgba(13, 13, 22, 0.7);
             backdrop-filter: blur(20px);
@@ -178,7 +192,7 @@
         .form-input {
             width: 100%;
             padding: 14px 16px;
-            font-size: 15px;
+            font-size: 16px; /* 16px prevents iOS auto-zoom on input focus */
             font-family: inherit;
             color: #ffffff;
             background: rgba(255, 255, 255, 0.03);
@@ -186,6 +200,7 @@
             border-radius: 12px;
             outline: none;
             transition: all 0.3s ease;
+            -webkit-appearance: none; /* Remove iOS default input styling */
         }
 
         .form-input::placeholder {
@@ -266,6 +281,42 @@
             margin-top: 24px;
             font-size: 12px;
             color: #475569;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 520px) {
+            .config-container {
+                padding: 28px 20px;
+                border-radius: 20px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .header {
+                margin-bottom: 24px;
+            }
+
+            .logo-icon {
+                width: 48px;
+                height: 48px;
+                border-radius: 14px;
+            }
+
+            .logo-icon svg {
+                width: 24px;
+                height: 24px;
+            }
+
+            .form-group {
+                margin-bottom: 18px;
+            }
+
+            .btn-launch {
+                padding: 14px;
+                font-size: 15px;
+            }
         }
     </style>
 </head>
