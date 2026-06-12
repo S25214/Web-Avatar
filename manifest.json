@@ -38,7 +38,6 @@
     "Dance_washing",
     "DancingRunningManloop",
     "deny",
-    "Denied",
     "Dismiss",
     "Emote_Breakdance_loop",
     "Emote_InfiniDab_loop",
@@ -100,6 +99,7 @@
     "pose_peace2",
     "pose_rider",
     "proud",
+    "pulling_rope",
     "rawr",
     "Relax",
     "Rub_eyes",
@@ -115,6 +115,7 @@
     "Shoot",
     "ShoulderRubbing",
     "ShowFullBody",
+    "sitting_loop",
     "Sleepy",
     "Spin",
     "Surprised",
@@ -127,10 +128,12 @@
     "Think_medium",
     "ToothlessLoop",
     "WalkLoop",
+    "walk_aimless",
     "Waving",
     "WhateverGesture",
     "worry",
     "Yay",
     "YES"
-  ]
+  ],
+  "modelAnimations": {}
 }

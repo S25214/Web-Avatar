@@ -45,7 +45,7 @@ Pass these in the `init({ ... })` object:
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `modelUrl` | String | `'Kitagawa'` | Manifest name (e.g., `'Botnoi'`) or full `.vrm` URL. |
-| `defaultAnimationUrl` | String\|Array | `['Idleloop', ...]` | Idle animation(s) to loop. |
+| `defaultAnimationUrl` | String\|Array | `['Idleloop', ...]` | Idle animation(s) to loop. Can also be a comma-separated String. |
 | `animationUrl` | String | `'Greeting'` | Initial animation to play on load. |
 | `position` | String | `'bottom-right'` | `'bottom-right'`, `'bottom-left'`, `'center'`, etc. |
 | `offset` | Object | `{ x: 0, y: 0 }` | Pixel offset from the anchor point. |

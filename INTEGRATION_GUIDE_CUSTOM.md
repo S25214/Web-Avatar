@@ -45,6 +45,8 @@ For **React/Vue/Angular/Svelte**, paste the JavaScript body into your component'
 | `persistHistory` | `"true"` or `"false"` (default: `"true"`). |
 | `avatar` | Set to `"false"` to disable 3D avatar entirely. |
 | `color` | Theme color hex, e.g. `"#a7e6ff"`. |
+| `defaultAnimationUrl` | Idle animation(s) to loop (single name or comma-separated list). |
+| `animationUrl` | Initial animation to play on load. |
 
 ---
 
@@ -53,16 +55,16 @@ For **React/Vue/Angular/Svelte**, paste the JavaScript body into your component'
 ### Messaging
 - `ChatWidget.onUserMessage(callback)`: Registers a listener for user inputs. `callback(text)`.
 - `ChatWidget.addBotMessage(text, options?)`: Adds a bot bubble.
-    - `options.audio`: URL/Base64 to play (with lipsync).
+    - `options.audio`: URL or Base64 to play (with lipsync). *Note: Avoid local `blob:` URLs due to cross-origin iframe security restrictions; use Base64 data-URIs or absolute HTTPS URLs.*
     - `options.animation`: Named animation to play (e.g., `"Greeting"`).
     - `options.anim`: `false` to disable auto-animation.
 - `ChatWidget.addUserMessage(text)`: Programmatically adds a user bubble.
 
 ### Audio & Lipsync
-- `ChatWidget.playAudio(source)`: Plays one-shot audio (URL or Base64).
+- `ChatWidget.playAudio(source)`: Plays one-shot audio (URL or Base64). *Note: Avoid local `blob:` URLs; use Base64 data-URIs or absolute HTTPS URLs.*
 - `ChatWidget.pushAudioChunk(chunk, options?)`: For streaming TTS.
     - `chunk`: `ArrayBuffer`, `Uint8Array`, or Base64 string.
-    - `options.pcm`: `true` for raw PCM data.
+    - `options.pcm`: `true` for raw Int16 PCM data. *Recommended for smooth streaming. Slicing compressed files like MP3 at arbitrary byte boundaries breaks headers and causes stutter.*
     - `options.sampleRate`: Default `24000`.
 - `ChatWidget.endAudio()`: **CRITICAL**: Call after the last chunk to flush the buffer.
 - `ChatWidget.stopAudio()`: Stops all current playback.
@@ -122,6 +124,7 @@ ChatWidget.onMicToggle(async (isRecording, data) => {
 
 ## 5. Troubleshooting for AI Agents
 - **No Avatar?**: Ensure `avatarUrl` is valid and the panel is open.
-- **Audio Lag?**: Use `pushAudioChunk` with raw PCM or self-decodable MP3 frames.
+- **Audio Lag or Stutter?**: Do not slice compressed audio (MP3/AAC) at arbitrary byte boundaries as it breaks frame headers. Decode the audio first and push raw Int16 PCM chunks using `options.pcm: true` and the correct `sampleRate`.
+- **Invalid URI / Media Load Failure?**: The widget runs inside a cross-origin iframe. Browsers restrict it from accessing parent-created `blob:` URLs. Convert local files to Base64 data-URIs (`data:audio/mp3;base64,...`) instead.
 - **Auto-anim fails?**: Check `widgetId` and ensure your domain (Origin) is authorized.
 - **Mic errors?**: Must use **HTTPS**. Check `data.error` in `onMicToggle`.

@@ -13,10 +13,11 @@ Works on **any framework**: plain HTML, React, Vue, Angular, Next.js, Svelte.
 ```html
 <script>
     window.ChatWidgetConfig = {
-        botId: "YOUR_BOTNOI_BOT_ID",
-        bnvVersion: "1",
-        bnvSpeaker: "13",
-        avatarUrl: "Botnoi"
+        botId: "6968cd587ace167772741bb8",
+        bnvVersion: "2",
+        bnvSpeaker: "43",
+        avatarUrl: "https://r2-avatar-bucket.vvin.cc/vrm/presets/UncleCMU.vrm",
+        color: "" // change theme color hex e.g. "#ffffff"
     };
     (function() {
         if (document.getElementById('webavatar-jssdk')) return;
@@ -48,7 +49,6 @@ For **React/Vue/Angular/Svelte**, paste the JavaScript body into your component'
 | `avatarUrl` | Built-in name (e.g., `"Botnoi"`) or full URL to a `.vrm` file. |
 | `title` | Title shown in the chat header. |
 | `persistHistory` | `"true"` or `"false"` (default: `"true"`). |
-| `avatar` | Set to `"false"` to disable 3D avatar entirely. |
 | `color` | Theme color hex, e.g. `"#a7e6ff"`. |
 | `defaultAnimationUrl` | Idle animation(s) to loop (single name or comma-separated list). |
 | `animationUrl` | Initial animation to play on load. |
@@ -71,9 +71,9 @@ Even in managed mode, you can use `window.ChatWidget` for custom interactions.
 
 ### Listening to Events
 ```js
-// Listen to user messages sent to Botnoi
+// Listen to user messages sent
 ChatWidget.onUserMessage((text) => {
-    console.log("User sent to Botnoi:", text);
+    console.log("User sent:", text);
 });
 ```
 

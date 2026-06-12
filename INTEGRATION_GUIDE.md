@@ -157,6 +157,8 @@ All configuration keys below can be set via `window.ChatWidgetConfig` (camelCase
 | `persistHistory` | `data-persist-history` | `"true"` \| `"false"` | `"true"` | Persist chat history in `localStorage` across page reloads. |
 | `autoFocusInput` | `data-auto-focus-input` | `"true"` \| `"false"` | `"false"` | Auto-focus the text input when the chat panel opens. |
 | `color` | `data-color` | `string` | — | Theme color hex, e.g. `"#a7e6ff"`. |
+| `defaultAnimationUrl` | `data-default-animation-url` | `string` | — | Idle animation(s) to loop. Can be a single animation name or a comma-separated list of names. |
+| `animationUrl` | `data-animation-url` | `string` | — | Initial animation to play on load. |
 
 ### Custom Provider Options
 

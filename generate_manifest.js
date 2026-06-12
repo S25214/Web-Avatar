@@ -6,22 +6,51 @@ const config = {
     'VRMA': ['.vrma']
 };
 
-const manifest = {};
+const manifest = {
+    VRM: [],
+    VRMA: [],
+    modelAnimations: {}
+};
 
-for (const [dirName, extensions] of Object.entries(config)) {
-    const dirPath = path.join(__dirname, dirName);
+// 1. Process VRM (flat list of files)
+const vrmPath = path.join(__dirname, 'VRM');
+if (fs.existsSync(vrmPath)) {
+    const files = fs.readdirSync(vrmPath);
+    manifest.VRM = files.filter(file => {
+        const ext = path.extname(file).toLowerCase();
+        return config.VRM.includes(ext);
+    }).map(file => path.parse(file).name);
+    console.log(`Found ${manifest.VRM.length} files in VRM`);
+}
 
-    if (fs.existsSync(dirPath)) {
-        const files = fs.readdirSync(dirPath);
-        manifest[dirName] = files.filter(file => {
-            const ext = path.extname(file).toLowerCase();
-            return extensions.includes(ext);
-        }).map(file => path.parse(file).name);
-        console.log(`Found ${manifest[dirName].length} files in ${dirName}`);
-    } else {
-        console.warn(`Directory not found: ${dirName}`);
-        manifest[dirName] = [];
-    }
+// 2. Process VRMA (files + subdirectories)
+const vrmaPath = path.join(__dirname, 'VRMA');
+if (fs.existsSync(vrmaPath)) {
+    const entries = fs.readdirSync(vrmaPath, { withFileTypes: true });
+    
+    entries.forEach(entry => {
+        if (entry.isFile()) {
+            const ext = path.extname(entry.name).toLowerCase();
+            if (config.VRMA.includes(ext)) {
+                manifest.VRMA.push(path.parse(entry.name).name);
+            }
+        } else if (entry.isDirectory()) {
+            const subDirName = entry.name;
+            const subDirPath = path.join(vrmaPath, subDirName);
+            const subFiles = fs.readdirSync(subDirPath);
+            
+            const animNames = subFiles.filter(file => {
+                const ext = path.extname(file).toLowerCase();
+                return config.VRMA.includes(ext);
+            }).map(file => path.parse(file).name);
+            
+            if (animNames.length > 0) {
+                manifest.modelAnimations[subDirName] = animNames;
+                console.log(`Found ${animNames.length} model-specific animations for ${subDirName}`);
+            }
+        }
+    });
+    console.log(`Found ${manifest.VRMA.length} common files in VRMA`);
 }
 
 fs.writeFileSync('manifest.json', JSON.stringify(manifest, null, 2));
