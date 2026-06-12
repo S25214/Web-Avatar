@@ -77,6 +77,7 @@
     "jankenS",
     "Jump",
     "Jump1",
+    "Jump_Greeting",
     "kabedon1",
     "kabedon2",
     "kiss1",
@@ -135,5 +136,11 @@
     "Yay",
     "YES"
   ],
-  "modelAnimations": {}
+  "modelAnimations": {
+    "UncleCMU": [
+      "CrossArmLoop",
+      "Greeting",
+      "Sawasdee"
+    ]
+  }
 }
