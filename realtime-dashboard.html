@@ -722,6 +722,12 @@
             margin-top: 0.25rem;
         }
 
+        .voice-select-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: stretch;
+        }
+
         /* Mobile Responsiveness & Layout Refinement */
         @media (max-width: 768px) {
             header {
@@ -758,14 +764,27 @@
             .content-panel {
                 padding: 1.25rem !important;
             }
+            .form-section {
+                padding: 1rem !important;
+            }
             .panel-header {
                 flex-direction: column !important;
                 align-items: flex-start !important;
                 gap: 1rem !important;
             }
+            .panel-header-title {
+                font-size: 1.3rem !important;
+                word-break: break-all !important;
+            }
             .panel-actions {
                 width: 100% !important;
                 justify-content: flex-end !important;
+                flex-wrap: wrap !important;
+                gap: 0.5rem !important;
+            }
+            .panel-actions .btn {
+                flex: 1 1 auto !important;
+                justify-content: center !important;
             }
             .mobile-back-btn {
                 display: inline-flex !important;
@@ -784,54 +803,74 @@
             .playground-grid {
                 grid-template-columns: 1fr !important;
             }
+            .voice-select-row {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            .voice-select-row button {
+                width: 100% !important;
+                padding: 0.6rem !important;
+            }
+            .form-section-title {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 0.6rem !important;
+            }
+            .form-section-title button {
+                width: 100% !important;
+                justify-content: center !important;
+            }
             .parameter-builder-row {
-                position: relative !important;
-                grid-template-columns: 1fr auto !important;
-                gap: 0.75rem 0.5rem !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 0.6rem !important;
                 background: rgba(255, 255, 255, 0.02) !important;
                 border: 1px solid var(--border-color) !important;
                 padding: 0.85rem !important;
                 border-radius: 0.5rem !important;
-                align-items: center !important;
+                position: relative !important;
             }
             .parameter-builder-row .param-key {
-                grid-column: 1 / -1 !important;
                 padding-right: 2.2rem !important;
+                width: 100% !important;
             }
             .parameter-builder-row .param-desc {
-                grid-column: 1 / -1 !important;
+                width: 100% !important;
             }
             .parameter-builder-row > div:nth-child(3) {
-                grid-column: 1 !important;
+                width: 100% !important;
             }
             .parameter-builder-row .toggle-container {
-                grid-column: 2 !important;
-                margin-left: 0.5rem !important;
-                justify-self: end !important;
+                align-self: flex-start !important;
+                margin-left: 0 !important;
+                margin-top: 0.2rem !important;
             }
             .parameter-builder-row .param-delete-btn {
                 position: absolute !important;
-                top: 0.5rem !important;
-                right: 0.5rem !important;
+                top: 0.6rem !important;
+                right: 0.6rem !important;
                 margin: 0 !important;
                 padding: 0.2rem !important;
                 line-height: 1 !important;
             }
             .header-builder-row {
-                position: relative !important;
-                grid-template-columns: 1fr 1fr !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
                 gap: 0.5rem !important;
                 background: rgba(255, 255, 255, 0.02) !important;
                 border: 1px solid var(--border-color) !important;
                 padding: 0.75rem !important;
                 border-radius: 0.5rem !important;
+                position: relative !important;
             }
             .header-builder-row .header-key {
-                grid-column: 1 !important;
+                width: 100% !important;
+                padding-right: 1.8rem !important;
             }
             .header-builder-row .header-value {
-                grid-column: 2 !important;
-                padding-right: 1.8rem !important;
+                width: 100% !important;
             }
             .header-builder-row .param-delete-btn {
                 position: absolute !important;
@@ -840,6 +879,13 @@
                 margin: 0 !important;
                 padding: 0.2rem !important;
                 line-height: 1 !important;
+            }
+            .modal-body {
+                padding: 1rem !important;
+                gap: 1rem !important;
+            }
+            .modal-header, .modal-footer {
+                padding: 1rem !important;
             }
         }
     </style>
@@ -1335,11 +1381,11 @@
                     </div>
                     <div class="form-group">
                         <label for="edit-widget-voice">Agent Voice</label>
-                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <div class="voice-select-row">
                             <select id="edit-widget-voice" style="flex:1;">
                                 ${voiceOptionsHtml}
                             </select>
-                            <button class="btn btn-secondary" onclick="previewVoice()" style="padding:0.4rem 0.8rem; height: 100%; display:flex; align-items:center; justify-content:center; gap: 0.4rem;" title="Preview Voice">
+                            <button class="btn btn-secondary" onclick="previewVoice()" style="padding:0.4rem 0.8rem; display:flex; align-items:center; justify-content:center; gap: 0.4rem;" title="Preview Voice">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg> Preview
                             </button>
                         </div>
@@ -1362,21 +1408,7 @@
                                 <input type="checkbox" id="edit-widget-nav" ${realtime.nav_enabled === true ? 'checked' : ''}>
                                 <span class="slider"></span>
                             </label>
-                            <span>Enable Page Navigation (allows Agent to change pages)</span>
-                        </div>
-                        <div class="toggle-container">
-                            <label class="switch">
-                                <input type="checkbox" id="edit-widget-scroll" ${realtime.scroll_enabled === true ? 'checked' : ''}>
-                                <span class="slider"></span>
-                            </label>
-                            <span>Enable Scrolling (allows Agent to scroll to sections)</span>
-                        </div>
-                        <div class="toggle-container">
-                            <label class="switch">
-                                <input type="checkbox" id="edit-widget-form" ${realtime.form_enabled === true ? 'checked' : ''}>
-                                <span class="slider"></span>
-                            </label>
-                            <span>Enable Form Filling (allows Agent to enter text into inputs)</span>
+                            <span>Enable Page Navigation</span>
                         </div>
                     </div>
                 </div>
@@ -1547,8 +1579,6 @@
             const voice = document.getElementById("edit-widget-voice").value;
             const bargeIn = document.getElementById("edit-widget-bargein").checked;
             const navEnabled = document.getElementById("edit-widget-nav").checked;
-            const scrollEnabled = document.getElementById("edit-widget-scroll").checked;
-            const formEnabled = document.getElementById("edit-widget-form").checked;
 
             try {
                 const res = await fetch(getEndpoint(), {
@@ -1562,8 +1592,6 @@
                         voice,
                         barge_in: bargeIn,
                         nav_enabled: navEnabled,
-                        scroll_enabled: scrollEnabled,
-                        form_enabled: formEnabled,
                         tools: activeWidget.realtime.tools || [] // Save local state tool modifications
                     })
                 });
