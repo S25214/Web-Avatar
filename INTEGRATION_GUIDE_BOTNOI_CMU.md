@@ -17,6 +17,9 @@ Works on **any framework**: plain HTML, React, Vue, Angular, Next.js, Svelte.
         bnvVersion: "2",
         bnvSpeaker: "43",
         avatarUrl: "https://r2-avatar-bucket.vvin.cc/vrm/presets/UncleCMU.vrm",
+        animationUrl: "Greeting",
+        defaultAnimationUrl: "Idleloop, CrossArmLoop, Idle_HandsBehindBack, Idle_holdinghands, idle_breatheloop",
+        randomGeneric: "false",
         color: "" // change theme color hex e.g. "#ffffff"
     };
     (function() {
@@ -52,6 +55,7 @@ For **React/Vue/Angular/Svelte**, paste the JavaScript body into your component'
 | `color` | Theme color hex, e.g. `"#a7e6ff"`. |
 | `defaultAnimationUrl` | Idle animation(s) to loop (single name or comma-separated list). |
 | `animationUrl` | Initial animation to play on load. |
+| `container` | Selector string or direct DOM element to render the widget inside instead of viewport-fixed. |
 
 ---
 

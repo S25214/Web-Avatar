@@ -52,6 +52,7 @@ Pass these in the `init({ ... })` object:
 | `cameraTarget` | Object | `{ x: 0, y: 0, z: 0 }` | Camera focus offset relative to the avatar. |
 | `randomGeneric` | Boolean | `true` | Randomly plays 'Generic' animations during idle. |
 | `randomIntervalMin` | Number | `15` | Min seconds between random behaviors. |
+| `container` | String\|HTMLElement | — | Optional. Selector string or direct DOM element. If provided, the widget will render absolutely inside this element instead of dynamically appending to `document.body` with fixed viewport positioning. |
 
 ---
 

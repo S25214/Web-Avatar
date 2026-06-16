@@ -48,7 +48,7 @@ Paste the universal snippet before `</body>`. To configure the realtime experien
         mode: "realtime-widget", // "realtime-fullscreen" | "realtime-widget"
         widgetId: "YOUR_WIDGET_ID", // https://webavatar.didthat.cc/realtime-dashboard
         avatarUrl: "Botnoi", // direct link to .vrm or see preset list here https://raw.githubusercontent.com/S25214/Web-Avatar/refs/heads/main/manifest.json
-        greetingInstruction: "Greet the user warmly in English."
+        greetingInstruction: "Greet the user warmly in English." // if not presetnt or empty, default = "Please greet the user."
     };
     (function() {
         if (document.getElementById('webavatar-jssdk')) return;
@@ -60,6 +60,22 @@ Paste the universal snippet before `</body>`. To configure the realtime experien
     })();
 </script>
 ```
+
+### Embedding in a Custom Parent Container
+
+If you want the widget, controls, and canvas to render within a specific element on your page (rather than covering the entire viewport or floating at the bottom-right corner), configure the `container` property as a CSS selector string or direct `HTMLElement` reference:
+
+```javascript
+window.ChatWidgetConfig = {
+    mode: "realtime-fullscreen",
+    widgetId: "YOUR_WIDGET_ID",
+    container: "#my-avatar-box" // Or direct element reference
+};
+```
+
+#### SPA Frameworks (React, Next.js, Vue, Svelte)
+
+In component-based frameworks, assign the direct DOM element reference (e.g., from React `useRef` or Vue template ref) to the `container` property inside the component's mount lifecycle hook. Call `window.WebAvatar.disconnect()` on unmount/teardown to cleanly release WebGL and WebAudio context resources.
 
 ---
 
@@ -73,6 +89,7 @@ Configure these properties in `window.ChatWidgetConfig` (Priority source for all
 | `widgetId` | `data-widget-id` | `string` | — | **Required**. Used to authorize your domain, fetch settings, and generate an ephemeral WebSocket token. |
 | `avatarUrl` | `data-avatar-url` | `string` | `"Botnoi"` | Built-in model name (e.g., `"Botnoi"`, `"Kitagawa"`) or absolute URL to a `.vrm` file. |
 | `greetingInstruction` | `data-greeting-instruction`| `string` | — | Custom system instruction injected only when greeting the user (e.g., `[SYSTEM] Please welcome the customer to CMU.`). |
+| `container` | `data-container` | `string` or `HTMLElement` | — | Optional. Selector string or direct DOM element. When specified, forces the widget, controls, and canvas to render absolutely inside this parent element instead of overlaying the document viewport/body. |
 
 ---
 

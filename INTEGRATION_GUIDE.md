@@ -159,6 +159,7 @@ All configuration keys below can be set via `window.ChatWidgetConfig` (camelCase
 | `color` | `data-color` | `string` | — | Theme color hex, e.g. `"#a7e6ff"`. |
 | `defaultAnimationUrl` | `data-default-animation-url` | `string` | — | Idle animation(s) to loop. Can be a single animation name or a comma-separated list of names. |
 | `animationUrl` | `data-animation-url` | `string` | — | Initial animation to play on load. |
+| `container` | `data-container` | `string` \| `HTMLElement` | — | Optional. Selector string or direct DOM element. When specified, forces the widget, controls, and canvas to render absolutely inside this parent element instead of overlaying the document viewport/body. |
 
 ### Custom Provider Options
 

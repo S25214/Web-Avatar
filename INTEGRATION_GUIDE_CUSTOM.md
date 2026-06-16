@@ -47,6 +47,7 @@ For **React/Vue/Angular/Svelte**, paste the JavaScript body into your component'
 | `color` | Theme color hex, e.g. `"#a7e6ff"`. |
 | `defaultAnimationUrl` | Idle animation(s) to loop (single name or comma-separated list). |
 | `animationUrl` | Initial animation to play on load. |
+| `container` | Selector string or direct DOM element to render the widget inside instead of viewport-fixed. |
 
 ---
 
