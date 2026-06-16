@@ -140,7 +140,13 @@
     "UncleCMU": [
       "CrossArmLoop",
       "Greeting",
-      "Sawasdee"
+      "Idleloop",
+      "Idle_HandsBehindBack",
+      "Idle_holdinghands",
+      "Sawasdee",
+      "Talk",
+      "Talk_explain_both_hands",
+      "Waving"
     ]
   }
 }
