@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAvatar Timeline Mode Demo</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0b0e;
+            --bg-secondary: #12141a;
+            --bg-tertiary: #1a1d26;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --border: rgba(255, 255, 255, 0.08);
+            --track-video: #38bdf8;
+            --track-anim: #c084fc;
+            --track-emotion: #fb923c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        button,
+        select,
+        input,
+        textarea {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .sidebar {
+            width: 380px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a5b4fc, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .panel-section {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .panel-section h3 {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 6px;
+        }
+
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-row label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        select,
+        input[type="text"],
+        input[type="number"],
+        input[type="file"],
+        textarea {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus,
+        input:focus,
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 14px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-outline:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 11px;
+        }
+
+        .json-editor {
+            height: 200px;
+            resize: vertical;
+            font-family: monospace;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+
+        .logger {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px;
+            height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 10px;
+            color: #4ade80;
+            line-height: 1.3;
+        }
+
+        .info-note {
+            font-size: 10px;
+            color: var(--text-secondary);
+            padding: 5px 8px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        .validation-error-item {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 3px solid #ef4444;
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .validation-error-code {
+            font-weight: 600;
+            color: #ef4444;
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+
+        .validation-error-msg {
+            color: var(--text-primary);
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .validation-error-path {
+            color: var(--text-secondary);
+            font-size: 10px;
+            font-family: monospace;
+            margin-bottom: 4px;
+        }
+
+        .validation-error-hint {
+            color: #fbbf24;
+            font-size: 10px;
+            margin-top: 4px;
+        }
+
+        .validation-error-doc {
+            color: #60a5fa;
+            font-size: 10px;
+            margin-top: 2px;
+            text-decoration: none;
+        }
+
+        .validation-error-doc:hover {
+            text-decoration: underline;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        .sandbox-top {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            min-height: 0;
+        }
+
+        .panel-box {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
+            position: relative;
+        }
+
+        .panel-box h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .video-wrapper {
+            flex: 1;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #avatarContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .sandbox-bottom {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            flex-shrink: 0;
+        }
+
+        .timeline-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .time-label {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .timeline-tracks {
+            position: relative;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .timeline-row {
+            height: 22px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .timeline-row:last-child {
+            border-bottom: none;
+        }
+
+        .row-label {
+            width: 70px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            padding-left: 8px;
+            position: absolute;
+            left: 0;
+            z-index: 5;
+            background: var(--bg-primary);
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .row-blocks {
+            margin-left: 70px;
+            flex: 1;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-block {
+            position: absolute;
+            height: 16px;
+            border-radius: 3px;
+            top: 3px;
+            font-size: 9px;
+            font-weight: 600;
+            color: #000;
+            display: flex;
+            align-items: center;
+            padding: 0 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .timeline-block.video {
+            background: var(--track-video);
+        }
+
+        .timeline-block.anim {
+            background: var(--track-anim);
+        }
+
+        .timeline-block.emotion {
+            background: var(--track-emotion);
+        }
+
+        .timeline-playhead {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ef4444;
+            box-shadow: 0 0 4px #ef4444;
+            pointer-events: none;
+            z-index: 10;
+            left: 70px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="brand">Timeline Sandbox</div>
+
+        <div class="panel-section">
+            <h3>Setup</h3>
+            <div class="form-row">
+                <label>VRM Model</label>
+                <select id="modelSelect"></select>
+            </div>
+            <div class="form-row">
+                <label>Video/Audio URL</label>
+                <input type="text" id="mediaUrl" placeholder="https://example.com/video.mp4">
+            </div>
+            <div class="form-row">
+                <label>Or Upload Local File</label>
+                <input type="file" id="mediaFile" accept="video/*,audio/*">
+            </div>
+            <div class="form-row">
+                <label style="display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" id="muteAudio" checked>
+                    <span style="font-size: 11px;">Mute widget audio</span>
+                </label>
+            </div>
+            <div class="form-row">
+                <label style="display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" id="editModeToggle" checked>
+                    <span style="font-size: 11px;">Enable Edit Mode (drag/resize avatar)</span>
+                </label>
+            </div>
+            <button class="btn" id="applyMediaBtn">Apply Media</button>
+        </div>
+
+        <div class="panel-section">
+            <h3>Add Triggers</h3>
+            <div class="form-row">
+                <label>Trigger Type</label>
+                <select id="triggerType">
+                    <option value="animation">Animation</option>
+                    <option value="emotion">Emotion</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label>Start Time (s)</label>
+                <input type="number" id="triggerStart" value="0" step="0.1" min="0">
+            </div>
+            <div id="animFields">
+                <div class="form-row">
+                    <label>Animation</label>
+                    <select id="animSelect"></select>
+                </div>
+                <div class="form-row">
+                    <label>Duration (s, optional)</label>
+                    <input type="number" id="animDuration" placeholder="Auto" step="0.1">
+                </div>
+                <div class="form-row">
+                    <label style="display: flex; align-items: center; gap: 6px;">
+                        <input type="checkbox" id="animLoop" checked>
+                        <span style="font-size: 11px;">Loop</span>
+                    </label>
+                </div>
+            </div>
+            <div id="emotionFields" style="display: none;">
+                <div class="form-row">
+                    <label>Emotion</label>
+                    <select id="emotionSelect"></select>
+                </div>
+                <div class="form-row">
+                    <label>Duration (s)</label>
+                    <input type="number" id="emotionDuration" value="3" step="0.1">
+                </div>
+            </div>
+            <button class="btn" id="addTriggerBtn">Add Trigger</button>
+        </div>
+
+        <div class="panel-section">
+            <h3>Timeline Config</h3>
+            <textarea id="configJson" class="json-editor"></textarea>
+            <button class="btn" id="loadConfigBtn">Load Config</button>
+            <button class="btn btn-outline btn-small" id="resetBtn">Reset to Default</button>
+        </div>
+
+        <div class="panel-section">
+            <h3>Log</h3>
+            <div id="log" class="logger"></div>
+        </div>
+
+        <div class="panel-section" id="validationPanel" style="display: none;">
+            <h3>Validation Errors</h3>
+            <div id="validationErrors" style="max-height: 200px; overflow-y: auto; font-size: 11px; line-height: 1.4;">
+            </div>
+            <button class="btn btn-small" id="dismissValidationBtn">Dismiss</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="sandbox-top">
+            <div class="panel-box">
+                <h3>Synced Viewport</h3>
+                <div class="video-wrapper">
+                    <video id="video" controls playsinline crossorigin="anonymous"></video>
+                    <div id="avatarContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sandbox-bottom">
+            <div class="timeline-controls">
+                <div class="time-label" id="timeLabel">0.00 / 0.00</div>
+            </div>
+            <div class="timeline-tracks" id="tracks">
+                <div class="timeline-row">
+                    <div class="row-label">Video</div>
+                    <div class="row-blocks" id="videoBlocks"></div>
+                </div>
+                <div class="timeline-row">
+                    <div class="row-label">Animation</div>
+                    <div class="row-blocks" id="animBlocks"></div>
+                </div>
+                <div class="timeline-row">
+                    <div class="row-label">Emotion</div>
+                    <div class="row-blocks" id="emotionBlocks"></div>
+                </div>
+                <div class="timeline-playhead" id="playhead"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── Timeline Sandbox for Avatar Widget ──
+        // This demo showcases timeline mode with drag/resize avatar overlay on video.
+
+        const DEFAULT_CONFIG = {
+            modelUrl: 'Kitagawa',
+            muteAudio: true,
+            editMode: true,
+            layout: { width: "30%", height: "50%", x: "65%", y: "45%" },
+            audio: [{ url: "https://r2-avatar-bucket.vvin.cc/public/rickroll.mp4", start: 0, type: "video" }],
+            triggers: [
+                { id: "t1", type: "animation", name: "Greeting", start: 0.5, duration: 3, loop: false },
+                { id: "t2", type: "emotion", name: "happy", start: 1, duration: 5 },
+                { id: "t3", type: "animation", name: "Waving", start: 4, duration: 6, loop: true },
+                { id: "t4", type: "emotion", name: "surprised", start: 7, duration: 4 },
+                { id: "t5", type: "animation", name: "Talk", start: 11 }
+            ]
+        };
+
+        let widget = null;
+        let config = JSON.parse(localStorage.getItem('timeline-sandbox-config')) || { ...DEFAULT_CONFIG };
+
+        function log(msg) {
+            const el = document.getElementById('log');
+            const time = new Date().toTimeString().split(' ')[0];
+            const div = document.createElement('div');
+            div.textContent = `[${time}] ${msg}`;
+            el.appendChild(div);
+            el.scrollTop = el.scrollHeight;
+            console.log(msg);
+        }
+
+        function showValidationAlert(errors) {
+            // Build alert message
+            let message = 'Timeline Configuration Errors:\n\n';
+            errors.forEach((err, idx) => {
+                message += `${idx + 1}. [${err.code}] ${err.message}\n`;
+                message += `   Path: ${err.path}\n`;
+                if (err.hint) {
+                    message += `   💡 ${err.hint}\n`;
+                }
+                message += '\n';
+            });
+            alert(message);
+            log(`Validation failed with ${errors.length} error(s)`);
+        }
+
+        function hideValidationErrors() {
+            const panel = document.getElementById('validationPanel');
+            if (panel) panel.style.display = 'none';
+        }
+
+        async function initWidget() {
+            try {
+                widget = new window.AvatarWidget({
+                    modelUrl: config.modelUrl || 'Kitagawa',
+                    container: '#avatarContainer',
+                    timelineMode: true,
+                    editMode: config.editMode !== undefined ? config.editMode : true,
+                    layout: config.layout || { width: "30%", height: "50%", x: "65%", y: "45%" }
+                });
+
+                await widget.init();
+                log('Widget initialized');
+
+                // Set initial editMode UI state
+                document.getElementById('editModeToggle').checked = config.editMode !== false;
+
+                // Populate dropdowns
+                const models = await widget.getModels();
+                models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    if (m === config.modelUrl) opt.selected = true;
+                    document.getElementById('modelSelect').appendChild(opt);
+                });
+
+                const anims = await widget.getAnimations();
+                anims.forEach(a => {
+                    const opt = document.createElement('option');
+                    opt.value = a;
+                    opt.textContent = a;
+                    document.getElementById('animSelect').appendChild(opt);
+                });
+
+                const emotions = widget.getEmotions();
+                emotions.forEach(e => {
+                    const opt = document.createElement('option');
+                    opt.value = e;
+                    opt.textContent = e;
+                    document.getElementById('emotionSelect').appendChild(opt);
+                });
+
+                // Sync video
+                const video = document.getElementById('video');
+                widget.syncWithVideoPlayer(video);
+
+                // Update UI
+                document.getElementById('mediaUrl').value = config.audio?.[0]?.url || '';
+                document.getElementById('muteAudio').checked = config.muteAudio !== false;
+                updateConfigJson();
+
+                // Load timeline
+                await widget.loadTimeline(config);
+                video.src = config.audio?.[0]?.url || '';
+
+                // Events
+                widget.container.addEventListener('timeline-loaded', () => {
+                    log('Timeline loaded');
+                    renderTracks();
+                });
+
+                widget.container.addEventListener('timeline-validation-error', (e) => {
+                    showValidationAlert(e.detail.errors);
+                });
+
+                widget.container.addEventListener('layout-changed', (e) => {
+                    log('Layout changed and auto-saved by widget');
+                });
+
+                setupHandlers();
+                setInterval(updatePlayhead, 33);
+                renderTracks();
+
+            } catch (err) {
+                log(`Error: ${err.message}`);
+                console.error(err);
+            }
+        }
+
+        function setupHandlers() {
+            const video = document.getElementById('video');
+
+            // Model change
+            document.getElementById('modelSelect').addEventListener('change', async (e) => {
+                config.modelUrl = e.target.value;
+                await widget.loadModel(config.modelUrl);
+                await saveConfig();
+                log(`Model: ${config.modelUrl}`);
+            });
+
+            // Edit mode toggle
+            document.getElementById('editModeToggle').addEventListener('change', (e) => {
+                widget.setEditMode(e.target.checked);
+                log(`Edit mode: ${e.target.checked ? 'enabled' : 'disabled'} (auto-saved by widget)`);
+            });
+
+            // Apply media
+            document.getElementById('applyMediaBtn').addEventListener('click', async () => {
+                const url = document.getElementById('mediaUrl').value;
+                if (!url) return alert('Enter a URL');
+                config.audio = [{ url, start: 0, type: url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'audio' }];
+                config.muteAudio = document.getElementById('muteAudio').checked;
+                updateConfigJson();
+                await widget.loadTimeline(config);
+                video.src = url;
+                await saveConfig();
+                log('Media applied');
+            });
+
+            // File upload
+            document.getElementById('mediaFile').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const url = URL.createObjectURL(file);
+                document.getElementById('mediaUrl').value = url;
+                log(`File: ${file.name}`);
+            });
+
+            // Trigger type toggle
+            document.getElementById('triggerType').addEventListener('change', (e) => {
+                const isAnim = e.target.value === 'animation';
+                document.getElementById('animFields').style.display = isAnim ? 'block' : 'none';
+                document.getElementById('emotionFields').style.display = isAnim ? 'none' : 'block';
+            });
+
+            // Add trigger
+            document.getElementById('addTriggerBtn').addEventListener('click', async () => {
+                const type = document.getElementById('triggerType').value;
+                const start = parseFloat(document.getElementById('triggerStart').value) || 0;
+
+                if (type === 'animation') {
+                    const name = document.getElementById('animSelect').value;
+                    const durationVal = parseFloat(document.getElementById('animDuration').value);
+                    const duration = isNaN(durationVal) ? undefined : durationVal;
+                    const loop = document.getElementById('animLoop').checked;
+                    config.triggers.push({ id: `t${Date.now()}`, type: 'animation', name, start, duration, loop });
+                    log(`Added animation: ${name}`);
+                } else {
+                    const name = document.getElementById('emotionSelect').value;
+                    const duration = parseFloat(document.getElementById('emotionDuration').value) || 3;
+                    config.triggers.push({ id: `t${Date.now()}`, type: 'emotion', name, start, duration });
+                    log(`Added emotion: ${name}`);
+                }
+
+                config.triggers.sort((a, b) => a.start - b.start);
+                updateConfigJson();
+                await widget.loadTimeline(config);
+                await saveConfig();
+            });
+
+            // Load config
+            document.getElementById('loadConfigBtn').addEventListener('click', async () => {
+                try {
+                    const text = document.getElementById('configJson').value;
+                    config = JSON.parse(text);
+                    hideValidationErrors(); // Clear previous errors
+                    await widget.loadTimeline(config);
+                    if (config.modelUrl && config.modelUrl !== widget.modelUrl) {
+                        await widget.loadModel(config.modelUrl);
+                    }
+                    if (config.editMode !== undefined) {
+                        widget.setEditMode(config.editMode);
+                        document.getElementById('editModeToggle').checked = config.editMode;
+                    }
+                    const firstVideo = config.audio?.find(a => a.type === 'video' || a.url.match(/\.(mp4|webm)$/i));
+                    if (firstVideo) video.src = firstVideo.url;
+                    await saveConfig();
+                    log('Config loaded & cache updated');
+                } catch (e) {
+                    if (e.code === 'VALIDATION_FAILED') {
+                        // Validation errors are shown by the event listener
+                        log(`Validation failed: ${e.validationErrors.length} error(s)`);
+                    } else {
+                        alert(`Error: ${e.message}`);
+                        log(`Error: ${e.message}`);
+                    }
+                }
+            });
+
+            // Dismiss validation errors
+            document.getElementById('dismissValidationBtn').addEventListener('click', () => {
+                hideValidationErrors();
+            });
+
+            // Reset
+            document.getElementById('resetBtn').addEventListener('click', async () => {
+                config = JSON.parse(JSON.stringify(DEFAULT_CONFIG)); // Deep copy
+                document.getElementById('modelSelect').value = config.modelUrl;
+                document.getElementById('mediaUrl').value = config.audio[0].url;
+                document.getElementById('muteAudio').checked = true;
+                document.getElementById('editModeToggle').checked = config.editMode !== false;
+                widget.setEditMode(config.editMode !== false);
+                updateConfigJson();
+                await widget.loadTimeline(config);
+                if (config.layout) {
+                    widget.applyLayout(config.layout);
+                }
+                video.src = config.audio[0].url;
+                await saveConfig();
+                log('Reset to default');
+            });
+
+            // Timeline click to seek
+            document.getElementById('tracks').addEventListener('click', (e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left - 70;
+                const width = rect.width - 70;
+                if (x >= 0 && width > 0) {
+                    const pct = Math.max(0, Math.min(1, x / width));
+                    const duration = widget.timelineConfig?.duration || 10;
+                    video.currentTime = pct * duration;
+                }
+            });
+        }
+
+        function updateConfigJson() {
+            document.getElementById('configJson').value = JSON.stringify(config, null, 2);
+        }
+
+        async function saveConfig() {
+            localStorage.setItem('timeline-sandbox-config', JSON.stringify(config));
+        }
+
+        function renderTracks() {
+            document.getElementById('videoBlocks').innerHTML = '';
+            document.getElementById('animBlocks').innerHTML = '';
+            document.getElementById('emotionBlocks').innerHTML = '';
+
+            const cfg = widget.timelineConfig || config;
+            const duration = cfg.duration || 10;
+
+            cfg.audio?.forEach(a => {
+                const block = document.createElement('div');
+                const isVideo = a.type === 'video' || a.url.match(/\.(mp4|webm)$/i);
+                block.className = 'timeline-block ' + (isVideo ? 'video' : 'audio');
+                block.textContent = a.url.split('/').pop() || 'Media';
+                const left = (a.start / duration) * 100;
+                const clipDuration = Math.min(a.duration, duration - a.start);
+                const width = (clipDuration / duration) * 100;
+                block.style.left = left + '%';
+                block.style.width = width + '%';
+                document.getElementById('videoBlocks').appendChild(block);
+            });
+
+            cfg.triggers?.forEach(t => {
+                const block = document.createElement('div');
+                const left = (t.start / duration) * 100;
+                const clipDuration = Math.min((t.duration || 1), duration - t.start);
+                const width = (clipDuration / duration) * 100;
+                block.style.left = left + '%';
+                block.style.width = width + '%';
+                if (t.type === 'animation') {
+                    block.className = 'timeline-block anim';
+                    block.textContent = t.name;
+                    document.getElementById('animBlocks').appendChild(block);
+                } else if (t.type === 'emotion') {
+                    block.className = 'timeline-block emotion';
+                    block.textContent = t.name;
+                    document.getElementById('emotionBlocks').appendChild(block);
+                }
+            });
+        }
+
+        function updatePlayhead() {
+            if (!widget?.timelineConfig) return;
+            const time = widget.timelineTime || 0;
+            const duration = widget.timelineConfig.duration || 10;
+            document.getElementById('timeLabel').textContent = `${time.toFixed(2)}s / ${duration.toFixed(2)}s`;
+            const containerWidth = document.getElementById('tracks').clientWidth - 70;
+            const pct = Math.max(0, Math.min(1, time / duration));
+            document.getElementById('playhead').style.left = (70 + pct * containerWidth) + 'px';
+            const startInput = document.getElementById('triggerStart');
+            if (document.activeElement !== startInput) {
+                startInput.value = time.toFixed(2);
+            }
+        }
+
+        // Load widget SDK
+        (function () {
+            const init = () => {
+                if (window.AvatarWidget) {
+                    log('SDK loaded');
+                    initWidget();
+                }
+            };
+            if (document.getElementById('avatar-sdk')) {
+                init();
+            } else {
+                const s = document.createElement('script');
+                s.id = 'avatar-sdk';
+                s.src = 'https://webavatar.didthat.cc/avatar-widget.js';
+                s.onload = init;
+                document.head.appendChild(s);
+            }
+        })();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAvatar Timeline Mode Simple Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0b0e;
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .video-container {
+            width: 100%;
+            max-width: 900px;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #avatarContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #94a3b8;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .instructions strong {
+            color: #f8fafc;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebAvatar Timeline Mode Demo</h1>
+    <p class="subtitle">Synced avatar with animations and emotions</p>
+
+    <div class="video-container">
+        <video id="video" controls playsinline crossorigin="anonymous"></video>
+        <div id="avatarContainer"></div>
+    </div>
+
+    <div class="instructions">
+        <strong>Try it:</strong> Click inside the avatar to focus and drag/resize.
+        Use the camera controls (arrows and zoom) when focused.
+        Play the video to see synced lip-sync, animations, and emotions.
+    </div>
+
+    <script>
+        // Timeline configuration with rickroll video
+        const timelineConfig = {
+            modelUrl: 'Kitagawa',
+            muteAudio: true,
+            audio: [
+                { url: "https://r2-avatar-bucket.vvin.cc/public/rickroll.mp4", start: 0, type: "video" }
+            ],
+            triggers: [
+                { id: "t1", type: "animation", name: "Greeting", start: 0, duration: 5, loop: false },
+                { id: "t2", type: "emotion", name: "happy", start: 1, duration: 5 },
+                { id: "t3", type: "animation", name: "GangnamStyle", start: 4, duration: 20, loop: true },
+                { id: "t4", type: "emotion", name: "surprised", start: 7, duration: 4 }
+            ]
+        };
+
+        async function initDemo() {
+            try {
+                // Initialize avatar widget
+                const avatar = new window.AvatarWidget({
+                    modelUrl: timelineConfig.modelUrl,
+                    container: '#avatarContainer',
+                    timelineMode: true,
+                    editMode: true
+                });
+
+                await avatar.init();
+                console.log('Avatar initialized');
+
+                // Sync with video player
+                const video = document.getElementById('video');
+                avatar.syncWithVideoPlayer(video);
+
+                // Load timeline
+                await avatar.loadTimeline(timelineConfig);
+                video.src = timelineConfig.audio[0].url;
+                console.log('Timeline loaded');
+
+            } catch (err) {
+                console.error('Demo error:', err);
+                alert('Error loading demo: ' + err.message);
+            }
+        }
+
+        // Load widget SDK
+        (function() {
+            const init = () => {
+                if (window.AvatarWidget) {
+                    initDemo();
+                }
+            };
+            if (document.getElementById('avatar-sdk')) {
+                init();
+            } else {
+                const s = document.createElement('script');
+                s.id = 'avatar-sdk';
+                s.src = 'https://webavatar.didthat.cc/avatar-widget.js';
+                s.onload = init;
+                document.head.appendChild(s);
+            }
+        })();
+    </script>
+</body>
+</html>
