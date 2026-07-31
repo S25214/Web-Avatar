@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniVoice Studio - High-Fidelity Speech Synthesis</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Fira Code -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            bg: '#030712',
+                            card: '#0B132B',
+                            cardBorder: '#1C2541',
+                            accent: '#6366F1',
+                            accentLight: '#818CF8',
+                            success: '#10B981',
+                            successLight: '#34D399',
+                            coral: '#F43F5E',
+                            amber: '#F59E0B'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                        'scan': 'scan 2.5s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-6px)' },
+                        },
+                        scan: {
+                            '0%, 100%': { transform: 'translateY(0%)', opacity: 0.1 },
+                            '50%': { transform: 'translateY(100%)', opacity: 0.4 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #030712;
+            color: #E2E8F0;
+            overflow-x: hidden;
+        }
+        
+        @keyframes glow-indigo {
+            0%, 100% { box-shadow: 0 0 15px rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.3); }
+            50% { box-shadow: 0 0 35px rgba(99, 102, 241, 0.4); border-color: rgba(99, 102, 241, 0.7); }
+        }
+        @keyframes glow-success {
+            0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
+            50% { box-shadow: 0 0 35px rgba(16, 185, 129, 0.4); border-color: rgba(16, 185, 129, 0.7); }
+        }
+        .glow-indigo-panel { animation: glow-indigo 5s infinite ease-in-out; }
+        .glow-success-panel { animation: glow-success 5s infinite ease-in-out; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: #1C2541; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex flex-col selection:bg-brand-accent/30 selection:text-white pt-6">
+
+    <!-- Toast Notification Wrapper -->
+    <div id="toast-notification" class="fixed top-6 right-6 z-50 transform translate-y-[-120%] opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-brand-card/95 backdrop-blur-md border border-brand-accent px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3">
+            <span id="toast-indicator" class="w-2.5 h-2.5 rounded-full bg-brand-accent animate-ping"></span>
+            <p id="toast-message" class="text-xs font-mono text-gray-200"></p>
+        </div>
+    </div>
+
+    <!-- Top Slide Linear Progress Bar -->
+    <div class="w-full h-[3px] bg-gray-950 fixed top-0 left-0 z-50">
+        <div id="api-active-line" class="h-full bg-gradient-to-r from-brand-accent via-cyan-400 to-brand-success transition-all duration-300 ease-out" style="width: 0%;"></div>
+    </div>
+
+    <!-- Main Workspace Dashboard Grid -->
+    <main class="flex-grow max-w-[1500px] w-full mx-auto p-4 lg:p-8 relative overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Ambient Decorative Glowing Orbs -->
+        <div class="absolute top-1/4 left-1/4 w-[35rem] h-[35rem] rounded-full bg-brand-accent/5 filter blur-[150px] pointer-events-none animate-pulse-slow"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-[35rem] h-[35rem] rounded-full bg-brand-success/5 filter blur-[150px] pointer-events-none animate-pulse-slow"></div>
+
+        <!-- LEFT COLUMN: Parameter Workspace (7/12 cols) -->
+        <section class="lg:col-span-7 flex flex-col justify-start gap-6">
+            
+            <!-- Workspace Core Card -->
+            <div class="bg-brand-card/40 border border-brand-cardBorder/60 rounded-2xl p-6 flex flex-col justify-start relative overflow-hidden shadow-2xl glow-indigo-panel">
+                
+                <!-- Card Header with Workspace Tabs -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-brand-cardBorder/50 pb-5 mb-6">
+                    <div>
+                        <span class="text-brand-accent font-mono text-[10px] uppercase tracking-widest font-black flex items-center gap-1.5 mb-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-brand-accent"></span> Configure Pipeline
+                        </span>
+                        <h2 class="text-xl font-bold text-white tracking-tight">Control Panel</h2>
+                    </div>
+                    
+                    <!-- Tab Switcher -->
+                    <div class="flex bg-black/50 p-1 rounded-xl border border-brand-cardBorder/80 w-full sm:w-auto">
+                        <button id="tab-design" onclick="switchTab('design')" class="flex-1 sm:flex-none px-5 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-white bg-brand-accent flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Voice Design
+                        </button>
+                        <button id="tab-clone" onclick="switchTab('clone')" class="flex-1 sm:flex-none px-5 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-gray-400 hover:text-white flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-copy"></i> Voice Clone
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FORM BODY COMPONENT -->
+                <div class="flex flex-col justify-start space-y-6">
+                    
+                    <!-- TAB 1: VOICE DESIGN WORKSPACE -->
+                    <div id="panel-design" class="space-y-5">
+                        
+                        <!-- Prompt Input Area with Toolbar & Tags -->
+                        <div class="space-y-2.5">
+                            <div class="flex flex-wrap justify-between items-center gap-2">
+                                <label class="text-xs font-bold text-gray-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                                    <i class="fa-regular fa-keyboard text-brand-accent"></i> 1. Prompt Text
+                                </label>
+                                
+                                <!-- Prompt Action Buttons: Copy, Paste, Clear -->
+                                <div class="flex items-center gap-1.5 font-mono">
+                                    <button onclick="copyPrompt('design-prompt-text')" type="button" class="text-[10px] bg-brand-cardBorder/50 hover:bg-brand-accent/30 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                                        <i class="fa-regular fa-copy"></i> Copy
+                                    </button>
+                                    <button onclick="pastePrompt('design-prompt-text')" type="button" class="text-[10px] bg-brand-cardBorder/50 hover:bg-brand-accent/30 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                                        <i class="fa-regular fa-paste"></i> Paste
+                                    </button>
+                                    <button onclick="clearPrompt('design-prompt-text')" type="button" class="text-[10px] bg-brand-cardBorder/50 hover:bg-brand-coral/30 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                                        <i class="fa-solid fa-trash-can"></i> Clear
+                                    </button>
+                                    <span class="text-[10px] font-mono text-gray-500 ml-2" id="prompt-char-count">0/500 characters</span>
+                                </div>
+                            </div>
+
+                            <textarea id="design-prompt-text" oninput="updateCharCount('design-prompt-text', 'prompt-char-count')" rows="4" class="w-full bg-black/40 border border-brand-cardBorder/60 focus:border-brand-accent focus:ring-1 focus:ring-brand-accent/50 text-white px-4 py-3 rounded-xl focus:outline-none resize-none font-sans text-sm placeholder-gray-600 transition" placeholder="Enter text to synthesize speech here... Use emotion & interjection tags below!"></textarea>
+
+                            <!-- Audio Emotion & Interjection Tags Selector -->
+                            <div class="bg-black/30 border border-brand-cardBorder/40 p-3 rounded-xl space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] font-mono uppercase text-gray-400 tracking-wider font-bold flex items-center gap-1">
+                                        <i class="fa-solid fa-face-smile text-brand-accent"></i> Quick Interjection & Emotion Tags:
+                                    </span>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 font-mono">
+                                    <button onclick="insertTag('design-prompt-text', '[laughter]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[laughter]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[sigh]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[sigh]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[confirmation-en]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[confirmation-en]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[question-en]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[question-en]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[question-ah]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[question-ah]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[question-oh]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[question-oh]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[question-ei]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[question-ei]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[question-yi]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[question-yi]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[surprise-ah]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[surprise-ah]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[surprise-oh]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[surprise-oh]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[surprise-wa]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[surprise-wa]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[surprise-yo]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[surprise-yo]</button>
+                                    <button onclick="insertTag('design-prompt-text', '[dissatisfaction-hnn]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-accent/30 border border-brand-cardBorder text-brand-accentLight px-2 py-0.5 rounded-md transition">[dissatisfaction-hnn]</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Prompt Quick Presets -->
+                            <div class="flex flex-wrap items-center gap-2 pt-1">
+                                <span class="text-[10px] text-gray-500 font-mono">Sample Presets:</span>
+                                <button onclick="setPromptPreset('design-prompt-text', 1)" class="text-[10px] bg-brand-cardBorder/30 hover:bg-brand-accent/20 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded transition">📢 Weather Alert</button>
+                                <button onclick="setPromptPreset('design-prompt-text', 2)" class="text-[10px] bg-brand-cardBorder/30 hover:bg-brand-accent/20 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded transition">🤖 AI Assistant</button>
+                                <button onclick="setPromptPreset('design-prompt-text', 3)" class="text-[10px] bg-brand-cardBorder/30 hover:bg-brand-accent/20 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded transition">📖 Storybook</button>
+                            </div>
+                        </div>
+
+                        <!-- Voice Instruct Assembler (Updated according to voice-design.md) -->
+                        <div class="bg-black/20 border border-brand-cardBorder/40 p-4 rounded-xl space-y-4">
+                            <div class="flex justify-between items-center border-b border-brand-cardBorder/20 pb-2">
+                                <span class="text-xs font-bold text-gray-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                                    <i class="fa-solid fa-sliders text-brand-accent"></i> 2. Voice Instruct Parameter Generator
+                                </span>
+                                <span class="text-[9px] bg-brand-accent/15 text-brand-accentLight px-2 py-0.5 rounded font-mono">AUTO CONSTRUCT</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Gender Select -->
+                                <div class="space-y-1.5 col-span-1 md:col-span-2">
+                                    <label class="text-[11px] text-gray-400 font-bold">Gender (Required)</label>
+                                    <div class="grid grid-cols-2 gap-1.5 bg-black/40 p-1 rounded-lg border border-brand-cardBorder/40">
+                                        <button onclick="setParam('gender', 'female')" id="btn-gender-female" class="py-1.5 text-[11px] font-bold rounded transition-all text-white bg-brand-accent">Female</button>
+                                        <button onclick="setParam('gender', 'male')" id="btn-gender-male" class="py-1.5 text-[11px] font-bold rounded transition-all text-gray-400 hover:text-white">Male</button>
+                                    </div>
+                                </div>
+
+                                <!-- Age Select -->
+                                <div class="space-y-1.5 col-span-1 md:col-span-2">
+                                    <label class="text-[11px] text-gray-400 font-bold">Age Group (Optional)</label>
+                                    <div class="grid grid-cols-3 md:grid-cols-6 gap-1 bg-black/40 p-1 rounded-lg border border-brand-cardBorder/40">
+                                        <button onclick="setParam('age', 'none')" id="btn-age-none" class="py-1.5 text-[10px] font-bold rounded transition text-white bg-brand-accent">None</button>
+                                        <button onclick="setParam('age', 'child')" id="btn-age-child" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Child</button>
+                                        <button onclick="setParam('age', 'teenager')" id="btn-age-teenager" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Teenager</button>
+                                        <button onclick="setParam('age', 'young adult')" id="btn-age-young-adult" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Young Adult</button>
+                                        <button onclick="setParam('age', 'middle-aged')" id="btn-age-middle-aged" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Middle-aged</button>
+                                        <button onclick="setParam('age', 'elderly')" id="btn-age-elderly" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Elderly</button>
+                                    </div>
+                                </div>
+
+                                <!-- Pitch Select -->
+                                <div class="space-y-1.5 col-span-1 md:col-span-2">
+                                    <label class="text-[11px] text-gray-400 font-bold">Pitch (Optional)</label>
+                                    <div class="grid grid-cols-3 md:grid-cols-6 gap-1 bg-black/40 p-1 rounded-lg border border-brand-cardBorder/40">
+                                        <button onclick="setParam('pitch', 'none')" id="btn-pitch-none" class="py-1.5 text-[10px] font-bold rounded transition text-white bg-brand-accent">None</button>
+                                        <button onclick="setParam('pitch', 'very low pitch')" id="btn-pitch-very-low-pitch" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Very Low</button>
+                                        <button onclick="setParam('pitch', 'low pitch')" id="btn-pitch-low-pitch" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Low</button>
+                                        <button onclick="setParam('pitch', 'moderate pitch')" id="btn-pitch-moderate-pitch" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Moderate</button>
+                                        <button onclick="setParam('pitch', 'high pitch')" id="btn-pitch-high-pitch" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">High</button>
+                                        <button onclick="setParam('pitch', 'very high pitch')" id="btn-pitch-very-high-pitch" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Very High</button>
+                                    </div>
+                                </div>
+
+                                <!-- Style Select -->
+                                <div class="space-y-1.5 col-span-1 md:col-span-2">
+                                    <label class="text-[11px] text-gray-400 font-bold">Speaking Style (Optional)</label>
+                                    <div class="grid grid-cols-2 gap-1.5 bg-black/40 p-1 rounded-lg border border-brand-cardBorder/40">
+                                        <button onclick="setParam('style', 'none')" id="btn-style-none" class="py-1.5 text-[10px] font-bold rounded transition text-white bg-brand-accent">None</button>
+                                        <button onclick="setParam('style', 'whisper')" id="btn-style-whisper" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Whisper</button>
+                                    </div>
+                                </div>
+
+                                <!-- English Accent Select -->
+                                <div class="space-y-1.5 col-span-1 md:col-span-2">
+                                    <label class="text-[11px] text-gray-400 font-bold">English Accent (Effective for English text)</label>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-1 bg-black/40 p-1 rounded-lg border border-brand-cardBorder/40">
+                                        <button onclick="setParam('accent', 'none')" id="btn-accent-none" class="py-1.5 text-[10px] font-bold rounded transition text-white bg-brand-accent">None</button>
+                                        <button onclick="setParam('accent', 'american accent')" id="btn-accent-american-accent" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">American</button>
+                                        <button onclick="setParam('accent', 'british accent')" id="btn-accent-british-accent" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">British</button>
+                                        <button onclick="setParam('accent', 'australian accent')" id="btn-accent-australian-accent" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Australian</button>
+                                        <button onclick="setParam('accent', 'canadian accent')" id="btn-accent-canadian-accent" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Canadian</button>
+                                        <button onclick="setParam('accent', 'indian accent')" id="btn-accent-indian-accent" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Indian</button>
+                                        <button onclick="setParam('accent', 'japanese accent')" id="btn-accent-japanese-accent" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Japanese</button>
+                                        <button onclick="setParam('accent', 'korean accent')" id="btn-accent-korean-accent" class="py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white">Korean</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Compiled Instruct String Display -->
+                            <div class="bg-black/60 border border-brand-cardBorder/40 rounded-lg p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                <div class="font-mono text-xs">
+                                    <span class="text-brand-accent font-bold">Compiled Instruct:</span>
+                                    <span id="compiled-instruct-text" class="text-gray-300 ml-1.5">female</span>
+                                </div>
+                                <span class="text-[9px] text-gray-500 font-mono">Mapped parameter: [instruct]</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: VOICE CLONE WORKSPACE (HIDDEN BY DEFAULT) -->
+                    <div id="panel-clone" class="hidden space-y-5">
+                        
+                        <!-- Clone Prompt Text Input -->
+                        <div class="space-y-2.5">
+                            <div class="flex flex-wrap justify-between items-center gap-2">
+                                <label class="text-xs font-bold text-gray-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                                    <i class="fa-regular fa-keyboard text-brand-success"></i> 1. Clone Prompt Text
+                                </label>
+                                
+                                <!-- Prompt Action Buttons: Copy, Paste, Clear -->
+                                <div class="flex items-center gap-1.5 font-mono">
+                                    <button onclick="copyPrompt('clone-prompt-text')" type="button" class="text-[10px] bg-brand-cardBorder/50 hover:bg-brand-success/30 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                                        <i class="fa-regular fa-copy"></i> Copy
+                                    </button>
+                                    <button onclick="pastePrompt('clone-prompt-text')" type="button" class="text-[10px] bg-brand-cardBorder/50 hover:bg-brand-success/30 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                                        <i class="fa-regular fa-paste"></i> Paste
+                                    </button>
+                                    <button onclick="clearPrompt('clone-prompt-text')" type="button" class="text-[10px] bg-brand-cardBorder/50 hover:bg-brand-coral/30 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                                        <i class="fa-solid fa-trash-can"></i> Clear
+                                    </button>
+                                    <span class="text-[10px] font-mono text-gray-500 ml-2" id="clone-char-count">0/500 characters</span>
+                                </div>
+                            </div>
+
+                            <textarea id="clone-prompt-text" oninput="updateCharCount('clone-prompt-text', 'clone-char-count')" rows="3" class="w-full bg-black/40 border border-brand-cardBorder/60 focus:border-brand-success focus:ring-1 focus:ring-brand-success/50 text-white px-4 py-3 rounded-xl focus:outline-none resize-none font-sans text-sm placeholder-gray-600 transition" placeholder="Enter text to be spoken by the cloned voice... Use emotion & interjection tags below!"></textarea>
+
+                            <!-- Audio Emotion & Interjection Tags Selector -->
+                            <div class="bg-black/30 border border-brand-cardBorder/40 p-3 rounded-xl space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] font-mono uppercase text-gray-400 tracking-wider font-bold flex items-center gap-1">
+                                        <i class="fa-solid fa-face-smile text-brand-success"></i> Quick Interjection & Emotion Tags:
+                                    </span>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 font-mono">
+                                    <button onclick="insertTag('clone-prompt-text', '[laughter]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[laughter]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[sigh]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[sigh]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[confirmation-en]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[confirmation-en]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[question-en]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[question-en]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[question-ah]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[question-ah]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[question-oh]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[question-oh]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[question-ei]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[question-ei]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[question-yi]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[question-yi]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[surprise-ah]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[surprise-ah]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[surprise-oh]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[surprise-oh]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[surprise-wa]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[surprise-wa]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[surprise-yo]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[surprise-yo]</button>
+                                    <button onclick="insertTag('clone-prompt-text', '[dissatisfaction-hnn]')" type="button" class="text-[10px] bg-brand-cardBorder/40 hover:bg-brand-success/30 border border-brand-cardBorder text-brand-successLight px-2 py-0.5 rounded-md transition">[dissatisfaction-hnn]</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Prompt Quick Presets -->
+                            <div class="flex flex-wrap items-center gap-2 pt-1">
+                                <span class="text-[10px] text-gray-500 font-mono">Sample Presets:</span>
+                                <button onclick="setPromptPreset('clone-prompt-text', 4)" class="text-[10px] bg-brand-cardBorder/30 hover:bg-brand-success/20 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded transition">🎤 Voice Test</button>
+                                <button onclick="setPromptPreset('clone-prompt-text', 5)" class="text-[10px] bg-brand-cardBorder/30 hover:bg-brand-success/20 border border-brand-cardBorder text-gray-300 hover:text-white px-2.5 py-1 rounded transition">🌟 Celebration</button>
+                            </div>
+                        </div>
+
+                        <!-- Routing: Select Source Reference Audio -->
+                        <div class="bg-black/20 border border-brand-cardBorder/40 p-4 rounded-xl space-y-4">
+                            <div class="flex items-center justify-between border-b border-brand-cardBorder/20 pb-2">
+                                <span class="text-xs font-bold text-gray-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                                    <i class="fa-solid fa-route text-brand-success"></i> 2. Reference Audio Source Routing
+                                </span>
+                            </div>
+
+                            <!-- Switcher button -->
+                            <div class="flex items-center justify-between bg-black/40 border border-brand-cardBorder/40 p-3 rounded-xl">
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-bold text-gray-200 font-mono">Use Design Output as Reference</span>
+                                    <span class="text-[10px] text-gray-400 font-sans">Use the generated audio from Voice Design as the reference source</span>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="toggle-use-design-ref" onchange="toggleDesignRefUsage()" class="sr-only peer">
+                                    <div class="w-10 h-6 bg-brand-card border border-brand-cardBorder/80 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-success peer-checked:after:bg-white"></div>
+                                </label>
+                            </div>
+
+                            <!-- UPLOAD COMPONENT -->
+                            <div id="ref-audio-upload-container" class="space-y-2">
+                                <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider font-mono">Upload Reference Audio (.wav only)</label>
+                                <div id="ref-audio-upload-zone" onclick="triggerRefAudioInput()" class="border border-dashed border-brand-cardBorder hover:border-brand-success/50 rounded-xl p-4 text-center cursor-pointer bg-black/30 hover:bg-black/50 transition duration-200">
+                                    <input type="file" id="ref-audio-file-input" onchange="handleRefAudioFileSelect(event)" accept="audio/*" class="hidden">
+                                    <i class="fa-solid fa-cloud-arrow-up text-brand-success text-2xl mb-1.5"></i>
+                                    <p id="ref-audio-upload-text" class="text-xs text-gray-400 font-medium">Click to select file or drag & drop reference audio sample (.wav) here</p>
+                                    <p id="ref-audio-file-name" class="text-xs text-brand-successLight font-mono mt-1 font-bold hidden"></p>
+                                </div>
+
+                                <!-- Reference file local playback -->
+                                <div id="ref-audio-preview-container" class="hidden bg-black/60 border border-brand-cardBorder/60 rounded-xl p-3 flex flex-col gap-2 shadow-inner">
+                                    <div class="flex items-center justify-between w-full">
+                                        <span class="text-[10px] font-mono text-gray-400">Reference audio preview:</span>
+                                        <button type="button" onclick="event.stopPropagation(); removeRefAudio();" class="text-[10px] text-brand-coral hover:text-red-400 flex items-center gap-1 font-bold">
+                                            <i class="fa-solid fa-trash-can"></i> Remove reference audio
+                                        </button>
+                                    </div>
+                                    <audio id="ref-audio-preview" controls class="w-full h-8 mt-1"></audio>
+                                </div>
+                            </div>
+
+                            <!-- Design Output Information -->
+                            <div id="ref-audio-routed-info" class="hidden bg-brand-success/10 border border-brand-success/20 rounded-xl p-4 flex gap-3.5 items-center">
+                                <div class="w-10 h-10 bg-brand-success/20 rounded-lg flex items-center justify-center flex-shrink-0 text-brand-successLight">
+                                    <i class="fa-solid fa-circle-nodes text-lg"></i>
+                                </div>
+                                <div class="text-xs leading-relaxed">
+                                    <h5 class="font-bold text-white uppercase tracking-wider font-mono">Design Output Routed Successfully</h5>
+                                    <p class="text-gray-300 mt-0.5">Binary WAV audio from Voice Design will be routed directly to the Voice Clone model.</p>
+                                    <p id="routed-audio-size" class="text-[10px] text-brand-success font-mono mt-0.5 font-bold"></p>
+                                </div>
+                            </div>
+
+                            <!-- Reference Text -->
+                            <div id="ref-text-input-container" class="space-y-1.5">
+                                <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider font-mono">3. Reference Transcript (Auto-cached from Whisper)</label>
+                                <input type="text" id="ref-text-input" class="w-full bg-black/40 border border-brand-cardBorder/60 focus:border-brand-success text-white px-4 py-2 rounded-xl focus:outline-none font-sans text-xs transition" placeholder="Transcribed text will appear here automatically after first run to skip Whisper ASR...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ADVANCED GENERATION PARAMETERS ACCORDION (PROPERLY STYLED GRID & LAYOUT) -->
+                    <div class="bg-black/30 border border-brand-cardBorder/50 rounded-xl overflow-hidden font-mono mt-4">
+                        <button onclick="toggleAdvancedParams()" type="button" class="w-full px-4 py-3 bg-black/40 hover:bg-black/60 flex justify-between items-center text-xs font-bold text-gray-300 transition border-b border-transparent focus:outline-none">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-sliders text-brand-accent"></i> Advanced Generation Parameters
+                            </span>
+                            <i id="advanced-toggle-icon" class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-200"></i>
+                        </button>
+
+                        <div id="advanced-params-content" class="hidden p-4 space-y-4 border-t border-brand-cardBorder/40 text-xs bg-black/20">
+                            <!-- Grid for Boolean Checkboxes -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <!-- Normalize Text (TN) -->
+                                <label class="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-brand-cardBorder/40 cursor-pointer hover:border-brand-accent/50 transition">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-gray-200">Normalize Text</span>
+                                        <span class="text-[9px] text-gray-500">WeTextProcessing TN</span>
+                                    </div>
+                                    <input type="checkbox" id="param-normalize_text" checked class="w-4 h-4 accent-brand-accent">
+                                </label>
+
+                                <!-- Denoise -->
+                                <label class="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-brand-cardBorder/40 cursor-pointer hover:border-brand-accent/50 transition">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-gray-200">Denoise</span>
+                                        <span class="text-[9px] text-gray-500">&lt;|denoise|&gt; token</span>
+                                    </div>
+                                    <input type="checkbox" id="param-denoise" checked class="w-4 h-4 accent-brand-accent">
+                                </label>
+
+                                <!-- Preprocess Prompt -->
+                                <label class="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-brand-cardBorder/40 cursor-pointer hover:border-brand-accent/50 transition">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-gray-200">Preprocess Prompt</span>
+                                        <span class="text-[9px] text-gray-500">Audio silence trim</span>
+                                    </div>
+                                    <input type="checkbox" id="param-preprocess_prompt" checked class="w-4 h-4 accent-brand-accent">
+                                </label>
+
+                                <!-- Postprocess Output -->
+                                <label class="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-brand-cardBorder/40 cursor-pointer hover:border-brand-accent/50 transition">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-gray-200">Postprocess Output</span>
+                                        <span class="text-[9px] text-gray-500">Output silence trim</span>
+                                    </div>
+                                    <input type="checkbox" id="param-postprocess_output" checked class="w-4 h-4 accent-brand-accent">
+                                </label>
+                            </div>
+
+                            <!-- Grid for Numeric Sliders -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <!-- Decoding Steps (num_step) -->
+                                <div class="space-y-1.5 bg-black/40 p-3 rounded-lg border border-brand-cardBorder/40">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-bold text-gray-300">num_step</span>
+                                        <span id="val-num_step" class="text-brand-accent font-bold">32</span>
+                                    </div>
+                                    <input type="range" id="param-num_step" min="8" max="64" step="1" value="32" oninput="document.getElementById('val-num_step').innerText = this.value" class="w-full accent-brand-accent">
+                                </div>
+
+                                <!-- Guidance Scale -->
+                                <div class="space-y-1.5 bg-black/40 p-3 rounded-lg border border-brand-cardBorder/40">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-bold text-gray-300">guidance_scale</span>
+                                        <span id="val-guidance_scale" class="text-brand-accent font-bold">2.0</span>
+                                    </div>
+                                    <input type="range" id="param-guidance_scale" min="1.0" max="5.0" step="0.1" value="2.0" oninput="document.getElementById('val-guidance_scale').innerText = this.value" class="w-full accent-brand-accent">
+                                </div>
+
+                                <!-- Speed -->
+                                <div class="space-y-1.5 bg-black/40 p-3 rounded-lg border border-brand-cardBorder/40">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-bold text-gray-300">speed</span>
+                                        <span id="val-speed" class="text-brand-accent font-bold">1.0</span>
+                                    </div>
+                                    <input type="range" id="param-speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('val-speed').innerText = this.value" class="w-full accent-brand-accent">
+                                </div>
+
+                                <!-- Position Temperature -->
+                                <div class="space-y-1.5 bg-black/40 p-3 rounded-lg border border-brand-cardBorder/40">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-bold text-gray-300">position_temp</span>
+                                        <span id="val-position_temperature" class="text-brand-accent font-bold">5.0</span>
+                                    </div>
+                                    <input type="range" id="param-position_temperature" min="0.0" max="10.0" step="0.5" value="5.0" oninput="document.getElementById('val-position_temperature').innerText = this.value" class="w-full accent-brand-accent">
+                                </div>
+
+                                <!-- Class Temperature -->
+                                <div class="space-y-1.5 bg-black/40 p-3 rounded-lg border border-brand-cardBorder/40">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-bold text-gray-300">class_temp</span>
+                                        <span id="val-class_temperature" class="text-brand-accent font-bold">0.0</span>
+                                    </div>
+                                    <input type="range" id="param-class_temperature" min="0.0" max="2.0" step="0.1" value="0.0" oninput="document.getElementById('val-class_temperature').innerText = this.value" class="w-full accent-brand-accent">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Trigger Area -->
+                    <div class="pt-4 border-t border-brand-cardBorder/40">
+                        <button id="btn-generate" onclick="generateSpeech()" class="w-full py-4 rounded-xl bg-gradient-to-r from-brand-accent to-blue-600 hover:from-brand-accentLight hover:to-blue-500 text-white font-bold text-sm tracking-wider uppercase transition-all duration-300 shadow-lg shadow-brand-accent/25 flex items-center justify-center gap-3">
+                            <i id="btn-icon" class="fa-solid fa-microphone text-lg"></i>
+                            <span id="btn-text">Synthesize Speech</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Output, Live Visualizer & Developer Console (5/12 cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- Output Player Control -->
+            <div class="bg-brand-card/40 border border-brand-cardBorder/60 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden shadow-2xl glow-success-panel">
+                <div class="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(16,185,129,0.02)_1px,transparent_1px)] bg-[size:100%_8px] pointer-events-none animate-scan"></div>
+                
+                <div class="flex justify-between items-center mb-5">
+                    <span class="text-xs font-mono text-brand-success uppercase tracking-widest bg-brand-success/10 px-3 py-1.5 rounded-full font-bold">
+                        <i class="fa-solid fa-circle-nodes mr-1 animate-pulse"></i> Output Station
+                    </span>
+                    <span class="text-[10px] font-mono text-gray-500">FORMAT: WAV / 24KHZ</span>
+                </div>
+
+                <!-- Visual Progress Bar Indicator (Visible during generation) -->
+                <div id="progress-container" class="hidden mb-5 bg-black/60 border border-brand-cardBorder p-4 rounded-xl space-y-3 font-mono">
+                    <div class="flex justify-between items-center text-xs">
+                        <span id="progress-status" class="text-brand-accentLight font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-gear animate-spin"></i> Synthesizing Audio...
+                        </span>
+                        <span id="progress-timer" class="text-brand-successLight font-bold">0.0s</span>
+                    </div>
+                    <!-- Animated Gradient Progress Bar Track -->
+                    <div class="w-full h-3 bg-gray-900 rounded-full overflow-hidden p-0.5 border border-brand-cardBorder">
+                        <div id="progress-bar" class="h-full bg-gradient-to-r from-brand-accent via-cyan-400 to-brand-success rounded-full transition-all duration-200" style="width: 0%;"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-gray-500">
+                        <span id="progress-subtext">Modal Serverless GPU execution...</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                </div>
+
+                <!-- Custom Visualizer Space -->
+                <div class="w-full h-32 bg-black/50 border border-brand-cardBorder/40 rounded-xl relative overflow-hidden mb-5 flex items-center justify-center shadow-inner">
+                    <canvas id="visualizer" class="absolute inset-0 w-full h-full"></canvas>
+                    <div id="visualizer-placeholder" class="text-center font-mono text-xs text-gray-500 z-10 select-none flex flex-col items-center gap-2">
+                        <i class="fa-solid fa-volume-xmark text-lg"></i>
+                        <span>No audio playing. Synthesize speech to visualize waveform.</span>
+                    </div>
+                </div>
+
+                <!-- Custom Styled Player Box -->
+                <div id="audio-player-container" class="bg-black/40 border border-brand-cardBorder p-4 rounded-xl space-y-4 shadow-inner">
+                    <div class="flex justify-between items-center text-xs">
+                        <span id="player-status" class="font-mono font-bold text-gray-400 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-brand-cardBorder"></span> Standby
+                        </span>
+                        <div class="flex gap-2">
+                            <button onclick="downloadDemoAudio()" id="btn-download" disabled class="text-[11px] text-gray-500 pointer-events-none hover:text-white flex items-center gap-1.5 font-bold transition">
+                                <i class="fa-solid fa-download"></i> Download (.wav)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Native element with style overrides -->
+                    <audio id="demo-audio" controls class="w-full h-10"></audio>
+                </div>
+
+                <!-- System Telemetry / Resource Stats -->
+                <div class="grid grid-cols-2 gap-3.5 mt-5">
+                    <div class="bg-black/20 border border-brand-cardBorder/40 p-3 rounded-xl flex flex-col justify-center">
+                        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Last Response Time</span>
+                        <span id="stat-latency" class="text-sm font-mono font-bold text-gray-400">-- ms</span>
+                    </div>
+                    <div class="bg-black/20 border border-brand-cardBorder/40 p-3 rounded-xl flex flex-col justify-center">
+                        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-mono">Audio File Size</span>
+                        <span id="stat-size" class="text-sm font-mono font-bold text-gray-400">-- KB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Serverless Developer Logs Console -->
+            <div class="bg-brand-card/40 border border-brand-cardBorder/60 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden shadow-2xl flex-grow h-72 lg:h-auto min-h-[250px]">
+                <div class="flex justify-between items-center border-b border-brand-cardBorder/30 pb-3 mb-3">
+                    <span class="text-xs font-mono text-gray-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-terminal text-brand-accent"></i> Real-time Network Log Console
+                    </span>
+                    <span class="text-[9px] bg-brand-cardBorder text-gray-400 px-1.5 py-0.5 rounded font-mono">DEBUG</span>
+                </div>
+                
+                <!-- Live Output Logs Feed -->
+                <div id="console-logs" class="flex-grow bg-black/60 border border-brand-cardBorder/60 rounded-xl p-4 font-mono text-[11px] leading-relaxed text-gray-400 overflow-y-auto space-y-2 h-[180px] lg:h-[220px]">
+                    <p class="text-brand-success">[System] OmniVoice Studio initialized successfully.</p>
+                    <p class="text-gray-500">[System] Ready to dispatch Modal Serverless GPU workloads.</p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script>
+        // Sample Prompts
+        const promptPresets = {
+            1: "Emergency weather alert: Heavy thunderstorm expected across upper Thailand. Please stay indoors and avoid open fields for safety.",
+            2: "Hello and welcome to OmniVoice Speech Studio! Today we are demonstrating high-fidelity neural text-to-speech with contextual multi-language processing.",
+            3: "Once upon a time in a glowing fantasy forest, a tiny rabbit embarked on an adventure to discover magical fruits.",
+            4: "Testing high-fidelity speech synthesis audio clarity and acoustic precision across frequencies.",
+            5: "Congratulations on winning first place in the competition! Our team appreciates your incredible dedication."
+        };
+
+        // State parameters
+        let activeTab = 'design';
+        let lastDesignAudioBlob = null;
+        let lastDesignPromptText = "";
+        
+        const designParams = {
+            gender: 'female',
+            age: 'none',
+            pitch: 'none',
+            style: 'none',
+            accent: 'none'
+        };
+
+        const visualizer = document.getElementById('visualizer');
+        const canvasCtx = visualizer.getContext('2d');
+        const demoAudio = document.getElementById('demo-audio');
+        const visualizerPlaceholder = document.getElementById('visualizer-placeholder');
+        
+        let audioCtx = null;
+        let analyser = null;
+        let source = null;
+        let animationId = null;
+        let demoAudioBlobUrl = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            buildInstructString();
+            setupDragAndDrop();
+            
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+        });
+
+        // Copy / Paste / Clear Prompt
+        function copyPrompt(textareaId) {
+            const textarea = document.getElementById(textareaId);
+            if (!textarea.value) {
+                showToast("Nothing to copy.");
+                return;
+            }
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                showToast("Prompt copied to clipboard!");
+            }).catch(err => {
+                showToast("Failed to copy text.");
+            });
+        }
+
+        function pastePrompt(textareaId) {
+            navigator.clipboard.readText().then(text => {
+                if (text) {
+                    const textarea = document.getElementById(textareaId);
+                    textarea.value += text;
+                    let charCounterId = (textareaId === 'design-prompt-text') ? 'prompt-char-count' : 'clone-char-count';
+                    updateCharCount(textareaId, charCounterId);
+                    showToast("Pasted text into prompt!");
+                }
+            }).catch(err => {
+                showToast("Clipboard permission required to paste.");
+            });
+        }
+
+        function clearPrompt(textareaId) {
+            const textarea = document.getElementById(textareaId);
+            textarea.value = "";
+            let charCounterId = (textareaId === 'design-prompt-text') ? 'prompt-char-count' : 'clone-char-count';
+            updateCharCount(textareaId, charCounterId);
+            showToast("Prompt cleared.");
+        }
+
+        function insertTag(textareaId, tag) {
+            const textarea = document.getElementById(textareaId);
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+
+            if (start !== undefined && end !== undefined && start >= 0) {
+                textarea.value = text.substring(0, start) + " " + tag + " " + text.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + tag.length + 2;
+            } else {
+                textarea.value += " " + tag + " ";
+            }
+            textarea.focus();
+
+            let charCounterId = (textareaId === 'design-prompt-text') ? 'prompt-char-count' : 'clone-char-count';
+            updateCharCount(textareaId, charCounterId);
+            showToast(`Inserted tag: ${tag}`);
+        }
+
+        function toggleAdvancedParams() {
+            const content = document.getElementById('advanced-params-content');
+            const icon = document.getElementById('advanced-toggle-icon');
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            const tabDesign = document.getElementById('tab-design');
+            const tabClone = document.getElementById('tab-clone');
+            const panelDesign = document.getElementById('panel-design');
+            const panelClone = document.getElementById('panel-clone');
+
+            resetPlayer();
+
+            if (tab === 'design') {
+                tabDesign.className = "flex-1 sm:flex-none px-5 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-white bg-brand-accent flex items-center justify-center gap-1.5";
+                tabClone.className = "flex-1 sm:flex-none px-5 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-gray-400 hover:text-white flex items-center justify-center gap-1.5";
+                panelDesign.classList.remove('hidden');
+                panelClone.classList.add('hidden');
+                
+                logConsole("[Tab Switch] Switched to Voice Design Mode (Synthesizer)", "indigo");
+            } else {
+                tabClone.className = "flex-1 sm:flex-none px-5 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-white bg-brand-success flex items-center justify-center gap-1.5";
+                tabDesign.className = "flex-1 sm:flex-none px-5 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-gray-400 hover:text-white flex items-center justify-center gap-1.5";
+                panelClone.classList.remove('hidden');
+                panelDesign.classList.add('hidden');
+                
+                logConsole("[Tab Switch] Switched to Voice Clone Mode (Cloning Model)", "success");
+                
+                const checkbox = document.getElementById('toggle-use-design-ref');
+                if (checkbox.checked && !lastDesignAudioBlob) {
+                    showToast("No designed audio available! Please generate audio in Voice Design first.");
+                }
+            }
+        }
+
+        function setPromptPreset(elementId, presetIndex) {
+            const textarea = document.getElementById(elementId);
+            textarea.value = promptPresets[presetIndex];
+            
+            let charCounterId = (elementId === 'design-prompt-text') ? 'prompt-char-count' : 'clone-char-count';
+            updateCharCount(elementId, charCounterId);
+            
+            showToast(`Loaded sample prompt preset #${presetIndex}`);
+            logConsole(`[Presets] Loaded prompt template #${presetIndex}`);
+        }
+
+        function updateCharCount(textareaId, counterId) {
+            const val = document.getElementById(textareaId).value;
+            const count = val.length;
+            document.getElementById(counterId).innerText = `${count}/500 characters`;
+        }
+
+        function setParam(category, value) {
+            designParams[category] = value;
+            
+            const buttons = {
+                gender: ['female', 'male'],
+                age: ['none', 'child', 'teenager', 'young adult', 'middle-aged', 'elderly'],
+                pitch: ['none', 'very low pitch', 'low pitch', 'moderate pitch', 'high pitch', 'very high pitch'],
+                style: ['none', 'whisper'],
+                accent: ['none', 'american accent', 'british accent', 'australian accent', 'canadian accent', 'indian accent', 'japanese accent', 'korean accent']
+            };
+
+            buttons[category].forEach(val => {
+                const cssSafeId = val.replace(/\s+/g, '-');
+                const btn = document.getElementById(`btn-${category}-${cssSafeId}`);
+                if (btn) {
+                    if (val === value) {
+                        btn.className = "py-1.5 text-[10px] font-bold rounded transition text-white bg-brand-accent";
+                    } else {
+                        btn.className = "py-1.5 text-[10px] font-bold rounded transition text-gray-400 hover:text-white";
+                    }
+                }
+            });
+
+            buildInstructString();
+        }
+
+        function buildInstructString() {
+            let instruct = designParams.gender;
+            
+            if (designParams.age !== 'none') instruct += `, ${designParams.age}`;
+            if (designParams.pitch !== 'none') instruct += `, ${designParams.pitch}`;
+            if (designParams.style !== 'none') instruct += `, ${designParams.style}`;
+            if (designParams.accent !== 'none') instruct += `, ${designParams.accent}`;
+
+            document.getElementById('compiled-instruct-text').innerText = instruct;
+        }
+
+        function setupDragAndDrop() {
+            const zone = document.getElementById('ref-audio-upload-zone');
+            if (!zone) return;
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                zone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    zone.classList.add('border-brand-success', 'bg-black/50');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                zone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('border-brand-success', 'bg-black/50');
+                }, false);
+            });
+
+            zone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    document.getElementById('ref-audio-file-input').files = files;
+                    handleRefAudioFileSelect({ target: { files } });
+                }
+            });
+        }
+
+        function triggerRefAudioInput() {
+            document.getElementById('ref-audio-file-input').click();
+        }
+
+        let refAudioPreviewUrl = null;
+        function handleRefAudioFileSelect(event) {
+            const file = event.target.files[0];
+            const nameEl = document.getElementById('ref-audio-file-name');
+            const textEl = document.getElementById('ref-audio-upload-text');
+            const previewContainer = document.getElementById('ref-audio-preview-container');
+            const previewAudio = document.getElementById('ref-audio-preview');
+
+            // Reset reference text input when selecting a new audio file
+            document.getElementById('ref-text-input').value = "";
+
+            if (refAudioPreviewUrl) {
+                URL.revokeObjectURL(refAudioPreviewUrl);
+                refAudioPreviewUrl = null;
+            }
+
+            if (file) {
+                const isWav = file.type === "audio/wav" || file.name.endsWith(".wav");
+                if (!isWav) {
+                    showToast("Please upload a .wav audio file for optimal voice cloning quality.");
+                    logConsole(`[Warning] Rejected ${file.name}: Only .wav audio format is supported`, "coral");
+                    return;
+                }
+
+                nameEl.innerText = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                nameEl.classList.remove('hidden');
+                textEl.innerText = "Click to select a different reference audio file";
+                
+                refAudioPreviewUrl = URL.createObjectURL(file);
+                previewAudio.src = refAudioPreviewUrl;
+                previewContainer.classList.remove('hidden');
+                
+                showToast(`New reference audio loaded. Reference transcript reset.`);
+                logConsole(`[Audio Router] Loaded new reference audio: ${file.name} (${(file.size / 1024).toFixed(1)} KB) - Ref text reset.`);
+            } else {
+                nameEl.classList.add('hidden');
+                textEl.innerText = "Click to select file or drag & drop reference audio sample (.wav) here";
+                previewContainer.classList.add('hidden');
+                previewAudio.src = "";
+            }
+        }
+
+        function removeRefAudio() {
+            const refAudioInput = document.getElementById('ref-audio-file-input');
+            const nameEl = document.getElementById('ref-audio-file-name');
+            const textEl = document.getElementById('ref-audio-upload-text');
+            const previewContainer = document.getElementById('ref-audio-preview-container');
+            const previewAudio = document.getElementById('ref-audio-preview');
+
+            refAudioInput.value = "";
+            document.getElementById('ref-text-input').value = "";
+            nameEl.classList.add('hidden');
+            textEl.innerText = "Click to select file or drag & drop reference audio sample (.wav) here";
+            previewContainer.classList.add('hidden');
+            previewAudio.src = "";
+
+            if (refAudioPreviewUrl) {
+                URL.revokeObjectURL(refAudioPreviewUrl);
+                refAudioPreviewUrl = null;
+            }
+            showToast("Removed reference audio sample and reset transcript.");
+            logConsole("[Audio Router] Cleared reference audio file and transcript.");
+        }
+
+        function toggleDesignRefUsage() {
+            const checkbox = document.getElementById('toggle-use-design-ref');
+            const uploadZone = document.getElementById('ref-audio-upload-container');
+            const textInput = document.getElementById('ref-text-input-container');
+            const routedInfo = document.getElementById('ref-audio-routed-info');
+
+            // Reset ref text on toggle
+            document.getElementById('ref-text-input').value = "";
+
+            if (checkbox.checked) {
+                uploadZone.classList.add('hidden');
+                textInput.classList.add('hidden');
+                
+                if (lastDesignAudioBlob) {
+                    routedInfo.classList.remove('hidden');
+                    document.getElementById('routed-audio-size').innerText = `Buffer: ${(lastDesignAudioBlob.size / 1024).toFixed(1)} KB | Reference text mapping: "${lastDesignPromptText.substring(0, 30)}..."`;
+                    logConsole("[Audio Router] Successfully routed Voice Design output to Voice Clone model.");
+                } else {
+                    showToast("No designed audio available! Please generate audio in Voice Design first.");
+                    checkbox.checked = false;
+                    uploadZone.classList.remove('hidden');
+                    textInput.classList.remove('hidden');
+                }
+            } else {
+                uploadZone.classList.remove('hidden');
+                textInput.classList.remove('hidden');
+                routedInfo.classList.add('hidden');
+                logConsole("[Audio Router] Switched back to manual file upload mode.");
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            const msgEl = document.getElementById('toast-message');
+            msgEl.innerText = message;
+            
+            toast.classList.remove('translate-y-[-120%]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-120%]', 'opacity-0');
+            }, 3000);
+        }
+
+        function logConsole(message, status = 'default') {
+            const consoleBox = document.getElementById('console-logs');
+            const log = document.createElement('p');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let colorClass = "text-gray-400";
+            if (status === 'success') colorClass = "text-brand-successLight font-bold";
+            if (status === 'indigo') colorClass = "text-brand-accentLight";
+            if (status === 'coral') colorClass = "text-brand-coral font-semibold";
+            if (status === 'amber') colorClass = "text-brand-amber";
+
+            log.className = colorClass;
+            log.innerHTML = `<span class="text-gray-600">[${timestamp}]</span> ${message}`;
+            
+            consoleBox.appendChild(log);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        function resetPlayer() {
+            if (demoAudioBlobUrl) {
+                URL.revokeObjectURL(demoAudioBlobUrl);
+                demoAudioBlobUrl = null;
+            }
+            demoAudio.src = "";
+            
+            document.getElementById('player-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-brand-cardBorder"></span> Standby`;
+            
+            const downloadBtn = document.getElementById('btn-download');
+            downloadBtn.disabled = true;
+            downloadBtn.classList.add('text-gray-500', 'pointer-events-none');
+            downloadBtn.classList.remove('text-brand-successLight');
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            visualizerPlaceholder.classList.remove('hidden');
+        }
+
+        async function generateSpeech() {
+            const btn = document.getElementById('btn-generate');
+            const btnIcon = document.getElementById('btn-icon');
+            const btnText = document.getElementById('btn-text');
+            const activeLine = document.getElementById('api-active-line');
+            
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressTimer = document.getElementById('progress-timer');
+            const progressSubtext = document.getElementById('progress-subtext');
+            const progressPercent = document.getElementById('progress-percent');
+
+            resetPlayer();
+
+            let endpoint = '';
+            const formData = new FormData();
+            activeLine.style.width = '10%';
+
+            formData.append('normalize_text', document.getElementById('param-normalize_text').checked ? 'true' : 'false');
+            formData.append('denoise', document.getElementById('param-denoise').checked ? 'true' : 'false');
+            formData.append('preprocess_prompt', document.getElementById('param-preprocess_prompt').checked ? 'true' : 'false');
+            formData.append('postprocess_output', document.getElementById('param-postprocess_output').checked ? 'true' : 'false');
+            formData.append('num_step', document.getElementById('param-num_step').value);
+            formData.append('guidance_scale', document.getElementById('param-guidance_scale').value);
+            formData.append('speed', document.getElementById('param-speed').value);
+            formData.append('position_temperature', document.getElementById('param-position_temperature').value);
+            formData.append('class_temperature', document.getElementById('param-class_temperature').value);
+
+            if (activeTab === 'design') {
+                const promptText = document.getElementById('design-prompt-text').value.trim();
+                if (!promptText) {
+                    showToast("Please enter prompt text before generating audio.");
+                    activeLine.style.width = '0%';
+                    return;
+                }
+
+                const compiledInstruct = document.getElementById('compiled-instruct-text').innerText;
+                formData.append('text', promptText);
+                formData.append('instruct', compiledInstruct);
+                
+                endpoint = 'https://vvetpu55y--omnivoice-tts-omnivoiceapp-serve.modal.run/design';
+                
+                logConsole(`[API Request] Dispatching to /design endpoint...`, 'indigo');
+                logConsole(`[Payload] text: "${promptText.substring(0, 40)}..." | instruct: "${compiledInstruct}"`);
+            } else {
+                const promptText = document.getElementById('clone-prompt-text').value.trim();
+                if (!promptText) {
+                    showToast("Please enter prompt text to be spoken by the cloned voice.");
+                    activeLine.style.width = '0%';
+                    return;
+                }
+
+                const useDesignRef = document.getElementById('toggle-use-design-ref').checked;
+
+                if (useDesignRef) {
+                    if (!lastDesignAudioBlob) {
+                        showToast("No reference audio found from Voice Design. Please run Voice Design first.");
+                        activeLine.style.width = '0%';
+                        return;
+                    }
+                    
+                    const refFile = new File([lastDesignAudioBlob], 'routed_design_output.wav', { type: 'audio/wav' });
+                    formData.append('text', promptText);
+                    formData.append('ref_audio', refFile);
+                    formData.append('ref_text', lastDesignPromptText);
+
+                    logConsole(`[Dynamic Routing] Routed Voice Design WAV binary directly to /clone`, 'success');
+                } else {
+                    const refInput = document.getElementById('ref-audio-file-input');
+                    const refText = document.getElementById('ref-text-input').value.trim();
+
+                    if (!refInput.files || refInput.files.length === 0) {
+                        showToast("Please upload a reference .wav audio file or toggle Voice Design routing.");
+                        activeLine.style.width = '0%';
+                        return;
+                    }
+
+                    formData.append('text', promptText);
+                    formData.append('ref_audio', refInput.files[0]);
+                    if (refText) {
+                        formData.append('ref_text', refText);
+                    }
+                }
+
+                endpoint = 'https://vvetpu55y--omnivoice-tts-omnivoiceapp-serve.modal.run/clone';
+                
+                logConsole(`[API Request] Dispatching to /clone endpoint...`, 'success');
+                logConsole(`[Payload] text: "${promptText.substring(0, 40)}..."`);
+            }
+
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            btnIcon.className = "fa-solid fa-circle-notch animate-spin text-lg";
+            btnText.innerText = "Synthesizing audio on Modal Serverless GPU...";
+            
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            progressPercent.innerText = '0%';
+            progressSubtext.innerText = 'Initializing GPU container...';
+
+            showToast("Dispatching request to Modal GPU...");
+            logConsole("[Pipeline] Executing GPU model inference...", "amber");
+
+            activeLine.style.width = '20%';
+            const startTime = performance.now();
+
+            let elapsedSec = 0;
+            let currentPct = 5;
+            
+            const timerInterval = setInterval(() => {
+                elapsedSec += 0.1;
+                progressTimer.innerText = `${elapsedSec.toFixed(1)}s`;
+                
+                if (elapsedSec < 3) {
+                    currentPct = Math.min(45, Math.floor(elapsedSec * 15));
+                    progressSubtext.innerText = "Pre-processing text & loading model parameters...";
+                } else if (elapsedSec < 6) {
+                    currentPct = Math.min(85, Math.floor(45 + (elapsedSec - 3) * 13));
+                    progressSubtext.innerText = "Synthesizing high-fidelity audio waveform on GPU...";
+                } else {
+                    currentPct = Math.min(95, Math.floor(85 + (elapsedSec - 6) * 2));
+                    progressSubtext.innerText = "Finalizing WAV audio bytes...";
+                }
+                
+                progressBar.style.width = `${currentPct}%`;
+                progressPercent.innerText = `${currentPct}%`;
+                activeLine.style.width = `${currentPct}%`;
+            }, 100);
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                clearInterval(timerInterval);
+
+                if (response.ok) {
+                    // Extract custom metadata headers
+                    const rawFormattedHeader = response.headers.get('X-Formatted-Text');
+                    const rawRefTextHeader = response.headers.get('X-Ref-Text');
+
+                    if (rawFormattedHeader) {
+                        try {
+                            const formattedText = decodeURIComponent(rawFormattedHeader);
+                            logConsole(`[Formatted Text Output] "${formattedText}"`, "indigo");
+                        } catch (e) {
+                            console.error("Error decoding X-Formatted-Text header: ", e);
+                        }
+                    }
+
+                    if (rawRefTextHeader) {
+                        try {
+                            const transcribedRefText = decodeURIComponent(rawRefTextHeader);
+                            if (transcribedRefText) {
+                                logConsole(`[Whisper Transcribed Ref Text] "${transcribedRefText}"`, "success");
+                                // Auto-populate ref-text-input for future generations
+                                const refTextInput = document.getElementById('ref-text-input');
+                                if (refTextInput) {
+                                    refTextInput.value = transcribedRefText;
+                                }
+                            }
+                        } catch (e) {
+                            console.error("Error decoding X-Ref-Text header: ", e);
+                        }
+                    }
+
+                    const audioBlob = await response.blob();
+                    const endTime = performance.now();
+                    const latency = Math.round(endTime - startTime);
+
+                    progressBar.style.width = '100%';
+                    progressPercent.innerText = '100%';
+                    progressSubtext.innerText = 'Generation complete!';
+                    activeLine.style.width = '100%';
+
+                    logConsole(`[API Success] Audio synthesized successfully in ${latency} ms!`, "success");
+
+                    if (activeTab === 'design') {
+                        lastDesignAudioBlob = audioBlob;
+                        lastDesignPromptText = document.getElementById('design-prompt-text').value.trim();
+                        
+                        const designCheckbox = document.getElementById('toggle-use-design-ref');
+                        if (designCheckbox.checked) {
+                            document.getElementById('routed-audio-size').innerText = `Buffer: ${(audioBlob.size / 1024).toFixed(1)} KB | Reference text mapping: "${lastDesignPromptText.substring(0, 30)}..."`;
+                        }
+                    }
+
+                    demoAudioBlobUrl = URL.createObjectURL(audioBlob);
+                    demoAudio.src = demoAudioBlobUrl;
+
+                    document.getElementById('stat-latency').innerText = `${latency} ms`;
+                    document.getElementById('stat-size').innerText = `${(audioBlob.size / 1024).toFixed(1)} KB`;
+
+                    document.getElementById('player-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-brand-success animate-ping"></span> Active`;
+                    
+                    const downloadBtn = document.getElementById('btn-download');
+                    downloadBtn.disabled = false;
+                    downloadBtn.classList.remove('text-gray-500', 'pointer-events-none');
+                    downloadBtn.classList.add('text-brand-successLight');
+
+                    btnText.innerText = "Audio Synthesized Successfully!";
+                    btnIcon.className = "fa-solid fa-circle-check text-brand-success";
+                    showToast("Speech synthesis completed!");
+
+                    setupVisualizer();
+                    demoAudio.play();
+
+                    setTimeout(() => {
+                        activeLine.style.width = '0%';
+                        progressContainer.classList.add('hidden');
+                    }, 2500);
+
+                } else {
+                    clearInterval(timerInterval);
+                    const errorText = await response.text();
+                    console.error("API Response error: ", errorText);
+                    logConsole(`[API Error] Dispatch failed: ${response.status} - ${errorText.substring(0, 100)}`, "coral");
+                    showToast(`API Error: Code ${response.status}`);
+                    btnText.innerText = "Synthesis Failed";
+                    btnIcon.className = "fa-solid fa-triangle-exclamation text-brand-coral";
+                    activeLine.style.width = '0%';
+                    progressContainer.classList.add('hidden');
+                }
+            } catch (err) {
+                clearInterval(timerInterval);
+                console.error("Fetch Exception: ", err);
+                logConsole(`[API Failure] Network request failed: ${err.message}`, "coral");
+                showToast(`Technical Error: ${err.message}`);
+                btnText.innerText = "Connection Failed";
+                btnIcon.className = "fa-solid fa-triangle-exclamation text-brand-coral";
+                activeLine.style.width = '0%';
+                progressContainer.classList.add('hidden');
+            } finally {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                    btnIcon.className = "fa-solid fa-microphone text-lg";
+                    btnText.innerText = "Synthesize Speech";
+                }, 2000);
+            }
+        }
+
+        function setupVisualizer() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                
+                source = audioCtx.createMediaElementSource(demoAudio);
+                source.connect(analyser);
+                analyser.connect(audioCtx.destination);
+            }
+
+            visualizerPlaceholder.classList.add('hidden');
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            function draw() {
+                const width = visualizer.width;
+                const height = visualizer.height;
+
+                animationId = requestAnimationFrame(draw);
+                analyser.getByteFrequencyData(dataArray);
+
+                canvasCtx.fillStyle = '#030712';
+                canvasCtx.fillRect(0, 0, width, height);
+
+                const barWidth = (width / bufferLength) * 1.5;
+                let barHeight;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    barHeight = dataArray[i] / 1.5;
+
+                    const percent = barHeight / height;
+                    const r = Math.floor(99 - (99 - 16) * percent);
+                    const g = Math.floor(102 + (185 - 102) * percent);
+                    const b = Math.floor(241 - (241 - 129) * percent);
+
+                    canvasCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                    canvasCtx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
+
+                    x += barWidth;
+                }
+            }
+
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            draw();
+        }
+
+        function resizeCanvas() {
+            const container = visualizer.parentNode;
+            visualizer.width = container.clientWidth;
+            visualizer.height = container.clientHeight;
+        }
+
+        function downloadDemoAudio() {
+            if (demoAudioBlobUrl) {
+                const a = document.createElement('a');
+                a.href = demoAudioBlobUrl;
+                a.download = `omnivoice_${activeTab}_output.wav`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                logConsole("[Output Station] Downloaded WAV audio output file.");
+            }
+        }
+    </script>
+</body>
+</html>

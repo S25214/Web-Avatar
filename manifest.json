@@ -37,6 +37,7 @@
     "Dance_rabbitloop",
     "Dance_washing",
     "DancingRunningManloop",
+    "Denied",
     "deny",
     "Dismiss",
     "Emote_Breakdance_loop",
@@ -137,6 +138,10 @@
     "YES"
   ],
   "modelAnimations": {
+    "Eucerin": [
+      "Idleloop",
+      "Idle_breatheloop"
+    ],
     "UncleCMU": [
       "CrossArmLoop",
       "Greeting",
