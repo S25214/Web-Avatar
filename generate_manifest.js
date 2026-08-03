@@ -3,7 +3,7 @@ const path = require('path');
 
 const config = {
     'VRM': ['.vrm'],
-    'VRMA': ['.vrma']
+    'VRMA': ['.vrma', '.glb', '.gltf']
 };
 
 const manifest = {
@@ -32,7 +32,8 @@ if (fs.existsSync(vrmaPath)) {
         if (entry.isFile()) {
             const ext = path.extname(entry.name).toLowerCase();
             if (config.VRMA.includes(ext)) {
-                manifest.VRMA.push(path.parse(entry.name).name);
+                const animName = ext === '.vrma' ? path.parse(entry.name).name : entry.name;
+                manifest.VRMA.push(animName);
             }
         } else if (entry.isDirectory()) {
             const subDirName = entry.name;
@@ -42,7 +43,10 @@ if (fs.existsSync(vrmaPath)) {
             const animNames = subFiles.filter(file => {
                 const ext = path.extname(file).toLowerCase();
                 return config.VRMA.includes(ext);
-            }).map(file => path.parse(file).name);
+            }).map(file => {
+                const ext = path.extname(file).toLowerCase();
+                return ext === '.vrma' ? path.parse(file).name : file;
+            });
             
             if (animNames.length > 0) {
                 manifest.modelAnimations[subDirName] = animNames;

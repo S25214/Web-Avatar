@@ -303,7 +303,7 @@
         font-weight: bold;
         color: #007bff;
         z-index: 10000;
-    ">Drop VRM or VRMA file here</div>
+    ">Drop VRM, VRMA, GLB, or GLTF file here</div>
 
     <script>
         const initWidget = async () => {
@@ -519,17 +519,20 @@
                 if (!file) return;
 
                 const fileName = file.name.toLowerCase();
-                if (!fileName.endsWith('.vrm') && !fileName.endsWith('.vrma')) {
-                    alert('Please drop a .vrm or .vrma file');
+                const isAnim = fileName.endsWith('.vrma') || fileName.endsWith('.glb') || fileName.endsWith('.gltf');
+                const isModel = fileName.endsWith('.vrm');
+
+                if (!isAnim && !isModel) {
+                    alert('Please drop a .vrm, .vrma, .glb, or .gltf file');
                     return;
                 }
 
                 const blobUrl = URL.createObjectURL(file);
-                if (fileName.endsWith('.vrma')) {
-                    console.log(`Loading dropped VRMA: ${file.name}`);
+                if (isAnim) {
+                    console.log(`Loading dropped animation file (${file.name}): ${blobUrl}`);
                     window.WebAvatar.loadAnimation(blobUrl);
                 } else {
-                    console.log(`Loading dropped VRM: ${file.name}`);
+                    console.log(`Loading dropped VRM model (${file.name}): ${blobUrl}`);
                     window.WebAvatar.loadModel(blobUrl);
                 }
             });
