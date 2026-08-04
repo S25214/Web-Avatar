@@ -142,6 +142,10 @@
       "Idleloop",
       "Idle_breatheloop"
     ],
+    "Jaidee": [
+      "idleloop.glb",
+      "idle_breatheloop.glb"
+    ],
     "UncleCMU": [
       "CrossArmLoop",
       "Greeting",
