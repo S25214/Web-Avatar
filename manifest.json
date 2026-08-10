@@ -138,8 +138,10 @@
   ],
   "modelAnimations": {
     "Eucerin": [
+      "Greeting",
       "Idleloop",
-      "Idle_breatheloop"
+      "Idle_breatheloop",
+      "Sawasdee"
     ],
     "Jaidee": [
       "idleloop.glb",
