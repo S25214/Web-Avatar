@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WebAvatar — Fullscreen Live Voice Experience</title>
-    <meta name="description" content="Fullscreen AI avatar voice experience powered by Gemini Live.">
+    <title>WebAvatar — Live Voice Experience</title>
+    <meta name="description" content="AI avatar voice experience powered by Gemini Live.">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,7 +40,7 @@
             touch-action: pan-y;
         }
 
-        /* Ambient glowing backgrounds for premium feel */
+        /* Ambient glowing backgrounds */
         .bg-glow {
             position: fixed;
             width: 60vw;
@@ -83,106 +83,161 @@
             100% { transform: scale(1.1) translate(-30px, -30px); }
         }
 
-        /* Glassmorphic Container */
-        .config-container {
-            position: relative;
-            z-index: 10;
-            width: calc(100% - 32px);
-            max-width: 480px;
-            margin: 16px;
-            padding: 40px;
-            background: rgba(13, 13, 22, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 
-                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        /* Top Navigation Header (User Name & Widget ID Buttons) */
+        #top-nav {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 2147483645;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .config-container.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .config-container.fade-out {
-            opacity: 0;
-            transform: scale(0.95);
-            pointer-events: none;
-        }
-
-        /* Typography */
-        .header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .logo-icon {
+        .nav-btn {
             display: inline-flex;
             align-items: center;
+            gap: 8px;
+            background: rgba(13, 13, 22, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 9999px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: inherit;
+            color: #f1f1f6;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            user-select: none;
+            outline: none;
+            max-width: 200px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .nav-btn:active {
+            transform: translateY(1px);
+        }
+
+        .nav-btn .nav-icon {
+            width: 15px;
+            height: 15px;
+            fill: #a5b4fc;
+            flex-shrink: 0;
+        }
+
+        .nav-btn .nav-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #f1f1f6;
+        }
+
+        .nav-btn .edit-hint-icon {
+            width: 12px;
+            height: 12px;
+            stroke: #94a3b8;
+            stroke-width: 2;
+            fill: none;
+            opacity: 0.7;
+            flex-shrink: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .nav-btn:hover .edit-hint-icon {
+            opacity: 1;
+            stroke: #c7d2fe;
+        }
+
+        /* Modal Dialogs */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 2147483646;
+            display: flex;
+            align-items: center;
             justify-content: center;
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, #6366f1, #a855f7);
-            border-radius: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
-            position: relative;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 16px;
         }
 
-        .logo-icon svg {
-            width: 28px;
-            height: 28px;
-            fill: #ffffff;
+        .modal-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
         }
 
-        .logo-icon::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            border-radius: 18px;
-            background: linear-gradient(135deg, #6366f1, #a855f7);
-            z-index: -1;
-            opacity: 0.5;
-            filter: blur(6px);
+        .modal-card {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(18, 18, 30, 0.95);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 22px;
+            padding: 30px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform: scale(0.95) translateY(10px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        h1 {
-            font-size: 28px;
+        .modal-backdrop.open .modal-card {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .modal-title {
+            font-size: 20px;
             font-weight: 700;
-            background: linear-gradient(135deg, #ffffff 30%, #c7d2fe 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
+            color: #ffffff;
         }
 
-        .subtitle {
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .modal-description {
             font-size: 14px;
             color: #94a3b8;
+            margin-bottom: 20px;
             line-height: 1.5;
         }
 
-        /* Form Controls */
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             position: relative;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: #94a3b8;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         .input-wrapper {
@@ -192,15 +247,15 @@
         .form-input {
             width: 100%;
             padding: 14px 16px;
-            font-size: 16px; /* 16px prevents iOS auto-zoom on input focus */
+            font-size: 16px; /* 16px prevents iOS auto-zoom */
             font-family: inherit;
             color: #ffffff;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 12px;
             outline: none;
             transition: all 0.3s ease;
-            -webkit-appearance: none; /* Remove iOS default input styling */
+            -webkit-appearance: none;
         }
 
         .form-input::placeholder {
@@ -208,16 +263,49 @@
         }
 
         .form-input:focus {
-            background: rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.08);
             border-color: #6366f1;
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
         }
 
-        /* Button styling */
-        .btn-launch {
-            width: 100%;
-            padding: 16px;
-            font-size: 16px;
+        .error-message {
+            color: #f43f5e;
+            font-size: 13px;
+            margin-top: 10px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-modal-secondary {
+            flex: 1;
+            padding: 13px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-modal-secondary:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-modal-primary {
+            flex: 1;
+            padding: 13px;
+            font-size: 14px;
             font-weight: 600;
             font-family: inherit;
             color: #ffffff;
@@ -225,234 +313,37 @@
             border: none;
             border-radius: 12px;
             cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
 
-        .btn-launch::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: all 0.6s ease;
+        .btn-modal-primary:hover {
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+            filter: brightness(1.08);
         }
 
-        .btn-launch:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
-            background: linear-gradient(135deg, #4f46e5, #9333ea);
-        }
-
-        .btn-launch:hover::before {
-            left: 100%;
-        }
-
-        .btn-launch:active {
-            transform: translateY(1px);
-        }
-
-        /* Status & Error Display */
-        .error-message {
-            color: #f43f5e;
-            font-size: 13px;
-            margin-top: 8px;
-            display: none;
-            align-items: center;
-            gap: 6px;
-        }
-
-        /* Hide elements when active */
         .hidden {
             display: none !important;
         }
 
-        /* Subtle footer */
-        .footer {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 12px;
-            color: #475569;
-        }
-
         /* Mobile responsive */
         @media (max-width: 520px) {
-            .config-container {
-                padding: 28px 20px;
+            #top-nav {
+                top: 12px;
+                right: 12px;
+                gap: 6px;
+            }
+
+            .nav-btn {
+                max-width: 140px;
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .modal-card {
+                padding: 24px 20px;
                 border-radius: 20px;
             }
-
-            h1 {
-                font-size: 22px;
-            }
-
-            .header {
-                margin-bottom: 24px;
-            }
-
-            .logo-icon {
-                width: 48px;
-                height: 48px;
-                border-radius: 14px;
-            }
-
-            .logo-icon svg {
-                width: 24px;
-                height: 24px;
-            }
-
-            .form-group {
-                margin-bottom: 18px;
-            }
-
-            .btn-launch {
-                padding: 14px;
-                font-size: 15px;
-            }
-        }
-
-        /* Top Right Hamburger Button & Settings Panel */
-        .hamburger-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: rgba(13, 13, 22, 0.8);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        }
-
-        .hamburger-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            transform: scale(1.05);
-            border-color: rgba(255, 255, 255, 0.25);
-        }
-
-        .hamburger-btn svg {
-            width: 22px;
-            height: 22px;
-            transition: transform 0.3s ease;
-        }
-
-        .hamburger-btn.active svg {
-            transform: rotate(90deg);
-        }
-
-        .settings-panel {
-            position: fixed;
-            top: 74px;
-            right: 20px;
-            z-index: 9999;
-            width: 320px;
-            padding: 24px;
-            background: rgba(13, 13, 22, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px) scale(0.95);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .settings-panel.open {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0) scale(1);
-        }
-
-        .panel-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .panel-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #ffffff;
-            letter-spacing: -0.2px;
-        }
-
-        /* Toggle Switches */
-        .switch-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .switch-label {
-            font-size: 14px;
-            font-weight: 500;
-            color: #cbd5e1;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(255, 255, 255, 0.15);
-            transition: .3s;
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 2px;
-            bottom: 2px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background: linear-gradient(135deg, #6366f1, #a855f7);
-            border-color: transparent;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(20px);
         }
     </style>
 </head>
@@ -462,284 +353,354 @@
     <div id="bg-glow-left" class="bg-glow"></div>
     <div id="bg-glow-right" class="bg-glow-right"></div>
 
-    <!-- Main Config Card -->
-    <div id="config-card" class="config-container">
-        <div class="header">
-            <div class="logo-icon">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-                </svg>
-            </div>
-            <h1>WebAvatar Live</h1>
-            <p class="subtitle">Enter parameters to initialize the voice experience</p>
-        </div>
+    <!-- Top Navigation Header (User Name & Widget ID Buttons) -->
+    <header id="top-nav">
+        <button id="user-name-btn" class="nav-btn" title="Click to change your user name" aria-label="Change user name" onclick="openNameModal()">
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <span id="user-name-display" class="nav-text">Guest</span>
+            <svg class="edit-hint-icon" viewBox="0 0 24 24">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+        </button>
 
-        <form id="config-form" onsubmit="handleFormSubmit(event)">
-            <div class="form-group">
-                <label class="form-label" for="widget-id">Widget ID</label>
-                <div class="input-wrapper">
-                    <input type="text" id="widget-id" class="form-input" placeholder="e.g. 65c92842..." required>
+        <button id="widget-id-btn" class="nav-btn" title="Click to change Widget ID" aria-label="Change Widget ID" onclick="openWidgetModal()">
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
+            </svg>
+            <span id="widget-id-display" class="nav-text">Botnoi</span>
+            <svg class="edit-hint-icon" viewBox="0 0 24 24">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+        </button>
+    </header>
+
+    <!-- User Name Prompt / Edit Modal -->
+    <div id="name-modal-backdrop" class="modal-backdrop" onclick="handleNameModalBackdropClick(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="name-modal-title" class="modal-title">Enter Your Name</h2>
+                <button type="button" id="name-modal-close-btn" class="modal-close-btn hidden" aria-label="Close dialog" onclick="closeNameModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <p id="name-modal-desc" class="modal-description">Please enter your name to personalize your live voice experience session.</p>
+            <form id="name-form" onsubmit="handleNameFormSubmit(event)">
+                <div class="form-group">
+                    <div class="input-wrapper">
+                        <input type="text" id="name-input" class="form-input" placeholder="e.g. Alex" maxlength="64" required autofocus>
+                    </div>
+                    <div id="name-error" class="error-message">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span>Please enter a valid name.</span>
+                    </div>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="avatar-url">Avatar URL or ID (VRM)</label>
-                <div class="input-wrapper">
-                    <input type="text" id="avatar-url" class="form-input" placeholder="e.g. https://domain.com/avatar.vrm or custom-id" required>
+                <div class="modal-actions">
+                    <button type="button" id="name-modal-cancel-btn" class="btn-modal-secondary hidden" onclick="closeNameModal()">Cancel</button>
+                    <button type="submit" class="btn-modal-primary">Save Name</button>
                 </div>
-            </div>
-
-            <button type="submit" class="btn-launch">
-                <span>Start Experience</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-            </button>
-            
-            <div id="validation-error" class="error-message">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                <span id="error-text">Please fill out all fields.</span>
-            </div>
-        </form>
-
-        <div class="footer">
-            WebAvatar © 2026. All rights reserved.
+            </form>
         </div>
     </div>
 
-    <!-- Top Right Collapsible Hamburger Settings Panel -->
-    <button id="hamburger-btn" class="hamburger-btn hidden" onclick="toggleSettingsPanel()" title="Settings">
-        <svg id="hamburger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-    </button>
-
-    <div id="settings-panel" class="settings-panel">
-        <div class="panel-header">
-            <div class="panel-title">Widget Configuration</div>
-        </div>
-
-        <div class="panel-body">
-            <!-- Greeting Instruction Toggle & Input -->
-            <div class="form-group" style="margin-bottom: 20px;">
-                <div class="switch-group">
-                    <span class="switch-label">Greeting Instruction</span>
-                    <label class="switch">
-                        <input type="checkbox" id="greeting-toggle" checked onchange="handleGreetingToggleChange()">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div id="greeting-input-container" class="input-wrapper" style="margin-top: 12px;">
-                    <input type="text" id="greeting-instruction" class="form-input" value="Greet the user." placeholder="Enter greeting instruction..." onfocus="handleGreetingFocus(this)" onblur="handleGreetingBlur(this)">
-                </div>
+    <!-- Widget ID Edit Modal -->
+    <div id="widget-modal-backdrop" class="modal-backdrop" onclick="handleWidgetModalBackdropClick(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="modal-title">Change Widget ID</h2>
+                <button type="button" class="modal-close-btn" aria-label="Close dialog" onclick="closeWidgetModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
             </div>
-
-            <!-- Enable Bubble Toggle -->
-            <div class="form-group" style="margin-bottom: 8px;">
-                <div class="switch-group">
-                    <span class="switch-label">Enable Bubble</span>
-                    <label class="switch">
-                        <input type="checkbox" id="bubble-toggle" checked onchange="handleBubbleToggleChange()">
-                        <span class="slider"></span>
-                    </label>
+            <p class="modal-description">Enter a new Widget ID to switch avatar configurations.</p>
+            <form id="widget-change-form" onsubmit="handleWidgetModalSubmit(event)">
+                <div class="form-group">
+                    <div class="input-wrapper">
+                        <input type="text" id="widget-change-input" class="form-input" placeholder="e.g. Botnoi" required>
+                    </div>
+                    <div id="widget-modal-error" class="error-message">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span>Please enter a valid Widget ID.</span>
+                    </div>
                 </div>
-            </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-modal-secondary" onclick="closeWidgetModal()">Cancel</button>
+                    <button type="submit" class="btn-modal-primary">Apply Widget</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script>
-        // Check URL parameters
-        function getQueryParams() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                id: params.get('id'),
-                avatar: params.get('avatar'),
-                greetingInstruction: params.get('greetingInstruction'),
-                enableBubble: params.get('enableBubble')
-            };
-        }
+        const STORAGE_KEY_USER_NAME = 'webavatar_user_name';
+        const DEFAULT_WIDGET_ID = 'Botnoi';
+        let pendingNameResolve = null;
+        let activeWidgetId = DEFAULT_WIDGET_ID;
+        let activeMode = 'fullscreen';
 
-        // Apply parameters to inputs if present
-        const queryParams = getQueryParams();
-        const widgetIdInput = document.getElementById('widget-id');
-        const avatarUrlInput = document.getElementById('avatar-url');
-
-        if (queryParams.id) widgetIdInput.value = queryParams.id;
-        if (queryParams.avatar) avatarUrlInput.value = queryParams.avatar;
-
-        const greetingToggle = document.getElementById('greeting-toggle');
-        const greetingInput = document.getElementById('greeting-instruction');
-        const greetingContainer = document.getElementById('greeting-input-container');
-        const bubbleToggle = document.getElementById('bubble-toggle');
-
-        if (queryParams.greetingInstruction !== null) {
-            if (queryParams.greetingInstruction === 'false') {
-                greetingToggle.checked = false;
-                greetingContainer.style.display = 'none';
-            } else {
-                greetingToggle.checked = true;
-                greetingInput.value = queryParams.greetingInstruction;
-                greetingContainer.style.display = 'block';
+        // ─── Local Storage & User Name Helpers ───
+        function getStoredUserName() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY_USER_NAME);
+                return (stored && stored.trim()) ? stored.trim() : null;
+            } catch (e) {
+                return null;
             }
         }
 
-        if (queryParams.enableBubble !== null) {
-            bubbleToggle.checked = (queryParams.enableBubble !== 'false');
+        function saveStoredUserName(name) {
+            const clean = (name || '').trim();
+            if (clean) {
+                try {
+                    localStorage.setItem(STORAGE_KEY_USER_NAME, clean);
+                } catch (e) {
+                    console.warn('[WebAvatar] LocalStorage unavailable:', e);
+                }
+            }
+            updateUserNameUI(clean || 'Guest');
+            return clean;
         }
 
-        // Determine if we should show the form or load the script directly
-        const hasId = !!queryParams.id;
-        const hasAvatar = !!queryParams.avatar;
-
-        if (hasId && hasAvatar) {
-            // Load script immediately
-            loadWidgetScript(queryParams.id, queryParams.avatar);
-        } else {
-            // Show config form with entry animation
-            const configCard = document.getElementById('config-card');
-            // Allow DOM to register default state, then animate
-            setTimeout(() => {
-                configCard.classList.add('show');
-            }, 50);
+        function updateUserNameUI(name) {
+            const displayName = name || 'Guest';
+            const topNavDisplay = document.getElementById('user-name-display');
+            if (topNavDisplay) topNavDisplay.textContent = displayName;
         }
 
-        function handleFormSubmit(event) {
+        function updateWidgetIdUI(widgetId) {
+            activeWidgetId = widgetId || DEFAULT_WIDGET_ID;
+            const widgetDisplay = document.getElementById('widget-id-display');
+            if (widgetDisplay) {
+                widgetDisplay.textContent = activeWidgetId;
+            }
+        }
+
+        // ─── Greeting Instruction Resolver ───
+        function resolveGreetingInstruction(userId, customGreeting) {
+            if (customGreeting === false || customGreeting === 'false') {
+                return false;
+            }
+            const prefix = `User's ID is ${userId}. `;
+            if (typeof customGreeting === 'string' && customGreeting.trim() !== '') {
+                return `${prefix}${customGreeting.trim()}`;
+            }
+            return prefix.trim();
+        }
+
+        // ─── Name Modal Management ───
+        function openNameModal() {
+            return new Promise((resolve) => {
+                pendingNameResolve = resolve;
+                const modal = document.getElementById('name-modal-backdrop');
+                const input = document.getElementById('name-input');
+                const closeBtn = document.getElementById('name-modal-close-btn');
+                const cancelBtn = document.getElementById('name-modal-cancel-btn');
+                const currentName = getStoredUserName() || '';
+                
+                input.value = currentName;
+                document.getElementById('name-error').style.display = 'none';
+                
+                const title = document.getElementById('name-modal-title');
+                if (currentName) {
+                    title.textContent = "Change User Name";
+                    closeBtn.classList.remove('hidden');
+                    cancelBtn.classList.remove('hidden');
+                } else {
+                    title.textContent = "Enter Your Name";
+                    closeBtn.classList.add('hidden');
+                    cancelBtn.classList.add('hidden');
+                }
+
+                modal.classList.add('open');
+                setTimeout(() => input.focus(), 100);
+            });
+        }
+
+        function closeNameModal() {
+            const modal = document.getElementById('name-modal-backdrop');
+            modal.classList.remove('open');
+            if (pendingNameResolve) {
+                pendingNameResolve(getStoredUserName());
+                pendingNameResolve = null;
+            }
+        }
+
+        function handleNameModalBackdropClick(event) {
+            if (event.target === document.getElementById('name-modal-backdrop')) {
+                if (getStoredUserName()) {
+                    closeNameModal();
+                }
+            }
+        }
+
+        async function handleNameFormSubmit(event) {
             event.preventDefault();
-            const widgetId = widgetIdInput.value.trim();
-            const avatarUrl = avatarUrlInput.value.trim();
-            const errorDiv = document.getElementById('validation-error');
-            const errorText = document.getElementById('error-text');
+            const input = document.getElementById('name-input');
+            const name = input.value.trim();
+            const errorDiv = document.getElementById('name-error');
 
-            if (!widgetId || !avatarUrl) {
-                errorText.innerText = "Both fields are required.";
+            if (!name) {
                 errorDiv.style.display = 'flex';
+                input.focus();
                 return;
             }
 
             errorDiv.style.display = 'none';
+            const isInitialEntry = !getStoredUserName();
+            saveStoredUserName(name);
 
-            // Update URL parameters without page reload
-            const newUrl = new URL(window.location.href);
-            newUrl.searchParams.set('id', widgetId);
-            newUrl.searchParams.set('avatar', avatarUrl);
+            const queryParams = getQueryParams();
+            const greeting = resolveGreetingInstruction(name, queryParams.greetingInstruction);
 
-            const configValues = getWidgetConfigValues();
-            if (configValues.greetingInstruction === false) {
-                newUrl.searchParams.set('greetingInstruction', 'false');
-            } else {
-                newUrl.searchParams.set('greetingInstruction', configValues.greetingInstruction);
+            // If widget is already running, update config asynchronously
+            if (window.ChatWidget && typeof window.ChatWidget.updateConfig === 'function') {
+                try {
+                    await window.ChatWidget.updateConfig({
+                        userId: name,
+                        ...(queryParams.cam ? { cameraOffset: queryParams.cam } : {}),
+                        ...(greeting !== null ? { greetingInstruction: greeting } : {})
+                    });
+                } catch (err) {
+                    console.warn('[WebAvatar] Error updating runtime config:', err);
+                }
+            } else if (isInitialEntry) {
+                // If initial name is entered, launch widget with active widget ID
+                loadWidgetScript(activeWidgetId, activeMode, name);
             }
-            newUrl.searchParams.set('enableBubble', configValues.enableBubble ? 'true' : 'false');
 
+            const resolve = pendingNameResolve;
+            pendingNameResolve = null;
+            closeNameModal();
+            if (resolve) resolve(name);
+        }
+
+        // ─── Widget ID Modal Management ───
+        function openWidgetModal() {
+            const modal = document.getElementById('widget-modal-backdrop');
+            const input = document.getElementById('widget-change-input');
+            input.value = activeWidgetId;
+            document.getElementById('widget-modal-error').style.display = 'none';
+            modal.classList.add('open');
+            setTimeout(() => input.focus(), 100);
+        }
+
+        function closeWidgetModal() {
+            const modal = document.getElementById('widget-modal-backdrop');
+            modal.classList.remove('open');
+        }
+
+        function handleWidgetModalBackdropClick(event) {
+            if (event.target === document.getElementById('widget-modal-backdrop')) {
+                closeWidgetModal();
+            }
+        }
+
+        async function handleWidgetModalSubmit(event) {
+            event.preventDefault();
+            const input = document.getElementById('widget-change-input');
+            const newWidgetId = input.value.trim();
+            const errorDiv = document.getElementById('widget-modal-error');
+
+            if (!newWidgetId) {
+                errorDiv.style.display = 'flex';
+                input.focus();
+                return;
+            }
+
+            errorDiv.style.display = 'none';
+            updateWidgetIdUI(newWidgetId);
+
+            // Update URL without page reload (omit mode if fullscreen)
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('id', newWidgetId);
+            if (activeMode === 'widget') {
+                newUrl.searchParams.set('mode', 'widget');
+            } else {
+                newUrl.searchParams.delete('mode');
+            }
             window.history.pushState({ path: newUrl.href }, '', newUrl.href);
 
-            // Animate card fading out
-            const configCard = document.getElementById('config-card');
-            configCard.classList.add('fade-out');
+            closeWidgetModal();
 
-            setTimeout(() => {
-                configCard.classList.add('hidden');
-                // Fade out backgrounds as well
-                document.getElementById('bg-glow-left').classList.add('hidden');
-                document.getElementById('bg-glow-right').classList.add('hidden');
-                
-                // Launch script
-                loadWidgetScript(widgetId, avatarUrl);
-            }, 600);
-        }
+            const userName = getStoredUserName() || 'Guest';
 
-        function toggleSettingsPanel() {
-            const panel = document.getElementById('settings-panel');
-            const btn = document.getElementById('hamburger-btn');
-            panel.classList.toggle('open');
-            btn.classList.toggle('active');
-        }
-
-        let previousGreetingValue = "";
-        function handleGreetingFocus(input) {
-            previousGreetingValue = input.value.trim();
-        }
-
-        function handleGreetingBlur(input) {
-            const currentValue = input.value.trim();
-            if (currentValue !== previousGreetingValue) {
-                reloadWidgetAndUrl();
-            }
-        }
-
-        function handleGreetingToggleChange() {
-            const greetingToggle = document.getElementById('greeting-toggle');
-            const greetingContainer = document.getElementById('greeting-input-container');
-            if (greetingToggle.checked) {
-                greetingContainer.style.display = 'block';
+            if (window.ChatWidget && typeof window.ChatWidget.updateConfig === 'function') {
+                try {
+                    const queryParams = getQueryParams();
+                    await window.ChatWidget.updateConfig({
+                        widgetId: newWidgetId,
+                        ...(queryParams.cam ? { cameraOffset: queryParams.cam } : {})
+                    });
+                } catch (err) {
+                    console.warn('[WebAvatar] Error updating widgetId:', err);
+                }
             } else {
-                greetingContainer.style.display = 'none';
+                loadWidgetScript(newWidgetId, activeMode, userName);
             }
-            reloadWidgetAndUrl();
         }
 
-        function handleBubbleToggleChange() {
-            reloadWidgetAndUrl();
-        }
-
-        function getWidgetConfigValues() {
-            const greetingToggle = document.getElementById('greeting-toggle');
-            const greetingInput = document.getElementById('greeting-instruction');
-            const bubbleToggle = document.getElementById('bubble-toggle');
-
-            let greetingInstruction = false;
-            if (greetingToggle.checked) {
-                greetingInstruction = greetingInput.value.trim() || "Greet the user.";
+        // ─── Query Parameters Resolution ───
+        function getQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            const mode = (params.get('mode') || '').toLowerCase();
+            const rawGreeting = params.get('greetingInstruction') ?? params.get('greeting');
+            let greetingInstruction = null;
+            if (rawGreeting !== null) {
+                greetingInstruction = (rawGreeting.toLowerCase() === 'false') ? false : rawGreeting;
             }
-
+            const cam = params.get('cam') ?? params.get('cameraOffset');
             return {
-                greetingInstruction: greetingInstruction,
-                enableBubble: bubbleToggle.checked
+                id: params.get('id') || DEFAULT_WIDGET_ID,
+                mode: (mode === 'widget' || mode === 'realtime-widget') ? 'widget' : 'fullscreen',
+                cam: cam ? cam.trim() : null,
+                greetingInstruction: greetingInstruction
             };
         }
 
-        function reloadWidgetAndUrl() {
-            const configValues = getWidgetConfigValues();
-            const newUrl = new URL(window.location.href);
-            
-            const widgetId = widgetIdInput ? widgetIdInput.value.trim() : (queryParams.id || '');
-            const avatarUrl = avatarUrlInput ? avatarUrlInput.value.trim() : (queryParams.avatar || '');
+        // ─── Widget Script Loading ───
+        function loadWidgetScript(widgetId, mode, userName) {
+            if (!userName) return; // Do not load until user name is saved
 
-            if (widgetId) newUrl.searchParams.set('id', widgetId);
-            if (avatarUrl) newUrl.searchParams.set('avatar', avatarUrl);
+            const targetWidgetId = widgetId || DEFAULT_WIDGET_ID;
+            const resolvedMode = (mode === 'widget' || mode === 'realtime-widget')
+                ? 'realtime-widget'
+                : 'realtime-fullscreen';
 
-            if (configValues.greetingInstruction === false) {
-                newUrl.searchParams.set('greetingInstruction', 'false');
-            } else {
-                newUrl.searchParams.set('greetingInstruction', configValues.greetingInstruction);
-            }
+            activeMode = (resolvedMode === 'realtime-widget') ? 'widget' : 'fullscreen';
+            updateWidgetIdUI(targetWidgetId);
 
-            newUrl.searchParams.set('enableBubble', configValues.enableBubble ? 'true' : 'false');
+            const userId = userName;
+            const queryParams = getQueryParams();
+            const greeting = resolveGreetingInstruction(userId, queryParams.greetingInstruction);
 
-            window.location.href = newUrl.href;
-        }
-
-        function loadWidgetScript(widgetId, avatarUrl) {
-            // Show hamburger button
-            const hamburgerBtn = document.getElementById('hamburger-btn');
-            if (hamburgerBtn) hamburgerBtn.classList.remove('hidden');
-
-            const configValues = getWidgetConfigValues();
+            // Hide ambient background glows on launch
+            document.getElementById('bg-glow-left')?.classList.add('hidden');
+            document.getElementById('bg-glow-right')?.classList.add('hidden');
 
             // Configure the widget
             window.ChatWidgetConfig = {
-                mode: "realtime-fullscreen",
-                widgetId: widgetId,
-                avatarUrl: avatarUrl,
-                greetingInstruction: configValues.greetingInstruction,
-                enableBubble: configValues.enableBubble,
+                mode: resolvedMode,
+                widgetId: targetWidgetId,
+                userId: userId,
+                ...(queryParams.cam ? { cameraOffset: queryParams.cam } : {}),
+                ...(greeting !== null ? { greetingInstruction: greeting } : {})
             };
 
             // Dynamic script loading
@@ -750,6 +711,28 @@
             s.async = true;
             (document.head || document.body).appendChild(s);
         }
+
+        // ─── Initialization Flow ───
+        (async function init() {
+            // 1. Initialize username display
+            let currentUserName = getStoredUserName();
+            updateUserNameUI(currentUserName);
+
+            // 2. Check URL parameters and default widget ID
+            const queryParams = getQueryParams();
+            activeWidgetId = queryParams.id;
+            activeMode = queryParams.mode;
+            updateWidgetIdUI(activeWidgetId);
+
+            // 3. User name check
+            if (currentUserName) {
+                // If user name already exists, immediately load widget
+                loadWidgetScript(activeWidgetId, activeMode, currentUserName);
+            } else {
+                // Prompt modal for user name first; widget will load once name is submitted
+                openNameModal();
+            }
+        })();
     </script>
 </body>
 </html>
