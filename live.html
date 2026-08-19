@@ -497,11 +497,11 @@
             if (customGreeting === false || customGreeting === 'false') {
                 return false;
             }
-            const prefix = `User's ID is ${userId}. `;
+            const prefix = `User's ID is ${userId}.`;
             if (typeof customGreeting === 'string' && customGreeting.trim() !== '') {
-                return `${prefix}${customGreeting.trim()}`;
+                return `${prefix}\n\n${customGreeting.trim()}`;
             }
-            return prefix.trim();
+            return prefix;
         }
 
         // ─── Name Modal Management ───
@@ -574,7 +574,10 @@
                 try {
                     await window.ChatWidget.updateConfig({
                         userId: name,
+                        ...(queryParams.mode ? { mode: queryParams.mode } : {}),
                         ...(queryParams.cam ? { cameraOffset: queryParams.cam } : {}),
+                        ...(queryParams.enableBubble !== null ? { enableBubble: queryParams.enableBubble } : {}),
+                        ...(queryParams.buttonImage ? { buttonImage: queryParams.buttonImage } : {}),
                         ...(greeting !== null ? { greetingInstruction: greeting } : {})
                     });
                 } catch (err) {
@@ -582,7 +585,7 @@
                 }
             } else if (isInitialEntry) {
                 // If initial name is entered, launch widget with active widget ID
-                loadWidgetScript(activeWidgetId, activeMode, name);
+                loadWidgetScript(activeWidgetId, name);
             }
 
             const resolve = pendingNameResolve;
@@ -627,14 +630,9 @@
             errorDiv.style.display = 'none';
             updateWidgetIdUI(newWidgetId);
 
-            // Update URL without page reload (omit mode if fullscreen)
+            // Update URL without page reload
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.set('id', newWidgetId);
-            if (activeMode === 'widget') {
-                newUrl.searchParams.set('mode', 'widget');
-            } else {
-                newUrl.searchParams.delete('mode');
-            }
             window.history.pushState({ path: newUrl.href }, '', newUrl.href);
 
             closeWidgetModal();
@@ -644,46 +642,62 @@
             if (window.ChatWidget && typeof window.ChatWidget.updateConfig === 'function') {
                 try {
                     const queryParams = getQueryParams();
+                    const greeting = resolveGreetingInstruction(userName, queryParams.greetingInstruction);
                     await window.ChatWidget.updateConfig({
                         widgetId: newWidgetId,
-                        ...(queryParams.cam ? { cameraOffset: queryParams.cam } : {})
+                        userId: userName,
+                        ...(queryParams.mode ? { mode: queryParams.mode } : {}),
+                        ...(queryParams.cam ? { cameraOffset: queryParams.cam } : {}),
+                        ...(queryParams.enableBubble !== null ? { enableBubble: queryParams.enableBubble } : {}),
+                        ...(queryParams.buttonImage ? { buttonImage: queryParams.buttonImage } : {}),
+                        ...(greeting !== null ? { greetingInstruction: greeting } : {})
                     });
                 } catch (err) {
                     console.warn('[WebAvatar] Error updating widgetId:', err);
                 }
             } else {
-                loadWidgetScript(newWidgetId, activeMode, userName);
+                loadWidgetScript(newWidgetId, userName);
             }
         }
 
         // ─── Query Parameters Resolution ───
         function getQueryParams() {
             const params = new URLSearchParams(window.location.search);
-            const mode = (params.get('mode') || '').toLowerCase();
+            const modeParam = params.get('mode');
+            let resolvedMode = null;
+            if (modeParam !== null) {
+                const lower = modeParam.toLowerCase();
+                resolvedMode = (lower === 'widget' || lower === 'realtime-widget') ? 'realtime-widget' : 'realtime-fullscreen';
+            }
             const rawGreeting = params.get('greetingInstruction') ?? params.get('greeting');
             let greetingInstruction = null;
             if (rawGreeting !== null) {
                 greetingInstruction = (rawGreeting.toLowerCase() === 'false') ? false : rawGreeting;
             }
             const cam = params.get('cam') ?? params.get('cameraOffset');
+            const rawBubble = params.get('enableBubble') ?? params.get('bubble');
+            let enableBubble = null;
+            if (rawBubble !== null) {
+                enableBubble = rawBubble !== 'false';
+            }
+            const buttonImage = params.get('buttonImage');
+
             return {
                 id: params.get('id') || DEFAULT_WIDGET_ID,
-                mode: (mode === 'widget' || mode === 'realtime-widget') ? 'widget' : 'fullscreen',
+                mode: resolvedMode,
                 cam: cam ? cam.trim() : null,
-                greetingInstruction: greetingInstruction
+                greetingInstruction: greetingInstruction,
+                enableBubble: enableBubble,
+                buttonImage: buttonImage ? buttonImage.trim() : null
             };
         }
 
         // ─── Widget Script Loading ───
-        function loadWidgetScript(widgetId, mode, userName) {
+        function loadWidgetScript(widgetId, userName) {
             if (!userName) return; // Do not load until user name is saved
 
             const targetWidgetId = widgetId || DEFAULT_WIDGET_ID;
-            const resolvedMode = (mode === 'widget' || mode === 'realtime-widget')
-                ? 'realtime-widget'
-                : 'realtime-fullscreen';
-
-            activeMode = (resolvedMode === 'realtime-widget') ? 'widget' : 'fullscreen';
+            activeWidgetId = targetWidgetId;
             updateWidgetIdUI(targetWidgetId);
 
             const userId = userName;
@@ -696,10 +710,12 @@
 
             // Configure the widget
             window.ChatWidgetConfig = {
-                mode: resolvedMode,
                 widgetId: targetWidgetId,
                 userId: userId,
+                ...(queryParams.mode ? { mode: queryParams.mode } : {}),
                 ...(queryParams.cam ? { cameraOffset: queryParams.cam } : {}),
+                ...(queryParams.enableBubble !== null ? { enableBubble: queryParams.enableBubble } : {}),
+                ...(queryParams.buttonImage ? { buttonImage: queryParams.buttonImage } : {}),
                 ...(greeting !== null ? { greetingInstruction: greeting } : {})
             };
 
@@ -721,13 +737,12 @@
             // 2. Check URL parameters and default widget ID
             const queryParams = getQueryParams();
             activeWidgetId = queryParams.id;
-            activeMode = queryParams.mode;
             updateWidgetIdUI(activeWidgetId);
 
             // 3. User name check
             if (currentUserName) {
                 // If user name already exists, immediately load widget
-                loadWidgetScript(activeWidgetId, activeMode, currentUserName);
+                loadWidgetScript(activeWidgetId, currentUserName);
             } else {
                 // Prompt modal for user name first; widget will load once name is submitted
                 openNameModal();
