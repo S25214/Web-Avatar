@@ -315,8 +315,6 @@
                 offset: { x: 0, y: 100 },
                 cameraTarget: cameraTarget,
                 randomGeneric: false,
-                defaultAnimationUrl: 'Idleloop',
-                sss: false,
                 onAnimationLoaded: (url) => {
                     const animSelectContainer = document.getElementById('animSelectContainer');
                     if (animSelectContainer && animSelectContainer.selectByUrlMatch) {
@@ -397,7 +395,7 @@
             const anims = await window.WebAvatar.getAnimations();
             console.log("anims", anims);
 
-            setupCustomSelect('modelSelectContainer', 'modelSelectBtn', 'modelSelectOpts', models, 'Kitagawa', (val) => {
+            setupCustomSelect('modelSelectContainer', 'modelSelectBtn', 'modelSelectOpts', models, 'Botnoi', (val) => {
                 if (window.WebAvatar) window.WebAvatar.loadModel(val);
             });
             
