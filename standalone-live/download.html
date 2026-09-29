@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>Your generated photo — WebAvatar</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #050508; color: #f1f1f6; font: 16px/1.5 system-ui, sans-serif; }
+        main { max-width: 880px; margin: 0 auto; padding: 24px 18px; }
+        .eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #a5b4fc; margin: 0; }
+        h1 { font-size: 28px; font-weight: 600; letter-spacing: -.03em; margin: 4px 0 20px; }
+        #photo { display: block; width: 100%; max-height: 68vh; object-fit: contain; background: #171827; border-radius: 14px; }
+        #photo[hidden] { display: none; }
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+        button, a { border-radius: 10px; padding: 12px 18px; font: 500 15px system-ui, sans-serif; text-align: center; }
+        button { flex: 1; border: 1px solid #c7d2fe; background: #a5b4fc; color: #171827; cursor: pointer; }
+        button:disabled { opacity: .5; cursor: wait; }
+        a { border: 1px solid rgba(165, 180, 252, .3); color: #a5b4fc; text-decoration: none; }
+        button:focus-visible, a:focus-visible { outline: 2px solid white; outline-offset: 4px; }
+        #status { color: #94a3b8; font-size: 14px; }
+    </style>
+    <script src="./download.js" defer></script>
+</head>
+<body>
+    <main>
+        <p class="eyebrow">Made for you</p>
+        <h1>Your generated photo</h1>
+        <img id="photo" alt="Your generated photo" hidden>
+        <div class="actions">
+            <button id="download" type="button" disabled>Download photo</button>
+            <a id="original" target="_blank" rel="noopener noreferrer" hidden>Open original</a>
+        </div>
+        <p id="status" role="status" aria-live="polite">Loading your photo…</p>
+    </main>
+</body>
+</html>
