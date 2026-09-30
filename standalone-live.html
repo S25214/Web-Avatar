@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WebAvatar — Standalone Voice Window</title>
     <meta name="description" content="A standalone, full-window AI avatar voice experience.">
-    <link rel="stylesheet" href="./standalone-live/generation.css?v=20260929-photo-choices">
-    <script src="./standalone-live/generation.js?v=20260929-photo-choices" defer></script>
-    <script src="./standalone-live/voice.js?v=20260929-simple-camera" defer></script>
-    <script src="./standalone-live/photo-flow.js?v=20260929-photo-choices" defer></script>
+    <link rel="stylesheet" href="./standalone-live/generation.css?v=20260930-qr-result-timeout">
+    <script src="./standalone-live/generation.js?v=20260930-qr-result-timeout" defer></script>
+    <script src="./standalone-live/voice.js?v=20260930-auto-camera" defer></script>
+    <script src="./standalone-live/photo-flow.js?v=20260930-combined-choices" defer></script>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -46,6 +46,7 @@
         .settings-section-body { padding-bottom: 22px; }
         .settings-label { display: block; font-size: 13px; margin-bottom: 8px; }
         .settings-note { font-size: 12px; color: #94a3b8; line-height: 1.5; margin-top: 16px; }
+        #camera-settings-open { width: 100%; padding: 12px; }
         #settings-toggle {
             position: fixed;
             left: max(20px, env(safe-area-inset-left));
@@ -192,51 +193,39 @@
         }
         #camera-dialog {
             margin: auto;
-            width: min(1100px, calc(100vw - 24px));
-            height: calc(100dvh - 24px);
-            min-width: min(360px, calc(100vw - 24px));
-            min-height: min(360px, calc(100dvh - 24px));
-            max-width: calc(100vw - 24px);
-            max-height: calc(100dvh - 24px);
-            overflow: auto;
-            resize: both;
-            padding: 16px;
-            background: #171827;
+            width: min(820px, calc(100vw - 32px));
+            height: min(76dvh, 720px);
+            min-width: min(320px, calc(100vw - 32px));
+            min-height: 300px;
+            max-width: calc(100vw - 32px);
+            max-height: calc(100dvh - 32px);
+            overflow: hidden;
+            padding: 0;
+            background: #050508;
             color: #f1f1f6;
-            border: 1px solid rgba(165, 180, 252, 0.3);
-            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,.28);
+            border-radius: 20px;
+            box-shadow: 0 28px 90px rgba(0,0,0,.55);
+            resize: both;
         }
-        #camera-dialog[open] { display: flex; flex-direction: column; gap: 10px; }
-        #camera-dialog .modal-header { flex-shrink: 0; margin-bottom: 0; }
-        #camera-dialog .modal-title { font-size: 18px; }
-        #camera-dialog .modal-actions { flex-shrink: 0; margin-top: 0; }
-        #camera-controls { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+        #camera-dialog[open] { display: flex; }
+        #camera-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+        #camera-close-btn { position: absolute; top: 16px; right: 16px; z-index: 3; width: 48px; height: 48px; color: #fff; background: rgba(23,24,39,.75); border: 1px solid rgba(255,255,255,.55); border-radius: 50%; cursor: pointer; }
         #camera-dialog, #generated-gallery-dialog, #generated-result-dialog, #generation-progress { font-family: 'Noto Sans Thai', 'Outfit', Tahoma, sans-serif; }
-        #camera-dialog .btn-modal-primary, #camera-dialog .btn-modal-secondary { padding: 10px 12px; }
-        #camera-controls #camera-live-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
-        .camera-timer-controls { display: flex; align-items: center; }
-        .camera-timer-controls label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-        #camera-timer-duration { padding: 10px 8px; border: 1px solid rgba(165, 180, 252, 0.3); border-radius: 10px; background: #171827; color: #f1f1f6; font: inherit; }
-        #camera-timer-duration:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 2px; }
-        #camera-timer-duration:disabled { opacity: 0.5; }
-        .camera-resize-hint { flex-shrink: 0; font-size: 11px; color: #94a3b8; text-align: right; padding-right: 10px; }
-        @media (max-width: 600px), (pointer: coarse) {
-            #camera-dialog { resize: none; }
-            .camera-resize-hint { display: none; }
-        }
+        #camera-dialog::backdrop { background: rgba(2, 6, 23, .42); }
         @media (max-width: 600px) {
-            #camera-dialog { width: calc(100vw - 24px); height: calc(100dvh - 24px); padding: 12px; }
+            #camera-dialog { width: calc(100vw - 20px); height: min(78dvh, 760px); max-width: calc(100vw - 20px); max-height: calc(100dvh - 20px); resize: none; border-radius: 16px; }
         }
-        #camera-dialog::backdrop { background: rgba(0, 0, 0, 0.15); }
         .camera-preview {
             position: relative;
             flex: 1;
-            min-height: 120px;
+            min-width: 0;
+            min-height: 0;
             background: #050508;
-            border-radius: 12px;
             overflow: hidden;
         }
         #camera-video, #camera-photo { width: 100%; height: 100%; object-fit: contain; display: block; }
+        #camera-video { transition: transform 180ms ease; }
         #camera-countdown {
             position: absolute;
             top: 50%;
@@ -255,7 +244,15 @@
             border: 1px solid rgba(255, 255, 255, 0.4);
             border-radius: 50%;
         }
-        #camera-status { flex-shrink: 0; margin-top: 0; font-size: 13px; color: #94a3b8; line-height: 1.4; }
+        #camera-status { position: absolute; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); max-width: min(580px, calc(100vw - 32px)); margin: 0; padding: 10px 14px; border-radius: 12px; background: rgba(23,24,39,.85); color: #fff; font-size: 14px; line-height: 1.4; text-align: center; }
+        #camera-dialog.settings-preview #camera-status { bottom: 88px; }
+        #camera-settings-controls { position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 3; display: flex; align-items: center; gap: 10px; }
+        #camera-settings-controls button { min-height: 46px; padding: 9px 12px; border-radius: 12px; font: 600 13px 'Noto Sans Thai', 'Outfit', sans-serif; cursor: pointer; }
+        #camera-preview-rotate { flex: 1; min-width: 0; color: #fff; background: rgba(23,24,39,.88); border: 1px solid rgba(255,255,255,.55); }
+        #camera-preview-angle { flex: none; min-width: 35px; color: #fff; text-align: center; font: 600 13px ui-monospace, monospace; text-shadow: 0 1px 4px #000; }
+        #camera-preview-save { flex: 1; min-width: 0; color: #171827; background: #c7d2fe; border: 1px solid #c7d2fe; }
+        #camera-flash { position: fixed; inset: 0; z-index: 10; background: #fff; pointer-events: none; animation: camera-shutter-flash 360ms ease-out both; }
+        @keyframes camera-shutter-flash { 0%, 28% { opacity: 1; } 100% { opacity: 0; } }
         #camera-dialog [hidden] { display: none !important; }
         #camera-dialog button:disabled { opacity: 0.45; cursor: wait; }
         #camera-dialog button:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 3px; }
@@ -512,12 +509,12 @@
     </button>
     <aside id="settings-sidebar" aria-labelledby="settings-title" hidden inert>
         <header class="settings-heading">
-            <div><p class="settings-eyebrow">Make it yours</p><h1 id="settings-title">Scene settings</h1></div>
+            <div><p class="settings-eyebrow">Make it yours</p><h1 id="settings-title">Scene &amp; camera settings</h1></div>
             <button type="button" class="modal-close-btn" aria-label="Collapse settings" onclick="setSettingsOpen(false)">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>
             </button>
         </header>
-        <p class="settings-intro">Keep your avatar in view while you try a new look.</p>
+        <p class="settings-intro">Set the scene and camera view before your next photo.</p>
         <details id="settings-background" name="scene-settings" open>
             <summary><span>Background</span><span class="settings-section-hint">Color &amp; image</span></summary>
             <div class="settings-section-body">
@@ -541,6 +538,13 @@
             <button type="button" class="btn-modal-secondary" onclick="removeBackgroundImage()">Remove image</button>
             <button type="button" class="btn-modal-secondary" onclick="resetBackground()">Reset</button>
         </div>
+            </div>
+        </details>
+        <details id="settings-camera" name="scene-settings">
+            <summary><span>Camera</span><span id="camera-settings-summary" class="settings-section-hint">Auto</span></summary>
+            <div class="settings-section-body">
+                <button type="button" id="camera-settings-open" class="btn-modal-secondary" aria-label="ตั้งค่ามุมกล้อง ดูภาพสด (Set camera view with live preview)" aria-haspopup="dialog" aria-controls="camera-dialog" onclick="openCameraSettingsPreview()">ตั้งค่ามุมกล้อง · Live preview</button>
+                <p class="settings-note">เปิดภาพสด หมุนภาพให้ตรง แล้วกดบันทึกมุมกล้อง มุมที่บันทึกจะใช้เมื่อถ่ายรูปครั้งถัดไป</p>
             </div>
         </details>
         <details id="settings-name" name="scene-settings">
@@ -605,57 +609,56 @@
         </details>
     </aside>
     <dialog id="camera-dialog" aria-labelledby="camera-title" aria-describedby="camera-status">
-        <header class="modal-header" aria-label="หน้าต่างกล้อง (Camera window)">
-            <h2 id="camera-title" class="modal-title">ถ่ายรูป</h2>
-            <button type="button" id="camera-close-btn" class="modal-close-btn" aria-label="ปิดกล้อง (Close camera)" onclick="closeCameraDialog()">&#10005;</button>
-        </header>
-        <div class="camera-preview">
+        <h2 id="camera-title">กล้อง</h2>
+        <section id="camera-preview" class="camera-preview" aria-label="ภาพกล้องและเวลานับถอยหลัง (Camera preview and countdown)">
             <video id="camera-video" autoplay muted playsinline></video>
             <img id="camera-photo" alt="Your captured photo" hidden>
             <output id="camera-countdown" aria-live="assertive" aria-label="Seconds until photo" hidden></output>
-        </div>
-        <section id="camera-controls" aria-label="ควบคุมกล้อง (Camera controls)">
-        <p id="camera-status" role="status" aria-live="polite">กำลังเปิดกล้อง…</p>
-        <div id="camera-live-actions" class="modal-actions">
-            <button type="button" id="camera-capture-btn" class="btn-modal-primary" aria-label="ถ่ายรูป (Take a photo)" onclick="takeCameraPhoto()" disabled>ถ่ายรูป</button>
-            <div class="camera-timer-controls">
-                <label for="camera-timer-duration">เวลานับถอยหลัง</label>
-                <select id="camera-timer-duration" onchange="updateCameraTimerLabel()" disabled><option value="0">ไม่จับเวลา</option><option value="3">3 วินาที</option><option value="5">5 วินาที</option><option value="10">10 วินาที</option></select>
+            <p id="camera-status" role="status" aria-live="polite" hidden></p>
+            <div id="camera-settings-controls" role="group" aria-label="ตั้งค่ามุมกล้อง (Camera view controls)" hidden>
+                <button type="button" id="camera-preview-rotate" aria-label="หมุนภาพกล้อง 90 องศา (Rotate live camera view)" onclick="rotateCameraPreviewSetting()" disabled>หมุน 90°</button>
+                <output id="camera-preview-angle" aria-live="polite">0°</output>
+                <button type="button" id="camera-preview-save" aria-label="บันทึกมุมกล้อง (Save camera view)" onclick="saveCameraPreviewSetting()" disabled>บันทึกมุมกล้อง</button>
             </div>
-        </div>
-        <div id="camera-photo-actions" class="modal-actions" hidden>
-            <button type="button" id="camera-retake-btn" class="btn-modal-secondary" onclick="startCameraPreview()">Retake</button>
-            <button type="button" id="camera-use-btn" class="btn-modal-primary" onclick="useCameraPhoto()">Use as background</button>
-        </div>
+            <button type="button" id="camera-close-btn" aria-label="ปิดกล้อง (Close camera)" onclick="closeCameraDialog()">&#10005;</button>
         </section>
+        <div id="camera-flash" aria-hidden="true" hidden></div>
     </dialog>
 
     <dialog id="photo-setup-dialog" class="generation-dialog" aria-labelledby="photo-setup-title">
-        <header class="generation-dialog-header"><div><p id="photo-setup-step" class="generation-eyebrow">2 / 3</p><h2 id="photo-setup-title">เลือกพื้นหลัง</h2></div><button type="button" id="photo-setup-close" class="modal-close-btn" aria-label="ปิดตัวเลือกรูปภาพ (Close photo choices)">&#10005;</button></header>
+        <header class="generation-dialog-header"><div><p id="photo-setup-step" class="generation-eyebrow">รูปพร้อมแล้ว</p><h2 id="photo-setup-title">เลือกรูปแบบภาพ</h2></div><button type="button" id="photo-setup-close" class="modal-close-btn" aria-label="ปิดตัวเลือกรูปภาพ (Close photo choices)">&#10005;</button></header>
         <div class="photo-setup-content">
             <figure class="photo-setup-capture"><img id="photo-setup-image" alt="รูปที่เพิ่งถ่าย"><figcaption>รูปที่เพิ่งถ่าย</figcaption></figure>
             <div class="photo-setup-options">
-                <section id="photo-background-options" aria-label="พื้นหลัง (Background choices)"><div id="photo-background-grid"></div></section>
-                <section id="photo-style-options" aria-label="Style" hidden>
-                    <p id="photo-selected-background"></p>
+                <section id="photo-background-options" aria-label="พื้นหลัง (Background choices)"><h3>พื้นหลัง</h3><div id="photo-background-grid"></div></section>
+                <section id="photo-style-options" aria-label="สไตล์ (Style choices)">
+                    <h3>สไตล์</h3>
                     <div class="photo-style-buttons">
-                        <button type="button" id="photo-style-chibi" data-photo-style="chibi" aria-label="3D Chibi"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="12" r="9"/><path d="M10 22q6-4 12 0l2 7H8z"/><circle cx="13" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><path d="M13 16q3 2 6 0"/></svg><span>3D Chibi</span></button>
-                        <button type="button" id="photo-style-anime" data-photo-style="anime" aria-label="Anime"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 3 4 9 10 4-10 4-4 9-4-9-10-4 10-4z"/></svg><span>Anime</span></button>
-                        <button type="button" id="photo-style-default" data-photo-style="default" aria-label="Default"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="5" width="22" height="22" rx="5"/><path d="m10 16 4 4 8-9"/></svg><span>Default</span></button>
+                        <button type="button" id="photo-style-chibi" data-photo-style="chibi" aria-label="3D Chibi" aria-pressed="false"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="12" r="9"/><path d="M10 22q6-4 12 0l2 7H8z"/><circle cx="13" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><path d="M13 16q3 2 6 0"/></svg><span>3D Chibi</span></button>
+                        <button type="button" id="photo-style-anime" data-photo-style="anime" aria-label="Anime" aria-pressed="false"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 3 4 9 10 4-10 4-4 9-4-9-10-4 10-4z"/></svg><span>Anime</span></button>
+                        <button type="button" id="photo-style-default" data-photo-style="default" aria-label="Default" aria-pressed="false"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="5" width="22" height="22" rx="5"/><path d="m10 16 4 4 8-9"/></svg><span>Default</span></button>
                     </div>
                 </section>
                 <p id="photo-setup-status" role="status" aria-live="polite"></p>
             </div>
         </div>
-        <footer class="generation-dialog-actions"><button type="button" id="photo-setup-back" class="btn-modal-secondary" aria-label="เปลี่ยนพื้นหลัง (Change background)" hidden>เปลี่ยนพื้นหลัง</button><button type="button" id="photo-setup-retake" class="btn-modal-secondary" aria-label="ถ่ายใหม่ (Retake photo)">ถ่ายใหม่</button></footer>
+        <footer class="generation-dialog-actions"><button type="button" id="photo-setup-retake" class="btn-modal-secondary" aria-label="ถ่ายใหม่ (Retake photo)">ถ่ายใหม่</button><button type="button" id="photo-setup-generate" class="btn-modal-primary" aria-label="สร้างภาพ (Generate image)">สร้างภาพ</button></footer>
     </dialog>
 
     <section id="generation-progress" hidden aria-label="Image generation progress">
         <div class="generation-progress-heading"><strong id="generation-progress-title">กำลังสร้างรูปของคุณ</strong><span id="generation-elapsed">0 วิ</span></div>
-        <div id="generation-progress-bar" role="progressbar" aria-label="Estimated image generation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="generation-progress-fill"></span></div>
-        <p class="generation-progress-note">ความคืบหน้าโดยประมาณ</p>
-        <p id="generation-progress-status" role="status" aria-live="polite">Uploading photo…</p>
-        <p id="generation-entertainment">Your avatar is keeping you company.</p>
+        <div class="generation-progress-layout">
+            <div class="generation-progress-main">
+                <div id="generation-progress-bar" role="progressbar" aria-label="Estimated image generation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="generation-progress-fill"></span></div>
+                <p class="generation-progress-note">ความคืบหน้าโดยประมาณ</p>
+                <p id="generation-progress-status" role="status" aria-live="polite">Uploading photo…</p>
+                <p id="generation-entertainment">Your avatar is keeping you company.</p>
+            </div>
+            <div id="generation-progress-qr" class="generation-progress-qr" aria-label="QR สำหรับรูปที่กำลังสร้าง">
+                <span>QR สำหรับรูปนี้</span>
+                <div class="generation-progress-qr-frame"><img id="generation-progress-qr-image" alt="สแกน QR เพื่อรับรูปนี้" referrerpolicy="no-referrer" hidden><span id="generation-progress-qr-placeholder">กำลังเตรียม QR</span></div>
+            </div>
+        </div>
         <div id="generation-recovery-actions" hidden>
             <button type="button" id="generation-resume-btn" class="btn-modal-secondary">ตรวจสอบต่อ</button>
             <button type="button" id="generation-retry-btn" class="btn-modal-secondary">ลองสร้างรูปนี้อีกครั้ง</button>
@@ -670,7 +673,6 @@
             <aside class="generated-result-share">
                 <div class="generated-qr-wrap" hidden><img id="generated-result-qr" alt="Scan to download your generated photo" referrerpolicy="no-referrer"></div>
                 <h3>เก็บรูปไว้กับคุณ</h3><p>สแกนด้วยมือถือเพื่อเปิดและบันทึกรูป</p>
-                <a id="generated-result-download" class="generation-link-button" target="_blank" rel="noopener noreferrer">ดาวน์โหลดรูป</a>
                 <p id="generated-result-status" role="status"></p>
             </aside>
         </div>
@@ -690,7 +692,7 @@
                 <span id="generated-gallery-page" role="status" aria-live="polite">Page 1 of 1</span>
                 <button type="button" id="generated-gallery-next" class="btn-modal-secondary" aria-label="หน้าแกลเลอรีถัดไป (Next gallery page)" disabled>ถัดไป</button>
             </nav>
-            <button type="button" id="generated-gallery-photo" class="btn-modal-primary" aria-label="ถ่ายรูป นับถอยหลัง 3 วินาที (Take a photo)">ถ่ายรูป</button>
+            <button type="button" id="generated-gallery-photo" class="btn-modal-primary" aria-label="ถ่ายรูป นับถอยหลัง 10 วินาที (Take a photo)">ถ่ายรูป</button>
         </div>
     </dialog>
     <!-- Separate entry point cloned from live.html; production page stays untouched. -->
@@ -701,19 +703,49 @@
         let cameraBusy = false;
         let cameraPhotoFile = null;
         let cameraPhotoUrl = null;
+        let cameraRotation = 0;
+        let cameraCountdownSeconds = 10;
+        let cameraShutterAudio = null;
+        let cameraSettingsPreview = false;
+        let cameraDraftRotation = null;
+        const CAMERA_VIEW_STORAGE_KEY = 'webavatar_standalone_camera_view';
+        const CAMERA_ROTATION_STORAGE_KEY = 'webavatar_standalone_camera_rotation';
+        const CAMERA_VIEW_MODES = ['auto', 'portrait', 'landscape', 'custom'];
+        const savedCameraView = (() => { try { return localStorage.getItem(CAMERA_VIEW_STORAGE_KEY); } catch { return null; } })();
+        const savedCameraRotation = (() => { try { return Number(localStorage.getItem(CAMERA_ROTATION_STORAGE_KEY)); } catch { return 0; } })();
+        let cameraViewMode = CAMERA_VIEW_MODES.includes(savedCameraView) ? savedCameraView : 'auto';
+        let cameraCustomRotation = [0, 90, 180, 270].includes(savedCameraRotation) ? savedCameraRotation : 0;
+        let activeCameraViewMode = cameraViewMode;
+        let activeCameraRotation = cameraCustomRotation;
 
-        function setCameraStatus(message) {
-            document.getElementById('camera-status').textContent = message;
+        function updateCameraSettingsUI() {
+            document.getElementById('camera-settings-summary').textContent = {
+                auto: 'Auto', portrait: 'Vertical', landscape: 'Horizontal', custom: `${cameraCustomRotation}° saved`
+            }[cameraViewMode];
         }
 
-        function updateCameraControls() {
-            const video = document.getElementById('camera-video');
-            const ready = cameraStream && video.videoWidth > 0 && video.videoHeight > 0 && !cameraTimer && !cameraBusy;
-            document.getElementById('camera-capture-btn').disabled = !ready && cameraTimer === null;
-            document.getElementById('camera-timer-duration').disabled = !ready;
-            updateCameraTimerLabel();
-            document.getElementById('camera-retake-btn').disabled = cameraBusy;
-            document.getElementById('camera-use-btn').disabled = cameraBusy;
+        function saveCameraSettings() {
+            try {
+                localStorage.setItem(CAMERA_VIEW_STORAGE_KEY, cameraViewMode);
+                localStorage.setItem(CAMERA_ROTATION_STORAGE_KEY, String(cameraCustomRotation));
+            } catch {}
+            updateCameraSettingsUI();
+        }
+
+        function selectedCameraRotation(video) {
+            if (cameraSettingsPreview && cameraDraftRotation !== null) return cameraDraftRotation;
+            if (activeCameraViewMode === 'custom') return activeCameraRotation;
+            if (activeCameraViewMode === 'portrait' && video.videoWidth > video.videoHeight) return 90;
+            if (activeCameraViewMode === 'landscape' && video.videoHeight > video.videoWidth) return 90;
+            return 0;
+        }
+
+        updateCameraSettingsUI();
+
+        function setCameraStatus(message, visible = false) {
+            const status = document.getElementById('camera-status');
+            status.textContent = message;
+            status.hidden = !visible;
         }
 
         function stopCameraStream() {
@@ -722,12 +754,43 @@
             document.getElementById('camera-video').srcObject = null;
         }
 
+        function updateCameraPreviewRotation() {
+            const preview = document.getElementById('camera-preview');
+            const video = document.getElementById('camera-video');
+            cameraRotation = selectedCameraRotation(video);
+            if (cameraSettingsPreview && cameraDraftRotation === null && video.videoWidth && video.videoHeight) cameraDraftRotation = cameraRotation;
+            let scale = 1;
+            if (cameraRotation % 180 && video.videoWidth && video.videoHeight) {
+                const width = preview.clientWidth;
+                const height = preview.clientHeight;
+                const fittedWidth = Math.min(width / video.videoWidth, height / video.videoHeight) * video.videoWidth;
+                const fittedHeight = Math.min(width / video.videoWidth, height / video.videoHeight) * video.videoHeight;
+                scale = Math.min(width / fittedHeight, height / fittedWidth);
+            }
+            video.style.transform = `rotate(${cameraRotation}deg) scale(${scale})`;
+            preview.dataset.rotation = String(cameraRotation);
+            if (cameraSettingsPreview) document.getElementById('camera-preview-angle').textContent = `${cameraRotation}°`;
+        }
+
+        function rotateCameraPreviewSetting() {
+            if (!cameraSettingsPreview || !cameraStream || cameraDraftRotation === null) return;
+            cameraDraftRotation = (cameraDraftRotation + 90) % 360;
+            updateCameraPreviewRotation();
+        }
+
+        function saveCameraPreviewSetting() {
+            if (!cameraSettingsPreview || !cameraStream || cameraDraftRotation === null) return;
+            cameraViewMode = 'custom';
+            cameraCustomRotation = cameraDraftRotation;
+            saveCameraSettings();
+            closeCameraDialog();
+        }
+
         function cancelCameraTimer(announce = false) {
             if (cameraTimer !== null) clearInterval(cameraTimer);
             cameraTimer = null;
             document.getElementById('camera-countdown').hidden = true;
-            updateCameraControls();
-            if (announce) setCameraStatus('ยกเลิกจับเวลาแล้ว');
+            if (announce) setCameraStatus('ยกเลิกจับเวลาแล้ว', true);
         }
 
         function releaseCameraPhoto() {
@@ -743,37 +806,117 @@
             cancelCameraTimer();
             stopCameraStream();
             releaseCameraPhoto();
+            document.getElementById('camera-flash').hidden = true;
+            updateCameraPreviewRotation();
         }
 
-        function openCameraDialog() {
+        function prepareCameraShutterAudio() {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+            try {
+                if (!cameraShutterAudio || cameraShutterAudio.state === 'closed') cameraShutterAudio = new AudioContextClass();
+                if (cameraShutterAudio.state === 'suspended') cameraShutterAudio.resume().catch(() => {});
+            } catch {}
+        }
+
+        function playCameraShutter() {
+            const audio = cameraShutterAudio;
+            if (!audio || audio.state !== 'running') return;
+            try {
+                const duration = 0.14;
+                const buffer = audio.createBuffer(1, Math.ceil(audio.sampleRate * duration), audio.sampleRate);
+                const samples = buffer.getChannelData(0);
+                for (let i = 0; i < samples.length; i++) {
+                    const time = i / audio.sampleRate;
+                    const first = Math.exp(-time * 100);
+                    const second = time >= 0.065 ? 0.75 * Math.exp(-(time - 0.065) * 80) : 0;
+                    samples[i] = (Math.random() * 2 - 1) * (first + second);
+                }
+                const source = audio.createBufferSource();
+                const filter = audio.createBiquadFilter();
+                const gain = audio.createGain();
+                source.buffer = buffer;
+                filter.type = 'highpass';
+                filter.frequency.value = 700;
+                gain.gain.value = 0.55;
+                source.connect(filter);
+                filter.connect(gain);
+                gain.connect(audio.destination);
+                source.start();
+            } catch {}
+        }
+
+        function showCameraFlash() {
+            const flash = document.getElementById('camera-flash');
+            flash.hidden = false;
+            return new Promise(resolve => setTimeout(() => { flash.hidden = true; resolve(); }, 360));
+        }
+
+        function openCameraDialog(seconds = 10) {
             if (window.StandaloneGeneration?.isBusy()) {
                 window.StandaloneGeneration.showProgress();
                 return;
             }
             const dialog = document.getElementById('camera-dialog');
             if (dialog.open) return;
+            cameraSettingsPreview = false;
+            cameraDraftRotation = null;
+            dialog.classList.remove('settings-preview');
+            document.getElementById('camera-settings-controls').hidden = true;
+            document.getElementById('camera-title').textContent = 'กล้อง';
+            document.getElementById('camera-close-btn').setAttribute('aria-label', 'ปิดกล้อง (Close camera)');
+            prepareCameraShutterAudio();
             window.StandaloneGeneration?.closeImageViews();
+            dialog.showModal();
+            startCameraPreview(seconds);
+        }
+
+        function openCameraSettingsPreview() {
+            if (window.StandaloneGeneration?.isBusy()) {
+                window.StandaloneGeneration.showProgress();
+                return;
+            }
+            const dialog = document.getElementById('camera-dialog');
+            if (dialog.open) return;
+            cameraSettingsPreview = true;
+            cameraDraftRotation = null;
+            dialog.classList.add('settings-preview');
+            document.getElementById('camera-settings-controls').hidden = false;
+            document.getElementById('camera-preview-rotate').disabled = true;
+            document.getElementById('camera-preview-save').disabled = true;
+            document.getElementById('camera-title').textContent = 'ตั้งค่ามุมกล้อง';
+            document.getElementById('camera-close-btn').setAttribute('aria-label', 'ยกเลิกตั้งค่ามุมกล้อง (Cancel camera view settings)');
             dialog.showModal();
             startCameraPreview();
         }
 
         function closeCameraDialog() {
+            cameraSettingsPreview = false;
+            cameraDraftRotation = null;
             cleanupCamera();
-            document.getElementById('camera-dialog').close();
+            const dialog = document.getElementById('camera-dialog');
+            dialog.classList.remove('settings-preview');
+            dialog.close();
         }
 
-        async function startCameraPreview() {
+        async function startCameraPreview(seconds = 10) {
             if (!document.getElementById('camera-dialog').open) return;
+            if (window.StandaloneGeneration?.isBusy()) {
+                closeCameraDialog();
+                window.StandaloneGeneration.showProgress();
+                return;
+            }
             cleanupCamera();
+            activeCameraViewMode = cameraViewMode;
+            activeCameraRotation = cameraCustomRotation;
+            cameraDraftRotation = null;
+            cameraCountdownSeconds = [0, 3, 5, 10].includes(Number(seconds)) ? Number(seconds) : 10;
             const request = cameraRequest;
             document.getElementById('camera-photo').hidden = true;
-            document.getElementById('camera-photo-actions').hidden = true;
             document.getElementById('camera-video').hidden = false;
-            document.getElementById('camera-live-actions').hidden = false;
-            updateCameraControls();
-            setCameraStatus('อนุญาตให้ใช้กล้องเพื่อดูภาพสด');
+            setCameraStatus('กำลังเปิดกล้อง…', true);
             if (!navigator.mediaDevices?.getUserMedia) {
-                setCameraStatus('Camera access requires HTTPS or localhost and a browser that supports cameras.');
+                setCameraStatus('Camera access requires HTTPS or localhost and a browser that supports cameras.', true);
                 return;
             }
             try {
@@ -791,47 +934,58 @@
                     if (cameraStream === stream) {
                         cancelCameraTimer();
                         stopCameraStream();
-                        updateCameraControls();
-                        setCameraStatus('The camera disconnected. Close this window and open Camera to try again.');
+                        if (cameraSettingsPreview) {
+                            document.getElementById('camera-preview-rotate').disabled = true;
+                            document.getElementById('camera-preview-save').disabled = true;
+                        }
+                        setCameraStatus('The camera disconnected. Close this window and open Camera to try again.', true);
                     }
                 }));
                 const video = document.getElementById('camera-video');
                 video.srcObject = stream;
                 await video.play();
                 if (request !== cameraRequest) return;
-                updateCameraControls();
-                setCameraStatus('กล้องพร้อม');
+                updateCameraPreviewRotation();
+                const beginCountdown = () => {
+                    if (request !== cameraRequest || !document.getElementById('camera-dialog').open) return;
+                    if (cameraSettingsPreview) {
+                        updateCameraPreviewRotation();
+                        document.getElementById('camera-preview-rotate').disabled = false;
+                        document.getElementById('camera-preview-save').disabled = false;
+                        setCameraStatus('หมุนภาพให้ตรง แล้วกดบันทึกมุมกล้อง');
+                        return;
+                    }
+                    if (cameraCountdownSeconds === 0) captureCameraPhoto();
+                    else startCameraTimer(cameraCountdownSeconds);
+                };
+                if (video.videoWidth && video.videoHeight) beginCountdown();
+                else video.addEventListener('loadeddata', beginCountdown, { once: true });
             } catch (error) {
                 if (request !== cameraRequest) return;
                 stopCameraStream();
-                updateCameraControls();
                 setCameraStatus(error.name === 'NotAllowedError'
                     ? 'ยังไม่ได้รับอนุญาตให้ใช้กล้อง กรุณาอนุญาตในเบราว์เซอร์แล้วเปิดกล้องใหม่'
                     : error.name === 'NotFoundError'
                         ? 'ไม่พบกล้อง กรุณาเชื่อมต่อกล้องแล้วเปิดใหม่'
-                        : 'เปิดกล้องไม่ได้ ตรวจสอบว่ามีแอปอื่นใช้กล้องอยู่หรือไม่ แล้วลองอีกครั้ง');
+                        : 'เปิดกล้องไม่ได้ ตรวจสอบว่ามีแอปอื่นใช้กล้องอยู่หรือไม่ แล้วลองอีกครั้ง', true);
             }
         }
 
-        function updateCameraTimerLabel() {
-            const seconds = document.getElementById('camera-timer-duration').value;
-            const button = document.getElementById('camera-capture-btn');
-            button.textContent = cameraTimer !== null ? 'ยกเลิกจับเวลา' : 'ถ่ายรูป';
-            button.title = cameraTimer !== null ? 'ยกเลิกจับเวลา' : Number(seconds) ? `ถ่ายรูปในอีก ${seconds} วินาที` : 'ถ่ายรูปทันที';
-            button.setAttribute('aria-label', cameraTimer !== null ? 'ยกเลิกจับเวลาถ่ายรูป (Cancel photo timer)' : 'ถ่ายรูป (Take a photo)');
-        }
-
-        function takeCameraPhoto() {
-            if (cameraTimer !== null) { cancelCameraTimer(true); return; }
-            const seconds = Number(document.getElementById('camera-timer-duration').value);
+        function setCameraCountdown(seconds) {
+            seconds = Number(seconds);
+            if (![0, 3, 5, 10].includes(seconds) || cameraSettingsPreview || !document.getElementById('camera-dialog').open || cameraBusy || window.StandaloneGeneration?.isBusy()) return;
+            cameraCountdownSeconds = seconds;
+            if (!cameraStream) return;
+            cancelCameraTimer();
             if (seconds === 0) captureCameraPhoto();
             else startCameraTimer(seconds);
         }
 
-        function startCameraTimer(seconds = document.getElementById('camera-timer-duration').value) {
+        function startCameraTimer(seconds = cameraCountdownSeconds) {
             seconds = Number(seconds);
             if (![3, 5, 10].includes(seconds)) return;
-            if (!cameraStream || cameraBusy || cameraTimer !== null || document.getElementById('camera-capture-btn').disabled) return;
+            const video = document.getElementById('camera-video');
+            if (cameraSettingsPreview || !cameraStream || cameraBusy || cameraTimer !== null || !video.videoWidth || !video.videoHeight || !document.getElementById('camera-dialog').open) return;
             const deadline = Date.now() + seconds * 1000;
             const request = cameraRequest;
             const countdown = document.getElementById('camera-countdown');
@@ -849,24 +1003,32 @@
                 }
                 else { cancelCameraTimer(); captureCameraPhoto(); }
             }, 100);
-            updateCameraControls();
         }
 
         async function captureCameraPhoto() {
             const video = document.getElementById('camera-video');
-            if (!cameraStream || cameraBusy || !video.videoWidth || !video.videoHeight) return;
+            if (cameraSettingsPreview || !cameraStream || cameraBusy || window.StandaloneGeneration?.isBusy() || !video.videoWidth || !video.videoHeight) return;
             cameraBusy = true;
             cancelCameraTimer();
             const request = cameraRequest;
+            const rotation = cameraRotation;
             setCameraStatus('กำลังถ่ายรูป…');
             try {
                 const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
+                const quarterTurn = rotation % 180 !== 0;
+                canvas.width = quarterTurn ? video.videoHeight : video.videoWidth;
+                canvas.height = quarterTurn ? video.videoWidth : video.videoHeight;
+                const context = canvas.getContext('2d');
+                context.translate(canvas.width / 2, canvas.height / 2);
+                context.rotate(rotation * Math.PI / 180);
+                context.drawImage(video, -video.videoWidth / 2, -video.videoHeight / 2);
+                playCameraShutter();
+                const flashDone = showCameraFlash();
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
                 if (request !== cameraRequest) return;
                 if (!blob) throw new Error('Could not capture frame');
+                await flashDone;
+                if (request !== cameraRequest) return;
                 releaseCameraPhoto();
                 cameraPhotoFile = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
                 cameraPhotoUrl = URL.createObjectURL(cameraPhotoFile);
@@ -875,41 +1037,27 @@
                 photo.hidden = false;
                 video.hidden = true;
                 stopCameraStream();
-                document.getElementById('camera-live-actions').hidden = true;
-                document.getElementById('camera-photo-actions').hidden = false;
                 setCameraStatus('ถ่ายรูปแล้ว เลือกพื้นหลังและสไตล์');
                 if (window.StandalonePhotoFlow) {
                     window.StandalonePhotoFlow.open(cameraPhotoFile);
                 } else {
-                    setCameraStatus('Photo choices could not load. Refresh the page and try again.');
+                    setCameraStatus('Photo choices could not load. Refresh the page and try again.', true);
                 }
             } catch (error) {
-                if (request === cameraRequest) setCameraStatus('Could not take the photo. Please try again.');
+                if (request === cameraRequest) setCameraStatus('Could not take the photo. Close the camera and try again.', true);
             } finally {
-                if (request === cameraRequest) { cameraBusy = false; updateCameraControls(); }
-            }
-        }
-
-        async function useCameraPhoto() {
-            if (!cameraPhotoFile || cameraBusy) return;
-            cameraBusy = true;
-            updateCameraControls();
-            const request = cameraRequest;
-            const applied = await handleBackgroundImage({ files: [cameraPhotoFile], value: '' });
-            if (request !== cameraRequest) return;
-            cameraBusy = false;
-            if (applied) {
-                closeCameraDialog();
-            } else {
-                setCameraStatus(document.getElementById('background-status').textContent);
-                updateCameraControls();
+                if (request === cameraRequest) cameraBusy = false;
             }
         }
 
         const cameraDialog = document.getElementById('camera-dialog');
+        document.addEventListener('pointerdown', prepareCameraShutterAudio, { once: true });
+        document.addEventListener('keydown', prepareCameraShutterAudio, { once: true });
+        document.getElementById('camera-video').addEventListener('loadedmetadata', updateCameraPreviewRotation);
+        document.getElementById('camera-video').addEventListener('resize', updateCameraPreviewRotation);
+        new ResizeObserver(updateCameraPreviewRotation).observe(document.getElementById('camera-preview'));
         cameraDialog.addEventListener('cancel', event => { event.preventDefault(); closeCameraDialog(); });
         cameraDialog.addEventListener('close', () => { if (!cameraDialog.open) cleanupCamera(); });
-        document.getElementById('camera-video').addEventListener('loadeddata', updateCameraControls);
         window.addEventListener('pagehide', cleanupCamera);
 
         function setSettingsOpen(open, focus = true) {
@@ -933,7 +1081,7 @@
 
         function showSettingsSection(section) {
             setSettingsOpen(true, false);
-            ['background', 'name', 'bot'].forEach(name => {
+            ['background', 'camera', 'name', 'bot'].forEach(name => {
                 document.getElementById(`settings-${name}`).open = name === section;
             });
         }
@@ -1306,7 +1454,7 @@
         function closeWidgetModal() {
             showSettingsSection('background');
         }
-        async function handleWidgetModalSubmit(event) {
+        function handleWidgetModalSubmit(event) {
             event.preventDefault();
             const input = document.getElementById('widget-change-input');
             const newWidgetId = input.value.trim();
@@ -1319,35 +1467,17 @@
             }
 
             errorDiv.style.display = 'none';
-            updateWidgetIdUI(newWidgetId);
+            const submitButton = event.currentTarget.querySelector('button[type="submit"]');
+            if (submitButton.disabled) return;
+            submitButton.disabled = true;
 
-            // Update URL without page reload
+            // Load the selected widget from the URL in one fresh page navigation.
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.set('id', newWidgetId);
-            window.history.pushState({ path: newUrl.href }, '', newUrl.href);
-
-            closeWidgetModal();
-
-            const userName = getStoredUserName() || 'Guest';
-
-            if (window.ChatWidget && typeof window.ChatWidget.updateConfig === 'function') {
-                try {
-                    const queryParams = getQueryParams();
-                    const greeting = resolveGreetingInstruction(userName, queryParams.greetingInstruction);
-                    await window.ChatWidget.updateConfig({
-                        widgetId: newWidgetId,
-                        userId: userName,
-                        mode: 'realtime-fullscreen',
-                        ...(queryParams.cam ? { cameraOffset: queryParams.cam } : {}),
-                        ...(queryParams.enableBubble !== null ? { enableBubble: queryParams.enableBubble } : {}),
-                        ...(queryParams.buttonImage ? { buttonImage: queryParams.buttonImage } : {}),
-                        ...(greeting !== null ? { greetingInstruction: greeting } : {})
-                    });
-                } catch (err) {
-                    console.warn('[WebAvatar] Error updating widgetId:', err);
-                }
+            if (newUrl.href === window.location.href) {
+                window.location.reload();
             } else {
-                loadWidgetScript(newWidgetId, userName);
+                window.location.assign(newUrl.href);
             }
         }
 

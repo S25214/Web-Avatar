@@ -3,7 +3,7 @@
     'use strict';
     const $ = id => document.getElementById(id);
     const styles = {
-        chibi: 'an adorable classic chibi anime character. Keep the recognizable hairstyle, facial expression, and clothing colors from the original photo, but render the character with an oversized head, tiny rounded body, big sparkling eyes, and soft rosy blush. Clean cel-shaded anime style, bright flat colors, subtle drop shadow',
+        chibi: 'an adorable classic chibi anime 3D character. Keep the recognizable hairstyle, facial expression, and clothing colors from the original photo, but render the character with an oversized head, tiny rounded body, big sparkling eyes, and soft rosy blush. Clean cel-shaded anime style, bright flat colors, subtle drop shadow',
         anime: '80s vintage anime aesthetic, warm sunset glow, soft film grain',
         default: ''
     };
@@ -13,47 +13,48 @@
         { id: 'rainbow', label: 'Rainbow', url: './standalone-live/backgrounds/rainbow.jpg' },
         { id: 'golden', label: 'Golden', url: './standalone-live/backgrounds/golden.jpg' }
     ];
-    let photo = null, photoUrl = null, selected = null, submitting = false, version = 0, controller = null;
+    let photo = null, photoUrl = null, selectedBackground = backgrounds[0], selectedStyle = 'default';
+    let submitting = false, version = 0, controller = null;
 
     function enableChoices(enabled) {
-        document.querySelectorAll('#photo-style-options button, #photo-setup-back').forEach(button => { button.disabled = !enabled; });
+        document.querySelectorAll('#photo-background-grid button, #photo-style-options button, #photo-setup-retake, #photo-setup-generate').forEach(button => { button.disabled = !enabled; });
+    }
+    function showSelection() {
+        document.querySelectorAll('#photo-background-grid button').forEach(button => {
+            button.setAttribute('aria-pressed', String(button.id === `photo-background-${selectedBackground.id}`));
+        });
+        document.querySelectorAll('#photo-style-options button').forEach(button => {
+            button.setAttribute('aria-pressed', String(button.dataset.photoStyle === selectedStyle));
+        });
     }
     function close() {
         version++;
         controller?.abort(); controller = null;
         $('photo-setup-dialog').close();
         if (photoUrl) URL.revokeObjectURL(photoUrl);
-        photo = null; photoUrl = null; selected = null; submitting = false;
+        photo = null; photoUrl = null; selectedBackground = backgrounds[0]; selectedStyle = 'default'; submitting = false;
         $('photo-setup-image').removeAttribute('src');
         enableChoices(true);
     }
-    function showBackgrounds() {
-        if (submitting) return;
-        $('photo-background-options').hidden = false;
-        $('photo-style-options').hidden = true;
-        $('photo-setup-back').hidden = true;
-        $('photo-setup-title').textContent = 'เลือกพื้นหลัง';
-        $('photo-setup-step').textContent = '2 / 3';
-        $('photo-setup-status').textContent = '';
-    }
     function chooseBackground(background) {
         if (!photo || submitting) return;
-        selected = background;
-        $('photo-background-options').hidden = true;
-        $('photo-style-options').hidden = false;
-        $('photo-setup-back').hidden = false;
-        $('photo-selected-background').textContent = `พื้นหลัง: ${background.label}`;
-        $('photo-setup-title').textContent = 'เลือก Style';
-        $('photo-setup-step').textContent = '3 / 3';
+        selectedBackground = background;
+        showSelection();
         $('photo-setup-status').textContent = '';
-        $('photo-style-chibi').focus();
+    }
+    function chooseStyle(style) {
+        if (!photo || submitting || !Object.prototype.hasOwnProperty.call(styles, style)) return;
+        selectedStyle = style;
+        showSelection();
+        $('photo-setup-status').textContent = '';
     }
     for (const [index, background] of backgrounds.entries()) {
         const button = document.createElement('button'); button.type = 'button';
         button.id = `photo-background-${background.id}`;
+        button.setAttribute('aria-pressed', 'false');
         button.setAttribute('aria-label', background.url ? `พื้นหลัง ${index} ${background.label} (Background ${index})` : 'พื้นหลัง Default (Default background)');
         if (background.url) {
-            const image = document.createElement('img'); image.src = background.url; image.alt = background.label; image.loading = 'lazy'; image.decoding = 'async';
+            const image = document.createElement('img'); image.src = background.url; image.alt = background.label; image.loading = 'eager'; image.decoding = 'async';
             button.appendChild(image);
         } else {
             const icon = document.createElement('span'); icon.className = 'photo-default-background'; icon.textContent = '✦'; icon.setAttribute('aria-hidden', 'true'); button.appendChild(icon);
@@ -62,10 +63,10 @@
         button.addEventListener('click', () => chooseBackground(background));
         $('photo-background-grid').appendChild(button);
     }
-    async function chooseStyle(style) {
-        if (!photo || !selected || submitting || !Object.prototype.hasOwnProperty.call(styles, style)) return;
+    async function generate() {
+        if (!photo || submitting) return;
         submitting = true; enableChoices(false);
-        const snapshot = version, captured = photo, background = selected;
+        const snapshot = version, captured = photo, background = selectedBackground, style = selectedStyle;
         controller = new AbortController();
         const timer = setTimeout(() => controller?.abort(), 20000);
         $('photo-setup-status').textContent = 'กำลังเตรียมภาพ…';
@@ -96,13 +97,14 @@
         window.closeCameraDialog();
         photo = file; photoUrl = URL.createObjectURL(file);
         $('photo-setup-image').src = photoUrl;
-        showBackgrounds();
+        showSelection();
+        $('photo-setup-status').textContent = '';
         $('photo-setup-dialog').showModal();
     }
     document.querySelectorAll('[data-photo-style]').forEach(button => button.addEventListener('click', () => chooseStyle(button.dataset.photoStyle)));
+    $('photo-setup-generate').addEventListener('click', generate);
     $('photo-setup-close').addEventListener('click', close);
     $('photo-setup-dialog').addEventListener('cancel', event => { event.preventDefault(); close(); });
-    $('photo-setup-back').addEventListener('click', showBackgrounds);
     $('photo-setup-retake').addEventListener('click', () => { close(); window.openCameraDialog(); });
     window.addEventListener('pagehide', close);
     window.StandalonePhotoFlow = { open, close };

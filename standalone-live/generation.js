@@ -5,6 +5,7 @@
     const KEY_STORAGE = 'webavatar_generation_api_key';
     const SESSION_STORAGE = 'webavatar_generation_session';
     const JOB_STORAGE = 'webavatar_generation_pending_job';
+    const RESULT_DISPLAY_MS = 30000;
     const config = window.StandaloneGenerationConfig || {};
     const POLL_INTERVAL = Math.max(1000, Math.min(10000, Number(config.pollIntervalMs) || 2500));
     const $ = id => document.getElementById(id);
@@ -27,6 +28,8 @@
     let phaseStartedAt = 0;
     let startedAt = 0;
     let currentResult = null;
+    let resultTimer = null;
+    let resultDeadline = 0;
     let resultOpenedFromGallery = false;
     let resultNavigationBusy = false;
     let closingResult = false;
@@ -55,6 +58,28 @@
 
     class ApiError extends Error {
         constructor(message, status = 0) { super(message); this.status = status; }
+    }
+
+    function imageBlobToDataUrl(blob, signal) {
+        if (!(blob instanceof Blob) || !/^image\/(jpeg|png|webp)$/.test(blob.type)) {
+            throw new ApiError('The photo and background must be JPEG, PNG, or WebP images.');
+        }
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            const abort = () => reader.abort();
+            const finish = (error, value) => {
+                signal?.removeEventListener('abort', abort);
+                if (error) reject(error);
+                else resolve(value);
+            };
+            reader.onload = () => finish(null, reader.result);
+            reader.onerror = () => finish(new ApiError('Could not prepare the image for upload. Please try again.'));
+            reader.onabort = () => finish(new DOMException('Aborted', 'AbortError'));
+            if (signal?.aborted) { finish(new DOMException('Aborted', 'AbortError')); return; }
+            signal?.addEventListener('abort', abort, { once: true });
+            try { reader.readAsDataURL(blob); }
+            catch (error) { finish(error); }
+        });
     }
 
     async function apiRequest(path, options = {}, signal) {
@@ -156,6 +181,38 @@
         $('generation-progress-bar').setAttribute('aria-valuetext', `${$('generation-progress-status').textContent} ความคืบหน้าโดยประมาณ รอระบบยืนยันว่าสร้างภาพเสร็จแล้ว`);
     }
 
+    function updateProgressQr() {
+        const image = $('generation-progress-qr-image');
+        const placeholder = $('generation-progress-qr-placeholder');
+        const jobId = currentJob?.id;
+        const url = safeImageUrl(currentJob?.qr_image_url);
+        if (!url) {
+            image.onload = null;
+            image.onerror = null;
+            image.removeAttribute('src');
+            image.hidden = true;
+            placeholder.hidden = false;
+            placeholder.textContent = phase === 'error' ? 'ไม่มี QR' : 'กำลังเตรียม QR';
+            return;
+        }
+        if (image.getAttribute('src') === url) return;
+        image.hidden = true;
+        placeholder.hidden = false;
+        placeholder.textContent = 'กำลังโหลด QR';
+        image.onload = () => {
+            if (currentJob?.id !== jobId || image.getAttribute('src') !== url) return;
+            image.hidden = false;
+            placeholder.hidden = true;
+        };
+        image.onerror = () => {
+            if (currentJob?.id !== jobId || image.getAttribute('src') !== url) return;
+            image.hidden = true;
+            placeholder.hidden = false;
+            placeholder.textContent = 'โหลด QR ไม่สำเร็จ';
+        };
+        image.src = url;
+    }
+
     function startEntertainment() {
         stopEntertainment();
         document.body.classList.add('generation-waiting');
@@ -186,6 +243,9 @@
         $('camera-open-btn').disabled = busy();
         $('camera-open-btn').title = busy() ? 'กำลังสร้างภาพของคุณ' : 'เปิดกล้อง';
         $('generated-gallery-photo').disabled = busy();
+        $('generated-result-again').disabled = busy();
+        $('photo-setup-retake').disabled = busy();
+        updateProgressQr();
         updateProgressBar();
         if (recover) {
             stopEntertainment();
@@ -199,6 +259,9 @@
         $('camera-open-btn').disabled = false;
         $('camera-open-btn').title = 'เปิดกล้อง';
         $('generated-gallery-photo').disabled = false;
+        $('generated-result-again').disabled = false;
+        $('photo-setup-retake').disabled = false;
+        updateProgressQr();
         stopEntertainment();
     }
 
@@ -230,7 +293,7 @@
             if (job.status === 'completed') {
                 const url = safeImageUrl(job.result_image_url);
                 if (!url) { setProgress('paused', 'The job finished but its image link is not ready. Continue checking shortly.'); return; }
-                const completed = { ...currentJob, ...job, result_image_url: url, session_id: job.session_id || sessionId };
+                const completed = { ...currentJob, ...job, qr_image_url: safeImageUrl(job.qr_image_url) || safeImageUrl(currentJob.qr_image_url), result_image_url: url, session_id: job.session_id || sessionId };
                 completedHere.set(completed.id, completed);
                 galleryTotal++;
                 updateGalleryCount();
@@ -254,7 +317,8 @@
                 setProgress('paused', 'The image service returned an unexpected status. Continue checking shortly.');
                 return;
             }
-            currentJob = { ...currentJob, ...job };
+            currentJob = { ...currentJob, ...job, qr_image_url: safeImageUrl(job.qr_image_url) || safeImageUrl(currentJob.qr_image_url) };
+            rememberJob(currentJob);
             setProgress(job.status, job.status === 'pending' ? 'อยู่ในคิว — กำลังรอสร้างภาพของคุณ' : 'กำลังประมวลผล — กำลังสร้างภาพของคุณ');
             await delay(POLL_INTERVAL, controller.signal);
         }
@@ -279,15 +343,16 @@
         setProgress('uploading', 'กำลังส่งรูปของคุณ…');
         startEntertainment();
         try {
-            const body = new FormData();
-            body.append('image', file, file.name || 'camera-photo.jpg');
-            body.append('session_id', sessionId);
+            const body = { image: await imageBlobToDataUrl(file, controller.signal), session_id: sessionId };
             const background = lastPhotoOptions.backgroundImage;
-            if (background instanceof Blob) body.append('background_image', background, background.name || 'background-image');
-            else if (typeof background === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(background)) body.append('background_image', background);
+            if (background instanceof Blob) body.background_image = await imageBlobToDataUrl(background, controller.signal);
+            else if (typeof background === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(background)) body.background_image = background;
             else if (background != null && background !== '') throw new ApiError('backgroundImage must be an image Blob/File or a JPEG, PNG, or WebP base64 data URL.');
-            if (typeof lastPhotoOptions.visualStyle === 'string' && lastPhotoOptions.visualStyle.trim()) body.append('visual_style', lastPhotoOptions.visualStyle.trim());
-            const created = await apiRequest('/api/generations', { method: 'POST', body }, controller.signal);
+            if (typeof lastPhotoOptions.visualStyle === 'string' && lastPhotoOptions.visualStyle.trim()) body.visual_style = lastPhotoOptions.visualStyle.trim();
+            if (controller.signal.aborted || version !== runVersion) return;
+            const created = await apiRequest('/api/generations', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            }, controller.signal);
             if (controller.signal.aborted || version !== runVersion) return;
             if (typeof created.id !== 'string' || !created.id) throw new ApiError('The service did not return a job ID. Check the gallery before retrying your photo.');
             currentJob = created;
@@ -313,12 +378,16 @@
         catch (error) { if (!controller.signal.aborted && version === runVersion) setProgress('paused', error.message); }
     }
 
-    function downloadPageUrl(job) {
-        const url = new URL('./standalone-live/download.html', window.location.href);
-        url.search = '';
-        url.searchParams.set('image', job.result_image_url);
-        url.searchParams.set('id', job.id);
-        return url.href;
+    function clearResultTimer() {
+        clearTimeout(resultTimer);
+        resultTimer = null;
+        resultDeadline = 0;
+    }
+
+    function startResultTimer() {
+        clearResultTimer();
+        resultDeadline = Date.now() + RESULT_DISPLAY_MS;
+        resultTimer = setTimeout(() => closeResult(), RESULT_DISPLAY_MS);
     }
 
     function showResult(job, fromGallery = false) {
@@ -328,14 +397,10 @@
         resultOpenedFromGallery = fromGallery;
         $('generated-result-back').hidden = !fromGallery;
         closingResult = false;
-        $('generated-result-status').textContent = fromGallery
-            ? 'พูด “รูปถัดไป” · “กลับไปแกลเลอรี” · “ถ่ายรูปใหม่”'
-            : 'พูด “ถ่ายรูปใหม่” หรือ “ปิดรูปภาพ”';
+        $('generated-result-status').textContent = 'สแกน QR เพื่อดาวน์โหลด · รูปจะปิดใน 30 วินาที';
         const image = $('generated-result-image');
-        image.onerror = () => { $('generated-result-status').textContent = 'The preview could not load. Try the download link to open the original photo.'; };
+        image.onerror = () => { $('generated-result-status').textContent = 'โหลดภาพไม่สำเร็จ ลองเปิดรูปนี้จากแกลเลอรีอีกครั้ง'; };
         image.src = url;
-        const downloadUrl = downloadPageUrl(currentResult);
-        $('generated-result-download').href = downloadUrl;
         const qr = $('generated-result-qr');
         const qrUrl = safeImageUrl(job.qr_image_url);
         qr.onerror = null;
@@ -344,11 +409,12 @@
         qr.onerror = () => {
             if (currentResult?.id !== job.id || qr.getAttribute('src') !== qrUrl) return;
             qr.parentElement.hidden = true;
-            $('generated-result-status').textContent = 'โหลด QR ไม่สำเร็จ ใช้ปุ่มดาวน์โหลดรูปแทน';
+            $('generated-result-status').textContent = 'โหลด QR ไม่สำเร็จ ลองเปิดรูปนี้จากแกลเลอรีอีกครั้ง';
         };
         if (qrUrl) qr.src = qrUrl;
-        else $('generated-result-status').textContent = 'API ยังไม่มี QR สำหรับรูปนี้ ใช้ปุ่มดาวน์โหลดรูปแทน';
+        else $('generated-result-status').textContent = 'API ยังไม่มี QR สำหรับรูปนี้';
         if (!$('generated-result-dialog').open) $('generated-result-dialog').showModal();
+        startResultTimer();
         updateResultBrowse();
     }
 
@@ -388,6 +454,7 @@
     }
 
     function closeImageViews() {
+        clearResultTimer();
         window.StandalonePhotoFlow?.close();
         if ($('generated-result-dialog').open) $('generated-result-dialog').close();
         if ($('generated-gallery-dialog').open) $('generated-gallery-dialog').close();
@@ -398,7 +465,9 @@
     }
 
     async function closeResult(takeAnother = false) {
+        if (takeAnother && busy()) return;
         if (closingResult || !$('generated-result-dialog').open) return;
+        clearResultTimer();
         closingResult = true;
         const image = $('generated-result-image');
         const from = image.getBoundingClientRect();
@@ -424,14 +493,14 @@
             closingResult = false;
             currentResult = null;
             if (takeAnother) {
-                if (window.StandaloneVoice) window.StandaloneVoice.takePhoto(3);
-                else window.openCameraDialog();
+                window.openCameraDialog();
             }
         }
     }
 
     function backToGallery() {
         if (closingResult || !resultOpenedFromGallery || !$('generated-result-dialog').open) return;
+        clearResultTimer();
         const id = currentResult?.id;
         $('generated-result-dialog').close();
         currentResult = null;
@@ -598,8 +667,7 @@
     $('generated-gallery-scope').addEventListener('change', refreshGallery);
     new ResizeObserver(() => { sizeGallery(); fillGalleryPage(); }).observe($('generated-gallery-grid'));
     $('generated-gallery-photo').addEventListener('click', () => {
-        if (window.StandaloneVoice) window.StandaloneVoice.takePhoto(3);
-        else { $('generated-gallery-dialog').close(); window.openCameraDialog(); }
+        window.openCameraDialog();
     });
     $('generated-result-close').addEventListener('click', () => closeResult());
     $('generated-result-back').addEventListener('click', backToGallery);
@@ -607,12 +675,20 @@
     $('generated-result-next').addEventListener('click', () => viewAdjacentPhoto(1));
     $('generated-result-again').addEventListener('click', () => closeResult(true));
     $('generated-result-dialog').addEventListener('cancel', event => { event.preventDefault(); closeResult(); });
+    $('generated-result-dialog').addEventListener('close', clearResultTimer);
     $('generation-resume-btn').addEventListener('click', resumeJob);
     $('generation-retry-btn').addEventListener('click', () => { if (lastPhoto && phase === 'error') generatePhoto(lastPhoto, lastPhotoOptions || {}); });
     $('generation-dismiss-btn').addEventListener('click', () => { if (phase === 'error') finishProgress(); });
     window.addEventListener('pagehide', () => {
         exiting = true;
-        jobController?.abort(); galleryController?.abort(); stopEntertainment();
+        jobController?.abort(); galleryController?.abort(); stopEntertainment(); clearResultTimer();
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden || !resultDeadline || !$('generated-result-dialog').open) return;
+        clearTimeout(resultTimer);
+        const remaining = resultDeadline - Date.now();
+        if (remaining <= 0) closeResult();
+        else resultTimer = setTimeout(() => closeResult(), remaining);
     });
     window.addEventListener('pageshow', event => {
         if (event.persisted) {
