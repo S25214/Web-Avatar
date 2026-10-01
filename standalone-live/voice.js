@@ -8,5 +8,14 @@
         else window.openCameraDialog(seconds);
     }
 
-    window.StandaloneVoice = { takePhoto: takeTimedPhoto };
+    function notifyChat(message) {
+        try {
+            Promise.resolve(window.ChatWidget?.sendUserMessage?.(message))
+                .catch(error => console.warn('[StandaloneVoice] Could not notify chat:', error));
+        } catch (error) {
+            console.warn('[StandaloneVoice] Could not notify chat:', error);
+        }
+    }
+
+    window.StandaloneVoice = { takePhoto: takeTimedPhoto, notifyChat };
 })();

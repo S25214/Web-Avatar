@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WebAvatar — Standalone Voice Window</title>
     <meta name="description" content="A standalone, full-window AI avatar voice experience.">
-    <link rel="stylesheet" href="./standalone-live/generation.css?v=20260930-qr-result-timeout">
-    <script src="./standalone-live/generation.js?v=20260930-qr-result-timeout" defer></script>
-    <script src="./standalone-live/voice.js?v=20260930-auto-camera" defer></script>
-    <script src="./standalone-live/photo-flow.js?v=20260930-combined-choices" defer></script>
+    <link rel="stylesheet" href="./standalone-live/generation.css?v=20261001-cancel-regenerate">
+    <script src="./standalone-live/voice.js?v=20261001-chat-notifications" defer></script>
+    <script src="./standalone-live/generation.js?v=20261001-chat-notifications" defer></script>
+    <script src="./standalone-live/photo-flow.js?v=20261001-chat-notifications" defer></script>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -660,8 +660,9 @@
             </div>
         </div>
         <div id="generation-recovery-actions" hidden>
+            <button type="button" id="generation-cancel-btn" class="btn-modal-secondary" aria-label="ยกเลิกการสร้างภาพ (Cancel generation)">ยกเลิก / Cancel</button>
             <button type="button" id="generation-resume-btn" class="btn-modal-secondary">ตรวจสอบต่อ</button>
-            <button type="button" id="generation-retry-btn" class="btn-modal-secondary">ลองสร้างรูปนี้อีกครั้ง</button>
+            <button type="button" id="generation-retry-btn" class="btn-modal-secondary" aria-label="สร้างภาพนี้อีกครั้ง (Re-generate image)">สร้างใหม่ / Re-generate</button>
             <button type="button" id="generation-dismiss-btn" class="btn-modal-secondary">ปิด</button>
         </div>
     </section>
@@ -1539,7 +1540,7 @@
             if (document.getElementById('webavatar-jssdk')) return;
             const s = document.createElement('script');
             s.id = 'webavatar-jssdk';
-            s.src = './chat-widget.js?v=20260929-flat-launchers';
+            s.src = './chat-widget-dev.js?v=20260929-flat-launchers';
             s.async = true;
             (document.head || document.body).appendChild(s);
         }

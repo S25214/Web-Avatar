@@ -192,7 +192,7 @@
             image.removeAttribute('src');
             image.hidden = true;
             placeholder.hidden = false;
-            placeholder.textContent = phase === 'error' ? 'ไม่มี QR' : 'กำลังเตรียม QR';
+            placeholder.textContent = ['error', 'cancelled'].includes(phase) ? 'ไม่มี QR' : 'กำลังเตรียม QR';
             return;
         }
         if (image.getAttribute('src') === url) return;
@@ -229,17 +229,19 @@
     }
 
     function setProgress(nextPhase, message) {
+        const enteredError = nextPhase === 'error' && phase !== 'error';
         if (phase !== nextPhase) phaseStartedAt = Date.now();
         phase = nextPhase;
         $('generation-progress').hidden = false;
         $('generation-progress').dataset.state = phase;
         $('generation-progress-status').textContent = message;
-        $('generation-progress-title').textContent = phase === 'error' ? 'สร้างภาพไม่สำเร็จ' : phase === 'paused' ? 'งานสร้างภาพยังถูกบันทึกไว้' : 'กำลังสร้างรูปของคุณ';
-        const recover = phase === 'error' || phase === 'paused';
-        $('generation-recovery-actions').hidden = !recover;
+        $('generation-progress-title').textContent = phase === 'error' ? 'สร้างภาพไม่สำเร็จ' : phase === 'paused' ? 'งานสร้างภาพยังถูกบันทึกไว้' : phase === 'cancelled' ? 'หยุดติดตามรูปนี้แล้ว' : 'กำลังสร้างรูปของคุณ';
+        const recover = ['error', 'paused', 'cancelled'].includes(phase);
+        $('generation-recovery-actions').hidden = !busy() && !recover;
+        $('generation-cancel-btn').hidden = !busy();
         $('generation-resume-btn').hidden = phase !== 'paused' || !currentJob;
-        $('generation-retry-btn').hidden = phase !== 'error' || !lastPhoto;
-        $('generation-dismiss-btn').hidden = phase === 'paused';
+        $('generation-retry-btn').hidden = !recover || !lastPhoto;
+        $('generation-dismiss-btn').hidden = !['error', 'cancelled'].includes(phase);
         $('camera-open-btn').disabled = busy();
         $('camera-open-btn').title = busy() ? 'กำลังสร้างภาพของคุณ' : 'เปิดกล้อง';
         $('generated-gallery-photo').disabled = busy();
@@ -249,8 +251,27 @@
         updateProgressBar();
         if (recover) {
             stopEntertainment();
-            $('generation-entertainment').textContent = phase === 'paused' ? 'ตรวจสอบงานเดิมต่อได้ โดยไม่ต้องส่งรูปใหม่' : 'ยังเปิดแกลเลอรีดูรูปได้ระหว่างแก้ไข';
+            $('generation-entertainment').textContent = phase === 'paused' ? 'ตรวจสอบงานเดิมต่อได้ หรือสร้างรูปนี้ใหม่' : phase === 'cancelled' ? 'ถ้าระบบรับงานไปแล้ว รูปอาจยังปรากฏในแกลเลอรี' : 'ยังเปิดแกลเลอรีดูรูปได้ระหว่างแก้ไข';
         }
+        if (enteredError) {
+            window.StandaloneVoice?.notifyChat('[SYSTEM] Photo generation failed. Ask user to check the gallery, retry generating the photo, or take a new photo.');
+        }
+    }
+
+    function cancelGeneration() {
+        if (!busy()) return;
+        ++runVersion;
+        jobController?.abort();
+        jobController = null;
+        currentJob = null;
+        rememberJob(null);
+        setProgress('cancelled', 'หยุดส่งหรือตรวจสอบรูปนี้แล้ว คุณสามารถสร้างใหม่จากรูปเดิมได้');
+    }
+
+    function regenerateLatest() {
+        if (!lastPhoto || !['error', 'paused', 'cancelled'].includes(phase)) return;
+        if (phase === 'paused') phase = 'cancelled';
+        generatePhoto(lastPhoto, lastPhotoOptions || {});
     }
 
     function finishProgress() {
@@ -305,6 +326,7 @@
                 finishProgress();
                 if ($('generated-gallery-dialog').open) $('generated-gallery-dialog').close();
                 showResult(completed);
+                window.StandaloneVoice?.notifyChat('[SYSTEM] Photo generation succeeded. Currently previewing the generated photo. Ask user to scan the QR code to download it, view the gallery, or take a new photo.');
                 return;
             }
             if (job.status === 'failed') {
@@ -336,6 +358,7 @@
             visualStyle: Object.prototype.hasOwnProperty.call(options, 'visualStyle') ? options.visualStyle : config.visualStyle
         };
         currentJob = null;
+        rememberJob(null);
         startedAt = Date.now();
         progressValue = 0;
         window.closeCameraDialog();
@@ -677,8 +700,14 @@
     $('generated-result-dialog').addEventListener('cancel', event => { event.preventDefault(); closeResult(); });
     $('generated-result-dialog').addEventListener('close', clearResultTimer);
     $('generation-resume-btn').addEventListener('click', resumeJob);
-    $('generation-retry-btn').addEventListener('click', () => { if (lastPhoto && phase === 'error') generatePhoto(lastPhoto, lastPhotoOptions || {}); });
-    $('generation-dismiss-btn').addEventListener('click', () => { if (phase === 'error') finishProgress(); });
+    $('generation-cancel-btn').addEventListener('click', cancelGeneration);
+    $('generation-retry-btn').addEventListener('click', regenerateLatest);
+    $('generation-dismiss-btn').addEventListener('click', () => {
+        if (!['error', 'cancelled'].includes(phase)) return;
+        lastPhoto = null;
+        lastPhotoOptions = null;
+        finishProgress();
+    });
     window.addEventListener('pagehide', () => {
         exiting = true;
         jobController?.abort(); galleryController?.abort(); stopEntertainment(); clearResultTimer();

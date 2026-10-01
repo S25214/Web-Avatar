@@ -100,6 +100,7 @@
         showSelection();
         $('photo-setup-status').textContent = '';
         $('photo-setup-dialog').showModal();
+        window.StandaloneVoice?.notifyChat('[SYSTEM] Currently previewing the photo. Ask user to choose background and style, retake photo, or proceed.');
     }
     document.querySelectorAll('[data-photo-style]').forEach(button => button.addEventListener('click', () => chooseStyle(button.dataset.photoStyle)));
     $('photo-setup-generate').addEventListener('click', generate);

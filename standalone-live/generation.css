@@ -61,8 +61,8 @@ body.settings-open #generation-progress {
 #generation-progress-fill { display: block; position: relative; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #818cf8, #a5b4fc); transition: width 1s ease; }
 #generation-progress-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent); animation: generation-bar-shine 2s linear infinite; }
 .generation-progress-note { margin-top: 5px; font-size: 10px; color: #94a3b8; }
-#generation-progress[data-state="error"] #generation-progress-fill, #generation-progress[data-state="paused"] #generation-progress-fill { background: #d9aa87; }
-#generation-progress[data-state="error"] #generation-progress-fill::after, #generation-progress[data-state="paused"] #generation-progress-fill::after { animation: none; }
+#generation-progress[data-state="error"] #generation-progress-fill, #generation-progress[data-state="paused"] #generation-progress-fill, #generation-progress[data-state="cancelled"] #generation-progress-fill { background: #d9aa87; }
+#generation-progress[data-state="error"] #generation-progress-fill::after, #generation-progress[data-state="paused"] #generation-progress-fill::after, #generation-progress[data-state="cancelled"] #generation-progress-fill::after { animation: none; }
 #generation-recovery-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 #generation-recovery-actions button { padding: 8px 10px; font-size: 12px; }
 body.generation-waiting:not(.generation-dancing) #avatar-widget-container canvas { transform-origin: 50% 85%; animation: generation-avatar-sway 5s ease-in-out infinite; }
