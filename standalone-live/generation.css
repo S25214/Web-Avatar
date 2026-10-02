@@ -61,8 +61,8 @@ body.settings-open #generation-progress {
 #generation-progress-fill { display: block; position: relative; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #818cf8, #a5b4fc); transition: width 1s ease; }
 #generation-progress-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent); animation: generation-bar-shine 2s linear infinite; }
 .generation-progress-note { margin-top: 5px; font-size: 10px; color: #94a3b8; }
-#generation-progress[data-state="error"] #generation-progress-fill, #generation-progress[data-state="paused"] #generation-progress-fill, #generation-progress[data-state="cancelled"] #generation-progress-fill { background: #d9aa87; }
-#generation-progress[data-state="error"] #generation-progress-fill::after, #generation-progress[data-state="paused"] #generation-progress-fill::after, #generation-progress[data-state="cancelled"] #generation-progress-fill::after { animation: none; }
+#generation-progress[data-state="error"] #generation-progress-fill, #generation-progress[data-state="paused"] #generation-progress-fill { background: #d9aa87; }
+#generation-progress[data-state="error"] #generation-progress-fill::after, #generation-progress[data-state="paused"] #generation-progress-fill::after { animation: none; }
 #generation-recovery-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 #generation-recovery-actions button { padding: 8px 10px; font-size: 12px; }
 body.generation-waiting:not(.generation-dancing) #avatar-widget-container canvas { transform-origin: 50% 85%; animation: generation-avatar-sway 5s ease-in-out infinite; }
@@ -87,41 +87,50 @@ body.generation-waiting #avatar-widget-container::after { content: '✧'; top: 3
     font-family: 'Outfit', sans-serif;
 }
 .generation-dialog::backdrop { background: rgba(0, 0, 0, 0.2); }
-#photo-setup-dialog { height: min(740px, calc(100dvh - 24px)); overflow: hidden; }
+#photo-setup-dialog { width: min(1120px, calc(100vw - 20px)); height: min(660px, calc(100dvh - 20px)); overflow: hidden; }
+#photo-setup-dialog[open] { gap: clamp(8px, 1.5dvh, 14px); }
 #photo-setup-dialog > header, #photo-setup-dialog > footer { flex-shrink: 0; }
-.photo-setup-content { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 24px; flex: 1; min-height: 0; }
+.photo-setup-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: clamp(10px, 2vw, 22px); flex: 1; min-height: 0; }
 .photo-setup-capture { display: flex; flex-direction: column; min-height: 0; gap: 8px; }
 #photo-setup-image { width: 100%; flex: 1; min-height: 0; object-fit: contain; border-radius: 12px; background: #050508; }
 .photo-setup-capture figcaption { color: #94a3b8; font: 12px 'Noto Sans Thai', sans-serif; text-align: center; }
-.photo-setup-options { overflow: auto; min-width: 0; padding: 2px 4px 2px 2px; }
-.photo-setup-options section + section { margin-top: 18px; }
-.photo-setup-options h3 { margin: 0 0 10px; color: #f1f1f6; font: 600 15px 'Noto Sans Thai', 'Outfit', sans-serif; }
-#photo-background-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.photo-setup-options { display: flex; flex-direction: column; gap: clamp(8px, 1.5dvh, 14px); overflow: hidden; min-width: 0; min-height: 0; }
+.photo-setup-options section + section { margin-top: 0; }
+.photo-setup-options h3 { margin: 0 0 8px; color: #f1f1f6; font: 600 15px 'Noto Sans Thai', 'Outfit', sans-serif; }
+#photo-background-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
 #photo-background-grid button, .photo-style-buttons button { position: relative; border: 1px solid rgba(165,180,252,.35); background: #050508; color: #f1f1f6; border-radius: 12px; overflow: hidden; cursor: pointer; font: 500 15px 'Outfit', 'Noto Sans Thai', sans-serif; }
-#photo-background-grid button img, .photo-default-background { width: 100%; height: clamp(75px, 16vh, 145px); object-fit: cover; display: block; }
+#photo-background-grid button img, .photo-default-background { width: 100%; height: clamp(48px, 12dvh, 112px); object-fit: cover; display: block; }
 .photo-default-background { display: grid; place-items: center; color: #a5b4fc; background: #22233a; font-size: 42px; }
-#photo-background-grid button > span:last-child { display: block; padding: 8px; }
+#photo-background-grid button > span:last-child { display: block; padding: 6px 2px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #photo-setup-status { font: 13px/1.5 'Noto Sans Thai', sans-serif; color: #a5b4fc; }
-#photo-setup-status { margin: 14px 0 0; }
+#photo-setup-status { margin: 0; }
 .photo-style-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.photo-style-buttons button { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 7px; min-height: 82px; padding: 12px 6px; font-size: 14px; }
-.photo-style-buttons svg { width: 26px; height: 26px; flex-shrink: 0; stroke: #a5b4fc; fill: none; stroke-width: 1.7; }
+.photo-style-buttons button { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; min-height: clamp(52px, 9dvh, 78px); padding: 6px; font-size: 13px; }
+.photo-style-buttons svg { width: 22px; height: 22px; flex-shrink: 0; stroke: #a5b4fc; fill: none; stroke-width: 1.7; }
 #photo-background-grid button:hover, .photo-style-buttons button:hover { border-color: #a5b4fc; background: #22233a; }
 #photo-background-grid button[aria-pressed="true"], .photo-style-buttons button[aria-pressed="true"] { border-color: #a5b4fc; box-shadow: 0 0 0 2px rgba(165,180,252,.75) inset; background: #242541; }
 #photo-background-grid button[aria-pressed="true"]::after, .photo-style-buttons button[aria-pressed="true"]::after { content: '✓'; position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #a5b4fc; color: #171827; font: 700 14px 'Outfit', sans-serif; }
 @media (max-width: 600px) {
     .generation-progress-layout { grid-template-columns: minmax(0, 1fr) 128px; gap: 10px; }
     .generation-progress-qr-frame { width: 128px; height: 128px; }
-    .photo-setup-content { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(110px, .75fr) minmax(0, 1.25fr); gap: 12px; }
-    #photo-background-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-    #photo-background-grid button img, .photo-default-background { height: clamp(58px, 10vh, 90px); }
-    #photo-background-grid button > span:last-child { padding: 6px 2px; font-size: 10px; white-space: nowrap; }
+    #photo-setup-dialog { width: calc(100vw - 12px); height: calc(100dvh - 12px); padding: 12px; }
+    #photo-setup-dialog[open] { gap: 8px; }
+    #photo-setup-dialog .generation-eyebrow { display: none; }
+    #photo-setup-dialog .generation-dialog-header h2 { font-size: 20px; }
+    .photo-setup-content { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: 8px; }
+    .photo-setup-capture { gap: 4px; }
+    .photo-setup-capture figcaption { font-size: 10px; }
+    .photo-setup-options { gap: 6px; }
+    .photo-setup-options h3 { margin-bottom: 4px; font-size: 12px; }
+    #photo-background-grid { gap: 4px; }
+    #photo-background-grid button img, .photo-default-background { height: clamp(40px, 8dvh, 70px); }
+    #photo-background-grid button > span:last-child { padding: 4px 1px; font-size: 10px; }
     .photo-default-background { font-size: 30px; }
     #photo-background-grid button[aria-pressed="true"]::after, .photo-style-buttons button[aria-pressed="true"]::after { top: 4px; right: 4px; width: 18px; height: 18px; font-size: 12px; }
-    .photo-setup-options section + section { margin-top: 12px; }
-    .photo-style-buttons { gap: 8px; }
-    .photo-style-buttons button { min-height: 66px; padding: 8px 2px; font-size: 12px; }
-    .photo-style-buttons svg { width: 22px; height: 22px; }
+    .photo-style-buttons { gap: 6px; }
+    .photo-style-buttons button { min-height: clamp(48px, 8dvh, 64px); padding: 4px 2px; font-size: 11px; gap: 2px; }
+    .photo-style-buttons svg { width: 18px; height: 18px; }
+    #photo-setup-status { font-size: 11px; line-height: 1.25; }
 }
 .generation-dialog[open] { display: flex; flex-direction: column; gap: 18px; }
 .generation-dialog-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -185,6 +194,15 @@ body.generation-waiting #avatar-widget-container::after { content: '✧'; top: 3
     .generated-gallery-footer #generated-gallery-photo { flex: 1; }
 }
 @media (max-height: 500px) {
+    #photo-setup-dialog { padding: 10px; }
+    #photo-setup-dialog[open] { gap: 6px; }
+    #photo-setup-dialog .generation-eyebrow { display: none; }
+    #photo-setup-dialog .generation-dialog-header h2 { font-size: 18px; }
+    .photo-setup-options { gap: 6px; }
+    .photo-setup-options h3 { margin-bottom: 4px; font-size: 12px; }
+    #photo-background-grid button img, .photo-default-background { height: 40px; }
+    .photo-style-buttons button { min-height: 44px; padding: 2px; }
+    .photo-style-buttons svg { width: 18px; height: 18px; }
     #generated-gallery-dialog { height: calc(100dvh - 24px); max-height: calc(100dvh - 24px); padding: 12px; gap: 8px; }
     #generated-gallery-dialog .generation-eyebrow { display: none; }
     #generated-gallery-title { font-size: 18px; }

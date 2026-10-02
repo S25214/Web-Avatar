@@ -5,10 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WebAvatar — Standalone Voice Window</title>
     <meta name="description" content="A standalone, full-window AI avatar voice experience.">
-    <link rel="stylesheet" href="./standalone-live/generation.css?v=20261001-cancel-regenerate">
+    <meta name="referrer" content="strict-origin">
+    <script>
+        if (new URLSearchParams(location.search).has('client_api_key') || new URLSearchParams(location.search).has('event_key')) {
+            document.documentElement.dataset.eventGate = 'checking';
+            document.documentElement.dataset.eventVisit = '';
+        }
+    </script>
+    <script src="./standalone-live/event-gate.js?v=20261002-event-check"></script>
+    <link rel="stylesheet" href="./standalone-live/generation.css?v=20261002-photo-choices-fit">
     <script src="./standalone-live/voice.js?v=20261001-chat-notifications" defer></script>
     <script src="./standalone-live/generation.js?v=20261001-chat-notifications" defer></script>
-    <script src="./standalone-live/photo-flow.js?v=20261001-chat-notifications" defer></script>
+    <script src="./standalone-live/photo-flow.js?v=20261002-award-background" defer></script>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +25,23 @@
     
     <style>
         :root { --settings-width: 320px; }
+        html[data-event-gate] body { overflow: hidden; }
+        html[data-event-gate] body > :not(#event-gate) { visibility: hidden !important; }
+        html[data-event-visit] #generation-api-key-form { display: none; }
+        #event-gate[hidden] { display: none; }
+        #event-gate {
+            position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center;
+            padding: 24px; background: #101522; color: #f8fafc; text-align: center;
+            font-family: 'Noto Sans Thai', 'Outfit', Tahoma, sans-serif;
+        }
+        #event-gate-card { max-width: 440px; }
+        #event-gate-spinner { width: 48px; height: 48px; margin: 0 auto 24px; border: 4px solid #334155; border-top-color: #67e8f9; border-radius: 50%; animation: event-gate-spin 0.85s linear infinite; }
+        html[data-event-gate="ended"] #event-gate-spinner, html[data-event-gate="error"] #event-gate-spinner { display: none; }
+        #event-gate-title { margin: 0 0 12px; font-size: clamp(24px, 5vw, 34px); }
+        #event-gate-message { margin: 0; color: #cbd5e1; line-height: 1.6; }
+        #event-gate-retry { margin-top: 24px; padding: 12px 24px; border: 0; border-radius: 12px; background: #67e8f9; color: #10202c; font: inherit; font-weight: 700; cursor: pointer; }
+        #event-gate-retry[hidden] { display: none; }
+        @keyframes event-gate-spin { to { transform: rotate(360deg); } }
         #settings-sidebar[hidden] { display: none; }
         /* Keep closed panels out of section discovery, including their landmarks. */
         #settings-sidebar[hidden] *, #camera-dialog:not([open]) *, .generation-dialog:not([open]) * { display: none !important; }
@@ -483,6 +508,15 @@
 </head>
 <body data-standalone-voice-controls>
 
+    <main id="event-gate" hidden role="status" aria-live="polite">
+        <div id="event-gate-card">
+            <div id="event-gate-spinner" aria-hidden="true"></div>
+            <h1 id="event-gate-title">กำลังตรวจสอบสิทธิ์เข้างาน</h1>
+            <p id="event-gate-message">โปรดรอสักครู่</p>
+            <button type="button" id="event-gate-retry" hidden>ลองอีกครั้ง</button>
+        </div>
+    </main>
+
     <div id="standalone-background" aria-hidden="true"></div>
 
     <!-- Ambient glowing backgrounds -->
@@ -660,9 +694,8 @@
             </div>
         </div>
         <div id="generation-recovery-actions" hidden>
-            <button type="button" id="generation-cancel-btn" class="btn-modal-secondary" aria-label="ยกเลิกการสร้างภาพ (Cancel generation)">ยกเลิก / Cancel</button>
             <button type="button" id="generation-resume-btn" class="btn-modal-secondary">ตรวจสอบต่อ</button>
-            <button type="button" id="generation-retry-btn" class="btn-modal-secondary" aria-label="สร้างภาพนี้อีกครั้ง (Re-generate image)">สร้างใหม่ / Re-generate</button>
+            <button type="button" id="generation-retry-btn" class="btn-modal-secondary">ลองสร้างรูปนี้อีกครั้ง</button>
             <button type="button" id="generation-dismiss-btn" class="btn-modal-secondary">ปิด</button>
         </div>
     </section>
@@ -1396,7 +1429,7 @@
         // Name and bot settings share the non-modal sidebar.
         function openNameModal() {
             showSettingsSection('name');
-            document.getElementById('name-input').value = getStoredUserName() || '';
+            document.getElementById('name-input').value = getQueryParams().name || getStoredUserName() || '';
             document.getElementById('name-error').style.display = 'none';
             document.getElementById('name-input').focus();
         }
@@ -1498,9 +1531,11 @@
                 enableBubble = rawBubble !== 'false';
             }
             const buttonImage = params.get('buttonImage');
+            const name = params.get('name')?.replace(/\s+/g, ' ').trim().slice(0, 64) || null;
 
             return {
                 id: params.get('id') || DEFAULT_WIDGET_ID,
+                name,
                 mode: 'realtime-fullscreen',
                 cam: cam ? cam.trim() : null,
                 greetingInstruction: greetingInstruction,
@@ -1547,12 +1582,17 @@
 
         // ─── Initialization Flow ───
         (async function init() {
-            // 1. Initialize username display
-            let currentUserName = getStoredUserName();
+            // QR event visits must pass the API check before mounting the avatar.
+            if (document.documentElement.hasAttribute('data-event-gate')) {
+                if (!window.StandaloneEventGate) return; // Fail closed if the guard script did not load.
+                await window.StandaloneEventGate.ready;
+            }
+            // 1. A QR-provided name takes precedence without replacing the saved personal name.
+            const queryParams = getQueryParams();
+            const currentUserName = queryParams.name || getStoredUserName();
             updateUserNameUI(currentUserName);
 
             // 2. Check URL parameters and default widget ID
-            const queryParams = getQueryParams();
             activeWidgetId = queryParams.id;
             updateWidgetIdUI(activeWidgetId);
 

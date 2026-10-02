@@ -1,0 +1,22 @@
+// Complete ruleset for a DEDICATED standalone-live Firebase project only.
+// Do not deploy this file to the current production project's database.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function validEventKey(key) {
+      return key.matches('^[A-Za-z0-9_-]{8,128}$');
+    }
+
+    match /events/{eventKey} {
+      // Direct document reads and listeners work with the key in the QR URL.
+      // The rule cannot distinguish a scanned QR from a manually entered URL.
+      allow get: if validEventKey(eventKey);
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

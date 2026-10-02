@@ -11,7 +11,8 @@
         { id: 'default', label: 'Default', url: null },
         { id: 'botnoi', label: 'BOTNOI', url: './standalone-live/backgrounds/botnoi.jpg' },
         { id: 'rainbow', label: 'Rainbow', url: './standalone-live/backgrounds/rainbow.jpg' },
-        { id: 'golden', label: 'Golden', url: './standalone-live/backgrounds/golden.jpg' }
+        { id: 'golden', label: 'Golden', url: './standalone-live/backgrounds/golden.jpg' },
+        { id: 'award', label: 'Award', url: './standalone-live/backgrounds/award.png' }
     ];
     let photo = null, photoUrl = null, selectedBackground = backgrounds[0], selectedStyle = 'default';
     let submitting = false, version = 0, controller = null;
@@ -77,7 +78,7 @@
                 if (!response.ok) throw new Error('โหลดพื้นหลังไม่สำเร็จ เลือกพื้นหลังอื่นหรือลองใหม่');
                 const blob = await response.blob();
                 if (!/^image\/(jpeg|png|webp)$/.test(blob.type)) throw new Error('ไฟล์พื้นหลังต้องเป็น JPEG, PNG หรือ WebP');
-                backgroundImage = new File([blob], `${background.id}.jpg`, { type: blob.type });
+                backgroundImage = new File([blob], background.url.split('/').pop(), { type: blob.type });
             }
             if (snapshot !== version || !$('photo-setup-dialog').open) return;
             if (!window.StandaloneGeneration) throw new Error('ระบบสร้างภาพยังไม่พร้อม ลองใหม่อีกครั้ง');
