@@ -79,7 +79,15 @@ Not read, not operated: `display: none`, `visibility: hidden`, `hidden`, `inert`
 - Content that is not mounted yet (infinite scroll, virtualised lists, lazy tabs) cannot be found. The assistant scrolls the page to mount lazy content and can scroll inner scroll areas, but cannot know what a virtualised list holds. Offer search, filters, sorting and real pagination links so the target can be reached by a control.
 - Text that ticks continuously (clocks, counters, live prices) is ignored on purpose when judging whether the page changed. Static copies of facts the visitor may ask about should exist in normal text.
 
-## 8. Facts and structure for questions
+## 8. Quantities and results the assistant can check
+
+Orders, carts and counters are where the assistant most often needs to count.
+- Keep the quantity as text beside its stepper buttons (or use `<input type="number">`). The assistant reads the number next to a "+" or "-" control to decide how many presses are needed; a number drawn into an image or only in a `title` cannot be read.
+- The simplest pattern for it is a number input, which it sets directly. With "+" / "-" buttons plus an "Add" button, the "Add" button should apply the number shown, and the stepper should reset after adding.
+- Make the effect of an action visible as text: a message naming what happened ("Added 2 × Spicy Rice to the cart") in an element with `role="status"` or `aria-live="polite"`, and a cart count in the page. The assistant confirms a task from what the page shows afterwards; an action whose only effect is hidden (a cart that is closed and has no count) can be reported as "appears done, could not be confirmed".
+- Label totals. A dialog or panel that lists items with prices should say which figure is the total ("Total ฿276"). A price next to an item is read as that item's price; if the total has no label, it can be mistaken for something else when read aloud.
+
+## 9. Facts and structure for questions
 
 When a visitor asks "what does it cost" or "which plan includes X", the assistant answers from the page text.
 - Keep a thing and its facts together in one container: name, price and status in the same card, row (`tr`) or `li`, so they read as one passage.
@@ -87,7 +95,7 @@ When a visitor asks "what does it cost" or "which plan includes X", the assistan
 - Give sections that visitors will ask about a stable `id` (`id="pricing"`). The assistant can scroll to and highlight an element by id, and `#pricing` is the most reliable way to name a place.
 - Use real tables (`table`, `th`) for tabular data.
 
-## 9. Things the assistant cannot do
+## 10. Things the assistant cannot do
 
 Design the site with these in mind; they are not bugs:
 - Controls inside **iframes** (cross-origin or not) are out of reach for actions. Open shadow DOM works; **closed** shadow roots do not.
@@ -97,7 +105,7 @@ Design the site with these in mind; they are not bugs:
 - Password, payment, one-time-code and file-upload fields (see above).
 - It performs actions as the visitor, on the visitor's session, without a confirmation prompt of its own in the embedded widget. Make irreversible steps (placing an order, deleting an account, sending money) end at a control that is clearly the visitor's: a final review step with an explicit button, payment entered by the visitor, or a sign-in the site itself requires. The assistant's own caution is a heuristic, not a guarantee.
 
-## 10. Names and ids to avoid
+## 11. Names and ids to avoid
 
 Element ids that start with `bcw-`, `avatar-`, `botnoi-` or `webavatar-`, the id `botnoi-chat-widget`, the id `webavatar-agent-host`, the class `bn-customerchat`, and the attribute `data-chat-widget` mark the widget's own elements. Anything carrying them is invisible to the assistant. If a site element uses one (`avatar-upload`, `webavatar-banner`), rename it (`profile-photo-upload`).
 
@@ -120,3 +128,4 @@ Search the code for these and fix or report according to the rules in `SKILL.md`
 10. Fields named with private words that are not private (PIN code, card number).
 11. Navigation built only from client-side handlers; missing `/sitemap.xml` on large sites.
 12. Sections visitors will ask about without an `id`.
+13. Quantity steppers whose number is not text beside the buttons; carts, orders or saves with no visible confirmation text and no count; totals without a label.
