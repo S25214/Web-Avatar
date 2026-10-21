@@ -13,7 +13,7 @@ The only embed parameter is `widgetId`. Everything else (avatar, voice, prompt, 
 
 Do these in order. Do not skip the first two: an embed that is not allowed to run on the site's origin, or that has navigation switched off, loads but does nothing useful.
 
-0. **Ask which build to use: production or dev.** Ask the developer before writing anything: "Do you want the production widget or the dev widget?" Production is for live sites and is the default if they have no preference. Dev is for testing a pre-release widget. Remember the answer; the embed script address depends on it (see [references/embed.md](references/embed.md)).
+0. **Ask which build to use: production or dev.** Ask the developer before writing anything: "Do you want the production widget or the dev widget?" Production is for live sites and is the default if they have no preference. Dev is for testing a pre-release widget. Remember the answer; the embed script address depends on it (see [references/embed.md](references/embed.md)). Use only the build they chose, as a fixed address: never add code that switches between the two builds by environment or hostname.
 1. **Get a widget ID.** Ask the developer for one. If they have none, offer to create one through the developer API (see [references/admin-api.md](references/admin-api.md)); otherwise point them to the platform's widget manager, `https://webavatar-gen-frontend.vercel.app/widget-manage`.
 2. **Check the widget's settings** (read them through the API if the developer gave you a key, otherwise ask them to check in the platform):
    - the site's origin is in the widget's allowed origins, including every origin you will test on (protocol, host and port: `http://localhost:3000` is a different origin from `https://example.com`);

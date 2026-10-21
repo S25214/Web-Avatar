@@ -17,7 +17,9 @@ Ask the developer which build they want, and do not assume:
 | Production (default, for live sites) | `https://webavatar.didthat.cc/chat-widget.js` |
 | Dev (for testing a pre-release widget) | `https://webavatar.didthat.cc/chat-widget-dev.js` |
 
-If they choose dev, use the dev address everywhere the production one appears below: in the loader's `script.src`, or in the plain tag's `src`. Nothing else in the snippet changes, and `widgetId` is still the only parameter. Tell the developer to switch back to the production address before the site goes live.
+If they choose dev, use the dev address everywhere the production one appears below: in the loader's `script.src`, or in the plain tag's `src`. Nothing else in the snippet changes, and `widgetId` is still the only parameter.
+
+Use exactly the one address they chose, written as a fixed string. Do not add anything that picks the build for them: no switch on `NODE_ENV`, build mode, hostname or an environment variable, no fallback from one build to the other. Moving to the production build later is the developer's own one-line change; mention it once, and do not make it for them.
 
 ## The snippet
 
