@@ -3,8 +3,8 @@
 The assistant works from the page's rendered DOM, the way an assistive technology does. It does not read your source or your components. It sees: the visible text, the controls, their names and states, and where things are. Anything a screen reader user could not find or operate on the page is also hard for the assistant. Semantic HTML and accessible names are the whole technique; there are no widget-specific attributes to add (the few exceptions are marked below).
 
 How it works, so the rules make sense:
-- **Reading** answers questions about the page from its visible text, grouped into passages (a paragraph, a heading, or a whole card or row with all its parts) and sections (headings and landmarks), and it can scroll to and highlight a place.
-- **Acting** (clicking, typing, choosing, navigating) works on a ranked list of the page's controls, each with a role, a name, nearby text, a state and a position. It picks the control that matches what the visitor asked for, performs it with real pointer/keyboard-style events, checks what changed, and continues until done or stuck.
+- **Reading** answers questions about the page from its visible text, grouped into passages (a paragraph, a heading, or a whole card or row with all its parts) and sections (headings and landmarks). It can show a place: a heading brings its whole section into view and outlines it, and a closed entry (an FAQ question) is opened to show what it holds.
+- **Acting** (clicking, typing, choosing, navigating) works on the page's controls, each with a role, a name, nearby text, a state and a position. For a request about one thing ("open the pricing page", "play the next video", "show the FAQ", "search for running shoes") it first decides, from the page as it is, which control or section the request is about. Then it acts with real pointer/keyboard-style events and checks the result from what the page shows afterwards: another address, a changed state (`aria-expanded`, `aria-selected`, `aria-pressed`, checked), or new text. A press that changes nothing visible is reported as not done. Requests with several steps (a form, several items in a cart) go step by step, checking what changed after each one.
 - Each task is limited (about 32 decisions or 120 seconds). Long multi-screen flows are more likely to stop partway.
 
 ## 1. Use real interactive elements
@@ -13,12 +13,14 @@ The assistant finds: `a[href]`, `button`, `input`, `select`, `textarea`, `summar
 
 - Make clickable things `<button type="button">` or `<a href>`. Fix: replace clickable `div`/`span` (report this to the developer if it changes styling), or at least add `role="button"`, `tabindex="0"` and an `aria-label`.
 - Disabled controls (`disabled`, `aria-disabled="true"`) are skipped. Use them only when a control really cannot be used right now.
+- Do not keep a second copy of a control that does nothing: a desktop and a mobile menu both in the page, with the inactive one moved off screen or covered. Hide the inactive copy with `display: none` or `hidden`, so that only the working one is a control.
 
 ## 2. Give every control a name
 
 The name is taken in this order: `aria-labelledby`, `aria-label`, an associated `<label>`, a button's `value`, image `alt`, the visible text, `title`, `placeholder`. Icon-only SVG buttons fall back to the SVG's `<title>` or `aria-label`.
 
 - Icon-only buttons and links need `aria-label` ("Open cart", "Close dialog"), unless they contain visible text.
+- Parts of a control that are hidden (`display: none`, `visibility: hidden`, `hidden`, `aria-hidden="true"`) are not part of its name; screen-reader-only text (visually clipped) is. A badge such as "Now playing" that belongs to one entry only must be hidden on the others this way, not just made transparent, or every entry carries it.
 - Do not rely on `placeholder` as the only label.
 - Names should say what the control does in the words a visitor would use.
 
@@ -34,6 +36,8 @@ The assistant reads these to know what is on, open or current, and uses them to 
 - `aria-selected` on tabs, `aria-current="page"` on the current page link or page number, `aria-pressed` on toggle buttons, `aria-checked` on custom checkboxes and switches.
 - Native `checked`, `selected`, `value`, `required`, `min`, `max`.
 - Pagination and tabs that show the current item only with a colour are sometimes recognised, but do not rely on it: add `aria-current`.
+- In a list where one entry is current (a playlist, a carousel, steps), mark it with `aria-current="true"` or `aria-selected="true"`. "Play the next one" is decided from which entry is current.
+- Accordions and FAQ lists: make each question a `button` with `aria-expanded` and `aria-controls` pointing at its answer panel, or use `<details>`/`<summary>`. Then "show me the answer about delivery" opens that entry and reads it. Without them the assistant has to press the question and read what appeared.
 
 ## 4. Navigation menus
 
@@ -54,7 +58,8 @@ The assistant reads these to know what is on, open or current, and uses them to 
 - Input masks are fine (`2,980,000`, `081-234-5678`, `05/09/2026`, `10%`): a field that shows the typed digits in its own format counts as filled.
 - Prefer native `<select>`. For custom dropdowns, make the trigger `role="combobox"` (a `button` is fine) with `aria-expanded`, and the options `role="option"` inside a `role="listbox"`; the trigger's displayed text should be the current selection. Options rendered in a portal outside the dialog need `aria-controls` or `aria-owns` from the trigger.
 - Custom checkboxes and radios: keep the real `<input>` in the DOM (even if visually hidden or transparent, with a real size), connected to a visible `<label for>`. Do not put `aria-hidden` or `display:none` on the input. A transparent input laid over a decorative label is handled; a pure `div` checkbox needs `role="checkbox"` and `aria-checked`.
-- Search boxes: `<form role="search">` with a text input; pressing Enter must submit.
+- Search boxes: `<form role="search">` with a named text input (`aria-label="Search"`); pressing Enter must submit. The words to search for are taken from what the visitor said.
+- Put the search words in the results page's address (`/search?q=running+shoes`). A results page whose address already carries the words is recognised as the search being done, so the assistant does not search again.
 - When a task needs values the visitor has not given (a required field with nothing to fill it), the assistant asks the visitor for them instead of guessing. Required fields marked as `required` make this reliable.
 - Consent boxes and terms are the visitor's decision. The assistant does not tick them without being told yes.
 
@@ -93,6 +98,8 @@ When a visitor asks "what does it cost" or "which plan includes X", the assistan
 - Keep a thing and its facts together in one container: name, price and status in the same card, row (`tr`) or `li`, so they read as one passage.
 - Use heading levels and landmarks (`header`, `nav`, `main`, `aside`, `footer`). They name the sections the assistant quotes from.
 - Give sections that visitors will ask about a stable `id` (`id="pricing"`). The assistant can scroll to and highlight an element by id, and `#pricing` is the most reliable way to name a place.
+- Wrap each section in a `section` (or `article`) element that starts with its heading. "Go to the pricing section" brings the section to the top of the screen, below a header that stays fixed, and outlines all of it; without a wrapper only the heading is outlined.
+- Links that jump within the page (`href="#pricing"`) should point at the section's `id`. The assistant shows the section such a link leads to.
 - Use real tables (`table`, `th`) for tabular data.
 
 ## 10. Things the assistant cannot do
@@ -110,6 +117,8 @@ Design the site with these in mind; they are not bugs:
 Element ids that start with `bcw-`, `avatar-`, `botnoi-` or `webavatar-`, the id `botnoi-chat-widget`, the id `webavatar-agent-host`, the class `bn-customerchat`, and the attribute `data-chat-widget` mark the widget's own elements. Anything carrying them is invisible to the assistant. If a site element uses one (`avatar-upload`, `webavatar-banner`), rename it (`profile-photo-upload`).
 
 ## Page loads and single-page apps
+
+A page that has just loaded is read once it stops changing, for up to about 3 seconds. Render the main controls (navigation, search box) with the page, not seconds later.
 
 A full page load ends the call's in-page state. A task that was running is restored on the new page for about five minutes and its outcome is available to the assistant, but the call itself reconnects, which takes several seconds. Single-page apps keep the call; prefer client-side navigation for in-site links. See also the multi-page option in [embed.md](embed.md).
 
@@ -129,3 +138,7 @@ Search the code for these and fix or report according to the rules in `SKILL.md`
 11. Navigation built only from client-side handlers; missing `/sitemap.xml` on large sites.
 12. Sections visitors will ask about without an `id`.
 13. Quantity steppers whose number is not text beside the buttons; carts, orders or saves with no visible confirmation text and no count; totals without a label.
+14. FAQ and accordion questions without `aria-expanded` / `aria-controls` (and not `<details>`); lists with a current entry that is not marked `aria-current` / `aria-selected`.
+15. Sections visitors will ask about that are not wrapped in a `section`/`article` starting with their heading; in-page links whose `#hash` does not match a section `id`.
+16. Search results pages that do not carry the search words in their address; search inputs with no name.
+17. Duplicate copies of a control (desktop and mobile menus) where the inactive copy is moved off screen or covered instead of `display: none`; badges such as "Now playing" hidden by transparency on every entry but one.

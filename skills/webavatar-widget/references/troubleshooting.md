@@ -17,11 +17,13 @@ A useful proxy for "what the assistant sees": open the browser's accessibility t
 
 Run these with the call connected, on at least one page with a form and one with a repeated list:
 1. "What is on this page?" — it should describe the page's real content.
-2. "Show me <a section>" — it scrolls to and highlights it.
+2. "Show me <a section>" — it brings the whole section into view and outlines it.
 3. "Open <a page in the navigation>" — it navigates, and the call stays up on a single-page app.
 4. "Fill in the form with <values>" and then check the fields. Fields for passwords or payment stay empty on purpose.
 5. In a list: "Remove the second item" or "Add the <name> to the cart" — the right row changes.
 6. Open a dialog and ask for something inside it, then something outside it.
+7. On an FAQ: "Show me the answer about <a question>" — that entry opens and the assistant tells what it says.
+8. "Search for <words>" — the words are typed and sent; on the results page, asking for the same search does not search again.
 
 ## Symptoms
 
@@ -34,6 +36,11 @@ Run these with the call connected, on at least one page with a form and one with
 | Opens pages but the call drops at each navigation | the site does full page loads | make internal links client-side routed, or use the multi-page option in [embed.md](embed.md) |
 | "Could not find" a button or link that is on screen | no accessible name, a generic name in a repeated row, or the control is not a real control | give it an `aria-label`, put it in a row with a heading, use a real `button`/`a` |
 | Clicks the wrong row | repeated buttons share one name | add the item name to each button's `aria-label` |
+| Says a press changed nothing, although the control works when you click it | the press landed on an inactive copy of the control, or its effect is not visible on the page | hide inactive copies with `display: none`; make the effect show as a state attribute (`aria-expanded`, `aria-pressed`) or as text |
+| Shows only the heading of a section, not the section | the section has no wrapper element | wrap it in a `section`/`article` that starts with its heading |
+| Does not open an FAQ entry it was asked to show | the question carries no `aria-expanded` and its answer is only drawn after a press | add `aria-expanded` / `aria-controls`, or use `<details>` |
+| Searches again on a results page | the results page's address does not carry the search words | put the words in the address (`?q=...`) |
+| "Play the next one" plays the wrong item | the current entry is not marked | add `aria-current` or `aria-selected` to the current entry |
 | Says something covers the control | an overlay, banner or invisible layer is on top | remove or close the layer; see [site-practices.md](site-practices.md) section 6 |
 | Leaves a field empty | the field is treated as private (password, payment, one-time code, or its id/name/label contains a private word such as PIN or expiry) | rename a non-private field; let the visitor fill real private fields |
 | Fills a field but the form says it is empty | the framework ignores the written value | make sure the field is a real input bound to the framework through its own `input`/`change` handlers |
