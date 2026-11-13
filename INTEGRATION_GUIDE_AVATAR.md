@@ -1,14 +1,12 @@
 # WebAvatar Avatar Widget Integration Guide (AI-Ready)
 
-This guide covers the integration of `avatar-widget.js`. This widget provides a standalone 3D VRM avatar overlay with real-time lip-sync, animations, and an emotion system.
+`avatar-widget.js` is a standalone 3D VRM avatar overlay with lip-sync, animations and emotions. Three.js and three-vrm are bundled; no other script tags are needed.
 
----
+> **Don't read `avatar-widget.js` directly.** It is a minified, obfuscated build, so it can't tell you how the widget works. Use this guide.
 
 ## 1. Quick Start
 
-### Include the Script
-
-Paste the universal loader into your HTML before `</body>`:
+Add before `</body>` (in React/Vue/Angular/Svelte, run the same code in the mount hook):
 
 ```html
 <script>
@@ -23,201 +21,111 @@ Paste the universal loader into your HTML before `</body>`:
 </script>
 ```
 
-For **React/Vue/Angular/Svelte**, paste the JavaScript body into your component's mount lifecycle (`useEffect`, `onMounted`, `ngAfterViewInit`, `onMount`) — the code is identical, no translation needed.
-
-### Initialize
-Initialize the avatar using the global `window.WebAvatar` object:
+Then, once the script has loaded:
 
 ```js
-window.WebAvatar.init({
-    modelUrl: 'Botnoi',
-    defaultAnimationUrl: 'Idleloop',
-    position: 'bottom-right'
-});
+const result = await window.WebAvatar.init({ modelUrl: 'Botnoi', position: 'bottom-right' });
+if (!result.ok) console.warn('Avatar failed to load', result.attempts);
 ```
 
----
+`init()` never throws. It resolves to `{ ok, source, context, attempts }`; on failure `ok` is `false` and the page keeps working. The avatar is click-through, so page controls behind it stay usable.
 
-## 2. Configuration Options
+## 2. Options (`init({...})`)
 
-Pass these in the `init({ ... })` object:
+| Option | Default | Description |
+|---|---|---|
+| `modelUrl` | catalog default preset | Preset name (`'Botnoi'`) or a full `.vrm` URL. |
+| `avatarCandidates` | — | Models to try in order, e.g. `[{ id: 'Botnoi' }, { url: 'https://…/a.vrm' }]`. The catalog default is always tried last. |
+| `widgetId` | — | Loads the catalog for that widget (includes its account-only presets). |
+| `defaultAnimationUrl` | catalog defaults, else `['Idleloop', 'idle_breatheloop']` | Idle animation(s): string, comma-separated string or array. With several, the widget switches between them. |
+| `animationUrl` | `'Greeting'` | Animation played once on load. |
+| `position` | `'bottom-right'` | `bottom-right`, `bottom-left`, `bottom-center`, `top-right`, `top-left`, `top-center`, `center`. |
+| `offset` | `{ x: 0, y: 0 }` | Pixel offset added to the position. |
+| `container` | — | Selector or element to render inside (absolute) instead of a fixed overlay on `body`. |
+| `cameraTarget` | `{ x: 0, y: 0, z: 0 }` | Camera offset. |
+| `randomGeneric` | `false` | Plays random "Generic" animations while idle. |
+| `randomIntervalMin` / `randomIntervalMax` | `15` / `30` | Seconds between idle behaviours. |
+| `zIndex` | `9999` | Overlay z-index. |
+| `showGrid` | `false` | Floor grid. |
+| `maxPixelRatio` | `2` | Caps render resolution (lower = cheaper). |
+| `manifestUrl` | public catalog | Asset catalog override (also `window.WebAvatarConfig.manifestUrl`). |
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `modelUrl` | String | `'Kitagawa'` | Manifest name (e.g., `'Botnoi'`) or full `.vrm` URL. |
-| `defaultAnimationUrl` | String\|Array | `['Idleloop', ...]` | Idle animation(s) to loop. Can also be a comma-separated String. |
-| `animationUrl` | String | `'Greeting'` | Initial animation to play on load. |
-| `position` | String | `'bottom-right'` | `'bottom-right'`, `'bottom-left'`, `'center'`, etc. |
-| `offset` | Object | `{ x: 0, y: 0 }` | Pixel offset from the anchor point. |
-| `cameraTarget` | Object | `{ x: 0, y: 0, z: 0 }` | Camera focus offset relative to the avatar. |
-| `randomGeneric` | Boolean | `true` | Randomly plays 'Generic' animations during idle. |
-| `randomIntervalMin` | Number | `15` | Min seconds between random behaviors. |
-| `container` | String\|HTMLElement | — | Optional. Selector string or direct DOM element. If provided, the widget will render absolutely inside this element instead of dynamically appending to `document.body` with fixed viewport positioning. |
+## 3. API — `window.WebAvatar`
 
----
+**Lifecycle**
+- `init(options)` → `Promise<{ ok, source, context, attempts }>`; a second call returns the first promise.
+- `setPaused(bool)`: stop/resume rendering (e.g. while the avatar is hidden).
+- `disconnect()` / `destroy()`: remove the widget and free resources.
 
-## 3. API Methods — `window.WebAvatar`
+**Model, animation, emotion**
+- `loadModel(urlOrPreset)` → `Promise<{ ok, … }>`.
+- `loadAnimation(idOrUrl)`: crossfades to a catalog ID (`'Greeting'`) or a `.vrma`/`.glb`/`.gltf` URL. `preloadAnimation(id)` warms the cache.
+- `setEmotion(name, seconds?)`: `happy`, `sad`, `angry`, `surprised`, `relaxed`, `idle` (case-insensitive; `seconds` omitted = until changed).
+- `setCameraPosition(x, y, z, immediate?)`, `setVolume(0–1)`.
+- `getModels()`, `getAnimations()` (async, from the catalog).
 
-### Core
-- `WebAvatar.init(options)`: Initializes the widget.
-- `WebAvatar.loadModel(url)`: Switches to a different VRM model.
-- `WebAvatar.loadAnimation(url)`: Plays a specific animation with smooth crossfade.
-- `WebAvatar.setEmotion(name, duration?)`: Sets emotion: `happy`, `sad`, `angry`, `surprised`, `relaxed`, `idle`.
-- `WebAvatar.disconnect()`: Unloads the widget and cleans up resources.
+**Audio and lip-sync**
+- `prepareAudio()`: call from a user gesture (e.g. the call button) before audio arrives, so autoplay rules don't block it.
+- `playAudio(urlOrBase64)`: one-shot playback with lip-sync.
+- `pushAudioChunk(chunk, options?)` + `endAudio()`: streamed PCM/MP3/WAV with lip-sync. `hasPendingAudio()` tells whether any is still queued.
+- `playStream(mediaStream)`: lip-sync a live `MediaStream` (WebRTC).
+- `stopAudio()`: stop everything now.
+- Lip-sync without playback (someone else plays the audio): `pushLipSyncChunk(pcm, { sampleRate })` or `applyLipSyncFrame(frame, { holdMs })`, then `endLipSync()`.
+- `getAudioContext()`: the avatar's `AudioContext`; capture the mic in it so echo cancellation sees the avatar's voice.
 
-### Audio & Lip-Sync
-- `WebAvatar.playAudio(source)`: Plays one-shot audio (URL or Base64) with lip-sync.
-- `WebAvatar.pushAudioChunk(chunk, options?)`: Streaming audio (PCM/MP3/WAV) with real-time lip-sync.
-- `WebAvatar.endAudio()`: Flushes the streaming audio buffer.
-- `WebAvatar.playStream(mediaStream)`: Connects a `MediaStream` (e.g., WebRTC) for live lip-sync.
-- `WebAvatar.stopAudio()`: Immediately stops all playback.
+**Events**
+- `window`: `avatar-widget-ready` (detail = init result), `webavatar-audio-ended`, `avatar-model-load-success` / `avatar-model-load-failure`.
+- widget container: the model events above, plus `avatar-animation-load-success` / `avatar-animation-load-failure`.
 
-### State & Utilities
-- `WebAvatar.setVolume(0-1)`: Sets audio volume.
-- `WebAvatar.setCameraPosition(x, y, z)`: Adjusts camera offset.
-- `WebAvatar.getModels()`: (Async) Returns list of available models.
-- `WebAvatar.getAnimations()`: (Async) Returns list of available animations.
-- `WebAvatar.getEmotions()`: Returns list of available emotions.
+## 4. Multiple Avatars and Timeline Mode
 
----
-
-## 4. Multi-Instance & Timeline Modes
-
-### Multi-Instance Instantiation
-Instead of the `window.WebAvatar` singleton, you can instantiate multiple independent widgets on the same page:
+`new window.AvatarWidget(options)` creates an independent avatar (same options as `init`, plus `timelineMode` and `editMode`):
 
 ```js
-const avatar = new window.AvatarWidget({
-    modelUrl: 'Botnoi',
-    container: '#avatar-container-1',
-    timelineMode: true,
-    editMode: true // Enable drag/resize (default: true)
-});
+const avatar = new window.AvatarWidget({ modelUrl: 'Botnoi', container: '#stage', timelineMode: true });
 await avatar.init();
 ```
 
-### Drag-and-Resize Focused Overlay
-When initialized in `timelineMode: true` with `editMode: true` (default), clicking inside the avatar container focuses it and displays a dashed border outline with 4 small circular corner resize handles. Click anywhere else to blur (deselect) it.
+### Edit mode (timeline only)
+With `timelineMode: true` and `editMode: true` (default), clicking the avatar selects it: drag to move, corner handles to resize, on-frame buttons to move/zoom/reset the camera. Layout is stored in parent-relative `%`, kept inside the parent, and saved to `localStorage` per timeline. `avatar.setEditMode(false)` makes it click-through.
 
-To disable drag/resize interactions and make the avatar pass through mouse/touch events:
-```js
-avatar.setEditMode(false); // Disables drag/resize, makes container non-interactive
-avatar.setEditMode(true);  // Re-enables drag/resize
-```
-* **Parent Boundary Lock**: Dragging and resizing are constrained to prevent the widget from moving or sizing outside the boundaries of its parent container.
-* **Proportional Scaling**: Changes are calculated and stored in parent-relative percentage values (`%`), so the layout scales dynamically and repositions correctly when the container element resizes.
-* **Auto-Persistence**: Layout positions and camera offsets are automatically saved to browser `localStorage` per timeline configuration. Each unique timeline config maintains its own saved layout and camera settings.
-* **Camera Adjustment Overlay**: A set of non-intrusive camera controls is rendered when focused:
-  - Position arrows (`▲`, `▼`, `◀`, `▶`) sit in a clean floating column at the bottom-right corner of the frame to shift the camera focus.
-  - Zoom (`+`, `-`) and Reset (`●`) buttons sit in a clean floating column at the bottom-left corner of the frame.
-* Listen to position/dimension changes (fires only on mouseup/touchend):
-```js
-avatar.container.addEventListener('layout-changed', (e) => {
-    console.log("New coordinates:", e.detail); // e.g. { width: "25.00%", height: "40.00%", x: "70.00%", y: "50.00%" }
-});
-```
+Events on `avatar.container`: `layout-changed` (on mouse/touch release, detail `{ width, height, x, y }` in `%`), `avatar-focused`, `avatar-blurred`. `avatar.applyLayout({ width, height, x, y })` sets it from code.
 
-### Loading & Controlling Timelines
-Timeline configurations contain audio/video tracks and animation/emotion triggers. If a video URL is passed, the widget decodes the audio track natively.
-
-**Auto-Duration Calculation:** The widget automatically detects the duration of each audio/video track and calculates the total timeline duration based on the longest track end time. Animation and emotion triggers that extend past this calculated duration will be clipped. If no media tracks are provided, the timeline defaults to 10 seconds.
-
-**Important:** You only need to specify the `start` time for each audio/video track. The widget will automatically detect each clip's duration. You can optionally provide `duration` to override the auto-detected value.
+### Timeline config
 
 ```js
-const timelineConfig = {
-    muteAudio: true, // Set to true to let the video player handle audio output
-    layout: { width: "30%", height: "50%", x: "35%", y: "25%" }, // Optional: initial position (defaults if omitted)
-    cameraOffset: { x: 0, y: -0.15, z: -3.5 }, // Optional: initial camera position
+await avatar.loadTimeline({
+    muteAudio: true,                       // let your <video> play the sound
+    defaultAnimation: 'Idleloop',          // between animation triggers
+    layout: { width: '30%', height: '50%', x: '35%', y: '25%' },   // optional
+    cameraOffset: { x: 0, y: -0.15, z: -3.5 },                     // optional
     audio: [
-        { url: "/videos/my-video.mp4", start: 0 } // duration auto-detected
+        { url: '/videos/clip.mp4', start: 0 }   // optional: duration, trimStart, speed
     ],
     triggers: [
-        { id: "t1", type: "animation", name: "Greeting", start: 0.5, duration: 3.5, loop: false },
-        { id: "t2", type: "emotion", name: "happy", start: 1.0, duration: 4.0 },
-        { id: "t3", type: "animation", name: "Talk", start: 5.0 } // Omitted duration resolves to full clip duration
+        { id: 't1', type: 'animation', name: 'Greeting', start: 0.5, duration: 3.5, loop: false },
+        { id: 't2', type: 'emotion', name: 'happy', start: 1.0, duration: 4.0 },
+        { id: 't3', type: 'animation', name: 'Talk', start: 5.0 }  // no duration = whole clip
     ]
-    // timeline duration is auto-calculated from detected media durations
-};
-```
-
-* **Timeline Animation Looping Rules**:
-  * In timeline mode, animations loop by default throughout the duration of their trigger block.
-  * If a trigger block specifies `{ loop: false }`, the animation plays only once (clamping on its last frame) when triggered.
-  * Animations with "loop" in their filename (e.g. `Idleloop`) will *always* loop, overriding any custom `{ loop: false }` trigger option.
-  * **Optional Durations**: The `duration` field is optional for animation triggers. If omitted, the widget dynamically looks up the cached clip's duration and sets the trigger's duration to play the clip fully.
-
-* **Developer Sandbox**: Refer to `https://webavatar-didthat.cc/timeline-demo.html` or `https://webavatar-didthat.cc/timeline-demo-simple.html` for example reference sandbox.
-
-```js
-// Loads, checks IndexedDB cache (fast path), or decodes/precomputes (slow path)
-await avatar.loadTimeline(timelineConfig);
-
-// Control playback
-avatar.playTimeline();
-avatar.pauseTimeline();
-avatar.setTimelineTime(15.5); // Seek playhead snappy (crossfades disabled)
-```
-
-### Video Sync Helper
-Sync the avatar playhead, play/pause, seeks, and speed rates in perfect lockstep with an HTML5 video player:
-
-```js
-const video = document.querySelector('video');
-avatar.syncWithVideoPlayer(video);
-
-// To release listeners later:
-avatar.unsyncVideoPlayer();
-```
-
-### Error Handling
-
-The widget validates timeline configurations before loading. If validation fails, a `timeline-validation-error` event is fired on the avatar container with detailed error information:
-
-```js
-avatar.container.addEventListener('timeline-validation-error', (e) => {
-    const errors = e.detail.errors;
-    errors.forEach(err => {
-        console.error(`[${err.code}] ${err.message}`);
-        console.error(`  Path: ${err.path}`);
-        if (err.hint) console.log(`  💡 ${err.hint}`);
-    });
 });
+avatar.playTimeline(); avatar.pauseTimeline(); avatar.setTimelineTime(15.5);
+avatar.syncWithVideoPlayer(document.querySelector('video'));   // follows play/pause/seek/rate; unsyncVideoPlayer() to stop
 ```
 
-**Error Structure**: Each error contains:
-- `code`: Machine-readable error code (e.g., `INVALID_TRIGGER_TYPE`)
-- `message`: Human-readable description
-- `path`: JSON path to the error location (e.g., `triggers[0].type`)
-- `hint`: Actionable suggestion for fixing the issue
+Rules:
+- Only `start` is required on audio/video clips; durations are detected (video files are decoded for their audio). Total length = end of the longest clip (10 s with no media); triggers past it are cut.
+- Animations loop for their whole trigger block unless `loop: false` (plays once, holds the last frame). Names containing `loop` (e.g. `Idleloop`) always loop.
+- When triggers overlap, the one that started last wins.
+- Lip-sync and blink frames are precomputed once and cached in IndexedDB by config hash, so reloading the same timeline is instant. `WebAvatar.clearCache()` empties it.
+- Container events: `timeline-loaded`, `timeline-played`, `timeline-paused`, `timeline-seeked`.
 
-**Common Validation Errors**:
-- `INVALID_CONFIG`: Timeline config must be an object
-- `INVALID_AUDIO_ARRAY`: audio must be an array
-- `INVALID_TRIGGERS_ARRAY`: triggers must be an array
-- `INVALID_TRIGGER_TYPE`: trigger type must be "animation" or "emotion"
-- `INVALID_EMOTION_NAME`: Unknown emotion name
-- `MISSING_ANIMATION_NAME`: Animation trigger missing required "name" field
+### Validation errors
+An invalid config makes `loadTimeline()` reject (`error.code === 'VALIDATION_FAILED'`, list in `error.validationErrors`) and fires `timeline-validation-error` on the container with `detail.errors`. Each error has `code`, `message`, `path` (e.g. `triggers[0].type`) and `hint`. Common codes: `INVALID_CONFIG`, `INVALID_AUDIO_ARRAY`, `MISSING_AUDIO_URL`, `MISSING_START_TIME`, `INVALID_TRIGGERS_ARRAY`, `INVALID_TRIGGER_TYPE` (must be `animation` or `emotion`), `MISSING_TRIGGER_NAME`, `INVALID_DURATION`, `INVALID_SPEED`, `INVALID_TRIM_START`, `INVALID_LOOP`, `INVALID_MUTE_AUDIO`, `INVALID_DEFAULT_ANIMATION`. A missing animation rejects with `ANIMATION_PRELOAD_ERROR`.
 
-The sandbox demo (timeline-sandbox.html) displays validation errors using a browser alert with all error details formatted inline.
+Working examples: `https://webavatar.didthat.cc/timeline-demo.html` and `https://webavatar.didthat.cc/timeline-demo-simple.html`.
 
----
+## 5. Asset Catalog
 
+Models and animations come from the R2 catalog (`https://webavatar-avatar-assets.didthat.workers.dev/v1/manifest`, optionally `?widgetId=`). Use its stable IDs (`'Botnoi'`, `'Greeting'`) rather than building file paths; each animation ID picks a model-specific file when one exists, else the common one. Full URLs still work.
 
-## 5. Technical Features
-- **Lip-Sync**: Real-time MFCC phoneme detection (aa, ih, ou, ee, oh).
-- **Timeline precomputation**: IndexedDB caching of baked lipsync phoneme structures for instantaneous subsequent loads.
-- **Animations**: VRMA support with root-motion compensation and smooth blending.
-- **Emotions**: 6 core states with spring-damper smoothing.
-- **Behaviors**: Deterministic eye-blinking is baked and cached directly with the offline lipsync frame data, pausing/seeking in sync with the playback timeline, and custom camera adjustments.
-- **Dependencies**: Automatically handles Three.js and Pixiv VRM (no manual script tags needed).
-
-### Caching Behavior
-
-The widget uses multiple caching layers:
-
-1. **Lipsync frames** (IndexedDB) — Timeline configurations are automatically hashed, and precomputed phoneme + blink frames are stored in IndexedDB. Subsequent loads of the same timeline are instant (no re-analysis). This is handled transparently by the widget.
-
-2. **Animation clips (.vrma files)** — Cached in-memory only during the page session. Cleared on page reload.
-
-**Note**: Developers can store timeline configs in their own localStorage/database layer for persistence across sessions. See `timeline-sandbox.html` for a reference implementation using localStorage.
+Inside `chat-widget` you don't call this yourself: one `widget-config?widgetId=…` request returns the widget's avatar and the catalog it may use (including account-only presets for the owner's widgets). Generated avatars load from the per-user avatar API and use their saved profile for animations.
