@@ -6,7 +6,6 @@ avatar-widget/
 flex2html/
 BACKUP/
 TEST/
-gemini-live-ephemeral-tokens-websocket-reference/
 .env
 .env.local
 package-lock.json
